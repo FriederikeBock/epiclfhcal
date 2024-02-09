@@ -728,7 +728,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     TH1D* histNSCombHG_mappedReb[gMaxLayers][9];               // combined high&low gain all triggers
     TH1D* histNSHGTrig_mappedReb[gMaxLayers][9];               // high gain straight line triggers
     TH1D* histNSCombHGTrig_mappedReb[gMaxLayers][9];           // combined high&low gain straight line triggers
-    TF1*  fitLandauG_NSHGTrig[gMaxLayers][9];                  // Landau Gauss fits
+    TF1*  fitLandauG_NSHGTrig_mapped[gMaxLayers][9];           // Landau Gauss fits
      
     //***************************************************
     // map of triggers above threshold  
@@ -757,11 +757,14 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           histNSLGTriggNoise[j][i]  = new TH1D(Form("h_NS_LGTriggeredNoise_B%d_C%02d",j,i),"veto front & back; LG (adc); counts",4201,-200,4001);
           histNSHGTriggNoise[j][i]  = new TH1D(Form("h_NS_HGTriggeredNoise_B%d_C%02d",j,i),"veto front & back; HG (adc); counts",4201,-200,4001);
         }
+        fitLandauG_NSHGTrig[j][i]     = nullptr;
       }
       if (isTBdata)
         hist_T_NSCombHG[j]= new TH2D(Form("h_T_NS_CombHG_B%d",j),"; t (min); comb HG equivalent (adc)",1000,0,120,10000,0,1e6);
       else 
         hist_T_NSCombHG[j]= new TH2D(Form("h_T_NS_CombHG_B%d",j),"; t (min); comb HG equivalent (adc)",10000,0,1000,10000,0,1e6);
+      
+      
     }
     for (Int_t l = 0; l < gMaxLayers; l++){
       for (Int_t c = 0; c < 9; c++){
@@ -777,7 +780,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         histNSHGTrig_mappedReb[l][c]         = nullptr;
         histNSCombHG_mappedReb[l][c]         = nullptr; 
         histNSCombHGTrig_mappedReb[l][c]     = nullptr;
-        fitLandauG_NSHGTrig[l][c]            = nullptr;
+        fitLandauG_NSHGTrig_mapped[l][c]     = nullptr;
       }
     }
 
@@ -793,15 +796,25 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     if (verbosity > 2)for (Int_t i = 0; i < 2781; i++) std::cout << binningADC[i] << "," ;
     if (verbosity > 2)std::cout<< std::endl; 
     
+    // 1D channel representation of fit values, x axis scales as 10x layer count + channel within one assembley, 
+    // - layer 3 channel 3: 33
+    // - layer 0 channel 2: 2
     
+    TH1D* hist1DMPV_HG          = new TH1D("hist1DMPV_HG_channels", "; 10x layer + board channel; MPV_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DMax_HG          = new TH1D("hist1DMax_HG_channels", "; 10x layer + board channel; Max_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DFWHM_HG         = new TH1D("hist1DFWHM_HG_channels", "; 10x layer + board channel; FWHM_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DWidth_HG        = new TH1D("hist1DWidth_HG_channels", "; 10x layer + board channel; Width_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DGWidth_HG       = new TH1D("hist1DGWidth_HG_channels", "; 10x layer + board channel; Gauss Width_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    
+    // 2D representation of fit values
     TH2D* hist2DMPV_HG          = new TH2D("hist2DMPV_HG_z_channel", "; channel; layer; MPV_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DMPVErr_HG       = new TH2D("hist2DMPV_HG_z_channel", "; channel; layer; #Delta(MPV_{mip}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
+    TH2D* hist2DMPVErr_HG       = new TH2D("hist2DMPVErr_HG_z_channel", "; channel; layer; #Delta(MPV_{mip}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
     TH2D* hist2DMax_HG          = new TH2D("hist2DMax_HG_z_channel", "; channel; layer; Max_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
     TH2D* hist2DFWHM_HG         = new TH2D("hist2DFWHM_HG_z_channel", "; channel; layer; FWHM_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
     TH2D* hist2DWidth_HG        = new TH2D("hist2DWidth_HG_z_channel", "; channel; layer; Width_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DWidthErr_HG     = new TH2D("hist2DWidth_HG_z_channel", "; channel; layer; #Delta(Width_{mip}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
+    TH2D* hist2DWidthErr_HG     = new TH2D("hist2DWidthErr_HG_z_channel", "; channel; layer; #Delta(Width_{mip}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
     TH2D* hist2DGWidth_HG       = new TH2D("hist2DGWidth_HG_z_channel", "; channel; layer; Gauss Width_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DGWidthErr_HG    = new TH2D("hist2DGWidth_HG_z_channel", "; channel; layer; #Delta(Gauss Width_{mip}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
+    TH2D* hist2DGWidthErr_HG    = new TH2D("hist2DGWidthErr_HG_z_channel", "; channel; layer; #Delta(Gauss Width_{mip}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
     
     Double_t mpL[gMaxLayers][9]       = {{0.}};
     Double_t mpLErr[gMaxLayers][9]    = {{0.}};
@@ -811,6 +824,8 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     Double_t sigmaLErr[gMaxLayers][9] = {{0.}};
     Double_t maxLandG[gMaxLayers][9]  = {{0.}};
     Double_t fwhmLandG[gMaxLayers][9] = {{0.}};
+    double chisqr[gMaxLayers][9]      = {{0.}};
+    int ndf[gMaxLayers][9]            = {{0}};
   
 
     
@@ -1001,24 +1016,32 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           plhi[3]=histNSHGTrig_mapped[layer][chBoard]->GetRMS()*2;
           sv[2]=histNSHGTrig_mapped[layer][chBoard]->Integral(); 
 
-          double chisqr;
-          int    ndf;
-          fitLandauG_NSHGTrig_mapped[layer][chBoard]  = langaufit(histNSHGTrig_mappedReb[layer][chBoard],fr,sv,pllo,plhi,fp,fpe,&chisqr,&ndf);
-          fitLandauG_NSHGTrig                         = (TF1*)fitLandauG_NSHGTrig_mapped[j][i]->Clone(Form("f_LandauG_NSHG_L%d_C%02d",layer,chBoard));
+          fitLandauG_NSHGTrig_mapped[layer][chBoard]  = langaufit(histNSHGTrig_mappedReb[layer][chBoard],fr,sv,pllo,plhi,fp,fpe,&chisqr[layer][chBoard],&ndf[layer][chBoard]);
+          fitLandauG_NSHGTrig_mapped[layer][chBoard]->SetName(Form("f_LandauG_NSHG_L%d_C%02d",layer,chBoard));
+          fitLandauG_NSHGTrig[j][i]                   = (TF1*)fitLandauG_NSHGTrig_mapped[layer][chBoard]->Clone(Form("f_LandauG_NSHG_B%d_C%02d",j,i));
+          mpL[layer][chBoard]           = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(1);
+          mpLErr[layer][chBoard]        = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(1);
+          sigmaG[layer][chBoard]        = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(3);
+          sigmaGErr[layer][chBoard]     = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(3);
+          sigmaL[layer][chBoard]        = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(0);
+          sigmaLErr[layer][chBoard]     = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(0);
           
-          mpL[layer][chBoard]           = fitLandauG_NSHGTrig[layer][chBoard]->GetParameter(1);
-          mpLErr[layer][chBoard]        = fitLandauG_NSHGTrig[layer][chBoard]->GetParError(1);
-          sigmaG[layer][chBoard]        = fitLandauG_NSHGTrig[layer][chBoard]->GetParameter(3);
-          sigmaGErr[layer][chBoard]     = fitLandauG_NSHGTrig[layer][chBoard]->GetParError(3);
-          sigmaL[layer][chBoard]        = fitLandauG_NSHGTrig[layer][chBoard]->GetParameter(0);
-          sigmaLErr[layer][chBoard]     = fitLandauG_NSHGTrig[layer][chBoard]->GetParError(0);
+          hist2DMPV_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(1));
+          hist2DMPVErr_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(1));
+          hist2DWidth_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(0));
+          hist2DWidthErr_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(0));
+          hist2DGWidth_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(3));
+          hist2DGWidthErr_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(3));
           
-          hist2DMPV_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig[layer][chBoard]->GetParameter(1));
-          hist2DMPVErr_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig[layer][chBoard]->GetParError(1));
-          hist2DWidth_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig[layer][chBoard]->GetParameter(0));
-          hist2DWidthErr_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig[layer][chBoard]->GetParError(0));
-          hist2DGWidth_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig[layer][chBoard]->GetParameter(3));
-          hist2DGWidthErr_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig[layer][chBoard]->GetParError(3));
+          /// get bin to fill for 1D representation of channels for fit values
+          Int_t channelBin1D = hist1DMPV_HG->FindBin(layer*10+chBoard);          
+          hist1DMPV_HG->SetBinContent(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(1));
+          hist1DMPV_HG->SetBinError(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(1));
+          hist1DWidth_HG->SetBinContent(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(0));
+          hist1DWidth_HG->SetBinError(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(0));
+          hist1DGWidth_HG->SetBinContent(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(3));
+          hist1DGWidth_HG->SetBinError(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(3));
+          
           
           double SNRPeak, SNRFWHM;
           langaupro(fp,SNRPeak,SNRFWHM);
@@ -1028,6 +1051,8 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           
           hist2DMax_HG->Fill(chBoard, layer,SNRPeak);
           hist2DFWHM_HG->Fill(chBoard, layer,SNRFWHM);
+          hist1DMax_HG->SetBinContent(channelBin1D, SNRPeak);
+          hist1DFWHM_HG->SetBinContent(channelBin1D, SNRFWHM);
         }
 
         
@@ -1141,7 +1166,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
       if (!lActive[l]) continue;      
       for (Int_t c = 1; c < 9; c++){
         
-        PlotMIPSingle (canvas1DNoise, histNSHGTrig_mapped[l][c],fitLandauG_NSHGTrig[l][c], chisqr, ndf, SNRPeak, SNRFWHM,
+        PlotMIPSingle (canvas1DNoise, histNSHGTrig_mapped[l][c],fitLandauG_NSHGTrig_mapped[l][c], chisqr[l][c], ndf[l][c], maxLandG[l][c], fwhmLandG[l][c],
                         l, c, Form("%s/HG_TriggMipWithFit", outputDirPlotsDet.Data()), 0.04);
       }
       PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSHGTriggNoise_mapped[l], 1, 9,
@@ -1163,13 +1188,13 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
       PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSCombHG_mappedReb[l], 1, 9,
                                   -100, 40000, 1./100, Form("%s/CombHGNS", outputDirPlots.Data()), l, 0.04,"hist");
       PlotStraigtLineTriggAndFitFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                          histNSHGTrig_mapped[l], fitLandauG_NSHGTrig[l],maxLandG[l],
+                                          histNSHGTrig_mapped[l], fitLandauG_NSHGTrig_mapped[l],maxLandG[l],
                                           150, 2200, 0, 2200, 1.2, l, Form("%s/TriggerWithFit_HG_NS_Layer%02d.pdf" ,outputDirPlots.Data(), l));
       PlotStraigtLineTriggAndFitFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                          histNSHGTrig_mappedReb[l], fitLandauG_NSHGTrig[l],maxLandG[l],
+                                          histNSHGTrig_mappedReb[l], fitLandauG_NSHGTrig_mapped[l],maxLandG[l],
                                           150, 2200, 0, 2200, 1.2, l, Form("%s/TriggerWithFit_HG_NSReb_Layer%02d.pdf" ,outputDirPlots.Data(), l));
       PlotStraigtLineTriggAndFitFullLayerLin (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                            histNSHGTrig_mappedReb[l], fitLandauG_NSHGTrig[l],maxLandG[l],
+                                            histNSHGTrig_mappedReb[l], fitLandauG_NSHGTrig_mapped[l],maxLandG[l],
                                             150, 2200, 0, 2200, 1.05, l, Form("%s/TriggerWithFitLinY_HG_NS_Layer%02d.pdf" ,outputDirPlots.Data(), l));
       
     }
@@ -1271,6 +1296,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           histNSCombHGTrig[j][i]->Write();
           histNSHGNoise[j][i]->Write();
           histNSHGTriggNoise[j][i]->Write();
+          if(fitLandauG_NSHGTrig[j][i])fitLandauG_NSHGTrig[j][i]->Write();
         }
         histNSLG[j][i]->Write();
         if (isTBdata){
@@ -1321,7 +1347,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         if (histNSCombHG_mapped[l][c]) histNSCombHG_mapped[l][c]->Write();
         if (histNSCombHG_mappedReb[l][c]) histNSCombHG_mappedReb[l][c]->Write();
         if (histNSHGTrig_mapped[l][c]) histNSHGTrig_mapped[l][c]->Write();
-        if (fitLandauG_NSHGTrig[l][c]) fitLandauG_NSHGTrig[l][c]->Write(Form("LandauGauss_NSHGTrig_L%d_C%02d",l,c));
+        if (fitLandauG_NSHGTrig_mapped[l][c]) fitLandauG_NSHGTrig_mapped[l][c]->Write(Form("LandauGauss_NSHGTrig_L%d_C%02d",l,c));
         if (histNSHGTrig_mappedReb[l][c]) histNSHGTrig_mappedReb[l][c]->Write();
         if (histNSLGTrig_mapped[l][c]) histNSLGTrig_mapped[l][c]->Write();
         if (histNSCombHGTrig_mapped[l][c]) histNSCombHGTrig_mapped[l][c]->Write();
@@ -1349,6 +1375,21 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     histLGHG_slope->Write();
     hist2DLGHG_offset->Write();
     
+    hist1DMPV_HG->Write();
+    hist1DMax_HG->Write();
+    hist1DWidth_HG->Write();
+    hist1DGWidth_HG->Write();
+    hist1DFWHM_HG->Write();
+
+    hist2DMPV_HG->Write();
+    hist2DMPVErr_HG->Write();
+    hist2DWidth_HG->Write();
+    hist2DWidthErr_HG->Write();
+    hist2DGWidth_HG->Write();
+    hist2DGWidthErr_HG->Write();
+    hist2DMax_HG->Write();
+    hist2DFWHM_HG->Write();
+        
     hist2DNSTrigg->Write();
     hist2DNSTriggNoise->Write();
     hist2DNSTriggEffi->Write();
