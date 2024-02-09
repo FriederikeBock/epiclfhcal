@@ -481,6 +481,28 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     TH2D* hist2DLGHG_slope      = new TH2D("hist2D_LGHGslope_z_channel", "; channel; layer; slope (HG adc/LG adc)", 8, 0.5, 8.5, 14, -0.5, 13.5);
     TH2D* hist2DLGHG_offset     = new TH2D("hist2D_LGHGoffset_z_channel", "; channel; layer; offset (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
     
+    // 1D channel representation of fit values, x axis scales as 10x layer count + channel within one assembley, 
+    // - layer 3 channel 3: 33
+    // - layer 0 channel 2: 2
+    TH1D* hist1DNoiseSigma_HG   = new TH1D("hist1DNoiseSigma_HG_channels", "; 10x layer + board channel; noise #sigma (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DNoiseMean_HG    = new TH1D("hist1DNoiseMean_HG_channels", "; 10x layer + board channel; noise #mu (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DNoiseSigma_LG   = new TH1D("hist1DNoiseSigma_LG_channels", "; 10x layer + board channel; noise #sigma (LG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DNoiseMean_LG    = new TH1D("hist1DNoiseMean_LG_channels", "; 10x layer + board channel; noise #mu (LG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DLGHG_slope      = new TH1D("hist1DLGHG_slope_channels", "; 10x layer + board channel; slope (HG adc/LG adc)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DLGHG_offset     = new TH1D("hist1DLGHG_slope_channels", "; 10x layer + board channel; offset (HG adc/LG adc)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DHGLG_slope      = new TH1D("hist1DHGLG_slope_channels", "; 10x layer + board channel; slope (LG adc/HG adc)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DHGLG_offset     = new TH1D("hist1DHGLG_slope_channels", "; 10x layer + board channel; offset (LG adc/HG adc)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    
+    // 1D channel representation of fit values, x axis scales as CAEN board channelns 64x CAEN board # + CAEN channel
+    TH1D* hist1DCAEN_NoiseSigma_HG   = new TH1D("hist1DCAEN_NoiseSigma_HG_channels", "; 64x CAEN board + CAEN channel; noise #sigma (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_NoiseMean_HG    = new TH1D("hist1DCAEN_NoiseMean_HG_channels", "; 64x CAEN board + CAEN channel; noise #mu (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_NoiseSigma_LG   = new TH1D("hist1DCAEN_NoiseSigma_LG_channels", "; 64x CAEN board + CAEN channel; noise #sigma (LG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_NoiseMean_LG    = new TH1D("hist1DCAEN_NoiseMean_LG_channels", "; 64x CAEN board + CAEN channel; noise #mu (LG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_LGHG_slope      = new TH1D("hist1DCAEN_LGHG_slope_channels", "; 64x CAEN board + CAEN channel; slope (HG adc/LG adc)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_LGHG_offset     = new TH1D("hist1DCAEN_LGHG_slope_channels", "; 64x CAEN board + CAEN channel; offset (HG adc/LG adc)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_HGLG_slope      = new TH1D("hist1DCAEN_HGLG_slope_channels", "; 10x layer + board channel; slope (LG adc/HG adc)", 64*gMaxBoard+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DCAEN_HGLG_offset     = new TH1D("hist1DCAEN_HGLG_slope_channels", "; 10x layer + board channel; offset (LG adc/HG adc)", 64*gMaxBoard+1, -0.5, 10*maxActiveLayer+0.5 );
+
     //**********************************************************************
     // Initialize fits for all layers and channels to nullptr
     //**********************************************************************    
@@ -506,10 +528,13 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         sigma[1][j][i] = -1;
         sigma[2][j][i] = -1;
         sigma[3][j][i] = -1;
+
         Int_t chMap     = j*64 + i;
         Int_t chBoard   = mapping[chMap][1];
         Int_t layer     = mapping[chMap][0];
-        std::cout << j << "\t" << i << "\t" << chMap << "\t L: " << layer  << "\t C:" <<  chBoard << std::endl;
+        Int_t channelBin1D = hist1DNoiseSigma_HG->FindBin(layer*10+chBoard);          
+          
+        std::cout << j << "\t" << i << "\t" << chMap << "\t L: " << layer  << "\t C:" <<  chBoard << "\t bin ID"<< channelBin1D << std::endl;
         
         // ********************************************************
         // map raw and trigger histos from CAEN numbering to 
@@ -525,30 +550,43 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         // -> map noise histos from CAEN numb. -> physical
         // -> fill monitoring plots
         // ********************************************************
+        Bool_t bFit = kFALSE;
+        // HG noise fits
         if (histHGTriggNoise[j][i]){
-          Bool_t bFit = FitNoise (histHGTriggNoise[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, "f_GaussBG_HG", "HG");
+          bFit = FitNoise (histHGTriggNoise[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, "f_GaussBG_HG", "HG");
           if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histHGTriggNoise[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, layer, chBoard, 
                                                   Form("%s/HG_NoiseWithFit", outputDirPlotsDet.Data()), 0.04);
           histHGTriggNoise_mapped[layer][chBoard] = (TH1D*)histHGTriggNoise[j][i]->Clone(Form("h_HGTriggeredNoise_mapped_L%d_C%02d",layer,chBoard));
           if (bFit){
             fitGausHG_BG_mapped[layer][chBoard] = (TF1*)fitGausHG_BG[j][i]->Clone(Form("f_GaussBG_HG_mapped_L%d_C%02d",layer,chBoard));
-            hist2DNoiseMean_HG->Fill(chBoard,layer,mean[0][j][i]);
-            hist2DNoiseSigma_HG->Fill(chBoard,layer,sigma[0][j][i]);            
-            histNoiseMean_HG->Fill(mean[0][j][i]);
-            histNoiseSigma_HG->Fill(sigma[0][j][i]);
           }
         } else {
-          Bool_t bFit = FitNoise (histHG[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, "f_GaussBG_HG", "HG");
+          bFit = FitNoise (histHG[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, "f_GaussBG_HG", "HG");
           if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histHG[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, layer, chBoard, 
                                                   Form("%s/HG_NoiseWithFit", outputDirPlotsDet.Data()), 0.04);
           if (bFit){
             fitGausHG_BG_mapped[layer][chBoard] = (TF1*)fitGausHG_BG[j][i]->Clone(Form("f_GaussBG_HG_mapped_L%d_C%02d",layer,chBoard));
-            hist2DNoiseMean_HG->Fill(chBoard,layer,mean[0][j][i]);
-            hist2DNoiseSigma_HG->Fill(chBoard,layer,sigma[0][j][i]);
-            histNoiseMean_HG->Fill(mean[0][j][i]);
-            histNoiseSigma_HG->Fill(sigma[0][j][i]);
           }
         }
+        // fill fit monitoring hists HG
+        if (bFit){
+          hist2DNoiseMean_HG->Fill(chBoard,layer,mean[0][j][i]);
+          hist2DNoiseSigma_HG->Fill(chBoard,layer,sigma[0][j][i]);
+          histNoiseMean_HG->Fill(mean[0][j][i]);
+          histNoiseSigma_HG->Fill(sigma[0][j][i]);
+          
+          hist1DNoiseSigma_HG->SetBinContent(channelBin1D, sigma[0][j][i]);
+          hist1DNoiseSigma_HG->SetBinError(channelBin1D, sigma[1][j][i]);
+          hist1DNoiseMean_HG->SetBinContent(channelBin1D, mean[0][j][i]);
+          hist1DNoiseMean_HG->SetBinError(channelBin1D, mean[1][j][i]);
+          hist1DCAEN_NoiseSigma_HG->SetBinContent(chMap, sigma[0][j][i]);
+          hist1DCAEN_NoiseSigma_HG->SetBinError(chMap, sigma[1][j][i]);
+          hist1DCAEN_NoiseMean_HG->SetBinContent(chMap, mean[0][j][i]);          
+          hist1DCAEN_NoiseMean_HG->SetBinError(chMap, mean[1][j][i]);          
+        }
+        // reset boolean for fit success monitoring
+        bFit = kFALSE;
+        // LG noise fits
         if (histLGTriggNoise[j][i]){
           Bool_t bFit = FitNoise (histLGTriggNoise[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, "f_GaussBG_LG", "LG");
           if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histLGTriggNoise[j][i], fitGausLG_BG[j][i],  mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, layer, chBoard, 
@@ -556,10 +594,6 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           histLGTriggNoise_mapped[layer][chBoard] = (TH1D*)histLGTriggNoise[j][i]->Clone(Form("h_LGTriggeredNoise_mapped_L%d_C%02d",layer,chBoard));
           if (bFit){
             fitGausLG_BG_mapped[layer][chBoard] = (TF1*)fitGausLG_BG[j][i]->Clone(Form("f_GaussBG_LG_mapped_L%d_C%02d",layer,chBoard));
-            hist2DNoiseMean_LG->Fill(chBoard,layer,mean[2][j][i]);
-            hist2DNoiseSigma_LG->Fill(chBoard,layer,sigma[2][j][i]);
-            histNoiseMean_LG->Fill(mean[2][j][i]);
-            histNoiseSigma_LG->Fill(sigma[2][j][i]);
           }
         } else {
           Bool_t bFit = FitNoise (histLG[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, "f_GaussBG_LG", "LG");
@@ -567,11 +601,23 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
                                                   Form("%s/LG_NoiseWithFit", outputDirPlotsDet.Data()), 0.04);
           if (bFit){
             fitGausLG_BG_mapped[layer][chBoard] = (TF1*)fitGausLG_BG[j][i]->Clone(Form("f_GaussBG_LG_mapped_L%d_C%02d",layer,chBoard));
-            hist2DNoiseMean_LG->Fill(chBoard,layer,mean[2][j][i]);
-            hist2DNoiseSigma_LG->Fill(chBoard,layer,sigma[2][j][i]);
-            histNoiseMean_LG->Fill(mean[2][j][i]);
-            histNoiseSigma_LG->Fill(sigma[2][j][i]);
           }
+        }
+        // fill fit monitoring hists LG
+        if (bFit){
+          hist2DNoiseMean_LG->Fill(chBoard,layer,mean[2][j][i]);
+          hist2DNoiseSigma_LG->Fill(chBoard,layer,sigma[2][j][i]);
+          histNoiseMean_LG->Fill(mean[2][j][i]);
+          histNoiseSigma_LG->Fill(sigma[2][j][i]);
+       
+          hist1DNoiseSigma_LG->SetBinContent(channelBin1D, sigma[2][j][i]);
+          hist1DNoiseSigma_LG->SetBinError(channelBin1D, sigma[3][j][i]);
+          hist1DNoiseMean_LG->SetBinContent(channelBin1D, mean[2][j][i]);
+          hist1DNoiseMean_LG->SetBinError(channelBin1D, mean[3][j][i]);
+          hist1DCAEN_NoiseSigma_LG->SetBinContent(chMap, sigma[2][j][i]);
+          hist1DCAEN_NoiseSigma_LG->SetBinError(chMap, sigma[3][j][i]);
+          hist1DCAEN_NoiseMean_LG->SetBinContent(chMap, mean[2][j][i]);          
+          hist1DCAEN_NoiseMean_LG->SetBinError(chMap, mean[3][j][i]);          
         }
         
         // ********************************************************
@@ -596,12 +642,20 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         // ********************************************************
         if (histLGHG[j][i]){
           FitAndPlotGainCorr ( histLGHG[j][i], fitLGHGCorr[j][i], "f_LGHGCorr", 100, 380, 500, 4000,
-                               cslope[0][j][i], cslope[1][j][i], coffset[0][j][i], coffset[1][j][i], 
-                               j, i, layer, chBoard,
-                               kTRUE, canvas2DCorr, Form("%s/LG_HG_Corr", outputDirPlotsDet.Data()), textSizeRel);
-           hist2DLGHG_slope->Fill(chBoard,layer,cslope[0][j][i]);
-           hist2DLGHG_offset->Fill(chBoard,layer,coffset[0][j][i]);
-           histLGHG_slope->Fill(cslope[0][j][i]);
+                              cslope[0][j][i], cslope[1][j][i], coffset[0][j][i], coffset[1][j][i], 
+                              j, i, layer, chBoard,
+                              kTRUE, canvas2DCorr, Form("%s/LG_HG_Corr", outputDirPlotsDet.Data()), textSizeRel);
+          hist2DLGHG_slope->Fill(chBoard,layer,cslope[0][j][i]);
+          hist2DLGHG_offset->Fill(chBoard,layer,coffset[0][j][i]);
+          histLGHG_slope->Fill(cslope[0][j][i]);
+          hist1DLGHG_slope->SetBinContent(channelBin1D, cslope[0][j][i]);
+          hist1DLGHG_slope->SetBinError(channelBin1D, cslope[1][j][i]);
+          hist1DLGHG_offset->SetBinContent(channelBin1D, coffset[0][j][i]);
+          hist1DLGHG_offset->SetBinError(channelBin1D, coffset[1][j][i]);
+          hist1DCAEN_LGHG_slope->SetBinContent(chMap, cslope[0][j][i]);
+          hist1DCAEN_LGHG_slope->SetBinError(chMap, cslope[1][j][i]);
+          hist1DCAEN_LGHG_offset->SetBinContent(chMap, coffset[0][j][i]);
+          hist1DCAEN_LGHG_offset->SetBinError(chMap, coffset[1][j][i]);
 
         }
         if (histLGHG[j][i]){
@@ -609,6 +663,14 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
                               cslope[2][j][i], cslope[3][j][i], coffset[2][j][i], coffset[3][j][i], 
                               j, i, layer, chBoard,
                               kFALSE, canvas2DCorr, Form("%s/HG_LG_Corr", outputDirPlotsDet.Data()), textSizeRel);
+          hist1DHGLG_slope->SetBinContent(channelBin1D, cslope[2][j][i]);
+          hist1DHGLG_slope->Fill(channelBin1D, cslope[3][j][i]);
+          hist1DHGLG_offset->SetBinContent(channelBin1D, coffset[2][j][i]);
+          hist1DHGLG_offset->SetBinError(channelBin1D, coffset[3][j][i]);
+          hist1DCAEN_HGLG_slope->SetBinContent(chMap, cslope[2][j][i]);
+          hist1DCAEN_HGLG_slope->SetBinError(chMap, cslope[3][j][i]);
+          hist1DCAEN_HGLG_offset->SetBinContent(chMap, coffset[2][j][i]);
+          hist1DCAEN_HGLG_offset->SetBinError(chMap, coffset[3][j][i]);
         }        
         
         
@@ -662,33 +724,24 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     // -> noise mean & sigma LG, HG
     // -> slope and offset of LG-HG & HG-LG correlation
     // ********************************************************
-    Double_t channel[gMaxChannels];
-    Double_t channelE[gMaxChannels];
-    for(Int_t i = 0; i < gMaxChannels; i++){
-      channel[i] = i;
-      channelE[i] = 0;
-    }
-    
-    TGraphErrors* gNoiseMeanHG[gMaxBoard];
-    TGraphErrors* gNoiseMeanLG[gMaxBoard];
-    TGraphErrors* gNoiseSigmaHG[gMaxBoard];
-    TGraphErrors* gNoiseSigmaLG[gMaxBoard];
-    TGraphErrors* gCorrLGHGSlope[gMaxBoard];
-    TGraphErrors* gCorrLGHGOffset[gMaxBoard];
-    TGraphErrors* gCorrHGLGSlope[gMaxBoard];
-    TGraphErrors* gCorrHGLGOffset[gMaxBoard];
-    for (Int_t j = 0; j< gMaxBoard; j++){
-      gNoiseMeanHG[j] = new TGraphErrors(gMaxChannels, channel, mean[0][j], channelE, mean[1][j] );
-      gNoiseSigmaHG[j] = new TGraphErrors(gMaxChannels, channel, sigma[0][j], channelE, sigma[1][j] );
-      gNoiseMeanLG[j] = new TGraphErrors(gMaxChannels, channel, mean[2][j], channelE, mean[3][j] );
-      gNoiseSigmaLG[j] = new TGraphErrors(gMaxChannels, channel, sigma[2][j], channelE, sigma[3][j] );
-      gCorrLGHGSlope[j] = new TGraphErrors(gMaxChannels, channel, cslope[0][j], channelE, cslope[1][j] );
-      gCorrLGHGOffset[j] = new TGraphErrors(gMaxChannels, channel, coffset[0][j], channelE, coffset[1][j] );
-      gCorrHGLGSlope[j] = new TGraphErrors(gMaxChannels, channel, cslope[2][j], channelE, cslope[3][j] );
-      gCorrHGLGOffset[j] = new TGraphErrors(gMaxChannels, channel, coffset[2][j], channelE, coffset[3][j] );
-    }
-    
-    
+    TGraphErrors* gNoiseMeanHG      = CreateGraphFromHistAndCleanup(hist1DNoiseMean_HG, "graph_mean_Noise_HG_channels");
+    TGraphErrors* gNoiseMeanLG      = CreateGraphFromHistAndCleanup(hist1DNoiseMean_LG, "graph_mean_Noise_LG_channels");
+    TGraphErrors* gNoiseSigmaHG     = CreateGraphFromHistAndCleanup(hist1DNoiseSigma_HG, "graph_sigma_Noise_HG_channels");
+    TGraphErrors* gNoiseSigmaLG     = CreateGraphFromHistAndCleanup(hist1DNoiseSigma_LG, "graph_sigma_Noise_LG_channels");
+    TGraphErrors* gCorrLGHGSlope    = CreateGraphFromHistAndCleanup(hist1DLGHG_slope, "graph_slope_corr_LGHG_channels");
+    TGraphErrors* gCorrLGHGOffset   = CreateGraphFromHistAndCleanup(hist1DLGHG_offset, "graph_offset_corr_LGHG_channels");
+    TGraphErrors* gCorrHGLGSlope    = CreateGraphFromHistAndCleanup(hist1DHGLG_slope, "graph_slope_corr_HGLG_channels");
+    TGraphErrors* gCorrHGLGOffset   = CreateGraphFromHistAndCleanup(hist1DHGLG_offset, "graph_offset_corr_HGLG_channels");
+
+    TGraphErrors* gCAEN_NoiseMeanHG     = CreateGraphFromHistAndCleanup(hist1DCAEN_NoiseMean_HG, "graphCAEN_mean_Noise_HG_channels");
+    TGraphErrors* gCAEN_NoiseMeanLG     = CreateGraphFromHistAndCleanup(hist1DCAEN_NoiseMean_LG, "graphCAEN_mean_Noise_LG_channels");
+    TGraphErrors* gCAEN_NoiseSigmaHG    = CreateGraphFromHistAndCleanup(hist1DCAEN_NoiseSigma_HG, "graphCAEN_sigma_Noise_HG_channels");
+    TGraphErrors* gCAEN_NoiseSigmaLG    = CreateGraphFromHistAndCleanup(hist1DCAEN_NoiseSigma_LG, "graphCAEN_sigma_Noise_LG_channels");
+    TGraphErrors* gCAEN_CorrLGHGSlope   = CreateGraphFromHistAndCleanup(hist1DCAEN_LGHG_slope, "graphCAEN_slope_corr_LGHG_channels");
+    TGraphErrors* gCAEN_CorrLGHGOffset  = CreateGraphFromHistAndCleanup(hist1DCAEN_LGHG_offset, "graphCAEN_offset_corr_LGHG_channels");
+    TGraphErrors* gCAEN_CorrHGLGSlope   = CreateGraphFromHistAndCleanup(hist1DCAEN_HGLG_slope, "graphCAEN_slope_corr_HGLG_channels");
+    TGraphErrors* gCAEN_CorrHGLGOffset  = CreateGraphFromHistAndCleanup(hist1DCAEN_HGLG_offset, "graphCAEN_offset_corr_HGLG_channels");
+        
     // ********************************************************************************************************
     // Noise subtracted data monitoring histos per CAEN board and channel
     // ********************************************************************************************************    
@@ -799,12 +852,18 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     // 1D channel representation of fit values, x axis scales as 10x layer count + channel within one assembley, 
     // - layer 3 channel 3: 33
     // - layer 0 channel 2: 2
-    
     TH1D* hist1DMPV_HG          = new TH1D("hist1DMPV_HG_channels", "; 10x layer + board channel; MPV_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
     TH1D* hist1DMax_HG          = new TH1D("hist1DMax_HG_channels", "; 10x layer + board channel; Max_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
     TH1D* hist1DFWHM_HG         = new TH1D("hist1DFWHM_HG_channels", "; 10x layer + board channel; FWHM_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
     TH1D* hist1DWidth_HG        = new TH1D("hist1DWidth_HG_channels", "; 10x layer + board channel; Width_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
     TH1D* hist1DGWidth_HG       = new TH1D("hist1DGWidth_HG_channels", "; 10x layer + board channel; Gauss Width_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+
+    // 1D channel representation of fit values, x axis scales as CAEN board channelns 64x CAEN board # + CAEN channel
+    TH1D* hist1DCAEN_MPV_HG     = new TH1D("hist1DCAEN_MPV_HG_channels", "; 64x CAEN board + CAEN channel; MPV_{mip} (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_Max_HG     = new TH1D("hist1DCAEN_Max_HG_channels", "; 64x CAEN board + CAEN channel; Max_{mip} (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_FWHM_HG    = new TH1D("hist1DCAEN_FWHM_HG_channels", "; 64x CAEN board + CAEN channel; FWHM_{mip} (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_Width_HG   = new TH1D("hist1DCAEN_Width_HG_channels", "; 64x CAEN board + CAEN channel; Width_{mip} (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_GWidth_HG  = new TH1D("hist1DCAEN_GWidth_HG_channels", "; 64x CAEN board + CAEN channel; Gauss Width_{mip} (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
     
     // 2D representation of fit values
     TH2D* hist2DMPV_HG          = new TH2D("hist2DMPV_HG_z_channel", "; channel; layer; MPV_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
@@ -827,8 +886,6 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     double chisqr[gMaxLayers][9]      = {{0.}};
     int ndf[gMaxLayers][9]            = {{0}};
   
-
-    
     // ********************************************************************************************************
     // Second loop over full tree to obtain noise subtracted histograms
     // ********************************************************************************************************
@@ -1042,6 +1099,12 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           hist1DGWidth_HG->SetBinContent(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(3));
           hist1DGWidth_HG->SetBinError(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(3));
           
+          hist1DCAEN_MPV_HG->SetBinContent(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(1));
+          hist1DCAEN_MPV_HG->SetBinError(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(1));
+          hist1DCAEN_Width_HG->SetBinContent(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(0));
+          hist1DCAEN_Width_HG->SetBinError(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(0));
+          hist1DCAEN_GWidth_HG->SetBinContent(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(3));
+          hist1DCAEN_GWidth_HG->SetBinError(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(3));
           
           double SNRPeak, SNRFWHM;
           langaupro(fp,SNRPeak,SNRFWHM);
@@ -1053,9 +1116,10 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           hist2DFWHM_HG->Fill(chBoard, layer,SNRFWHM);
           hist1DMax_HG->SetBinContent(channelBin1D, SNRPeak);
           hist1DFWHM_HG->SetBinContent(channelBin1D, SNRFWHM);
+          hist1DCAEN_Max_HG->SetBinContent(chMap+1, SNRPeak);
+          hist1DCAEN_FWHM_HG->SetBinContent(chMap+1, SNRFWHM);
         }
 
-        
         if (bDetPlot){
           // ********************************************************
           // Plot different triggers together
@@ -1235,23 +1299,22 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DWidthErr_HG, maxActiveLayer, textSizeRel, Form("%s/HGTrigg_WidthErr.pdf", outputDirPlots.Data()));
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DGWidth_HG, maxActiveLayer, textSizeRel, Form("%s/HGTrigg_GWidth.pdf", outputDirPlots.Data()));
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DGWidthErr_HG, maxActiveLayer, textSizeRel, Form("%s/HGTrigg_GWidthErr.pdf", outputDirPlots.Data()));
-    
-    
-    // ********************************************************************************************************
-    // Set axis titles for noise & correlation fit graphs
-    // ********************************************************************************************************
-    for (Int_t j = 0; j < gMaxBoard; j++){
-      gNoiseMeanHG[j]->SetTitle(";channel ID; mean noise HG (adc)");
-      gNoiseSigmaHG[j]->SetTitle(";channel ID; #sigma noise HG (adc)");
-      gNoiseMeanLG[j]->SetTitle(";channel ID; mean noise LG (adc)");
-      gNoiseSigmaHG[j]->SetTitle(";channel ID; #sigma noise LG (adc)");
-      gCorrLGHGSlope[j]->SetTitle(";channel ID; slope LG vs. HG (HG adc/LG adc)");
-      gCorrLGHGOffset[j]->SetTitle(";channel ID; offset LG vs. HG (HG adc)");
-      gCorrHGLGSlope[j]->SetTitle(";channel ID; slope HG vs. LG (LG adc/ HG adc)");
-      gCorrHGLGOffset[j]->SetTitle(";channel ID; offset HG vs. LG (LG adc)");
-    }
-    
-    
+        
+    // *****************************************************************
+    // Create graphs per board and channels with calib values MIP values
+    // *****************************************************************
+    TGraphErrors* graphMPV_HG     = CreateGraphFromHistAndCleanup(hist1DMPV_HG, "graphMPV_HG_channels");
+    TGraphErrors* graphMax_HG     = CreateGraphFromHistAndCleanup(hist1DMax_HG, "graphMax_HG_channels");
+    TGraphErrors* graphWidth_HG   = CreateGraphFromHistAndCleanup(hist1DWidth_HG, "graphWidth_HG_channels");
+    TGraphErrors* graphGWidth_HG  = CreateGraphFromHistAndCleanup(hist1DGWidth_HG, "graphGWidth_HG_channels");
+    TGraphErrors* graphFWHM_HG    = CreateGraphFromHistAndCleanup(hist1DFWHM_HG, "graphFWHM_HG_channels");
+
+    TGraphErrors* graphCAEN_MPV_HG    = CreateGraphFromHistAndCleanup(hist1DCAEN_MPV_HG, "graphCAEN_MPV_HG_channels");
+    TGraphErrors* graphCAEN_Max_HG    = CreateGraphFromHistAndCleanup(hist1DCAEN_Max_HG, "graphCAEN_Max_HG_channels");
+    TGraphErrors* graphCAEN_Width_HG  = CreateGraphFromHistAndCleanup(hist1DCAEN_Width_HG, "graphCAEN_Width_HG_channels");
+    TGraphErrors* graphCAEN_GWidth_HG = CreateGraphFromHistAndCleanup(hist1DCAEN_GWidth_HG, "graphCAEN_GWidth_HG_channels");
+    TGraphErrors* graphCAEN_FWHM_HG   = CreateGraphFromHistAndCleanup(hist1DCAEN_FWHM_HG, "graphCAEN_FWHM_HG_channels");
+
     // ********************************************************************************************************
     // write output to single file
     // ********************************************************************************************************
@@ -1315,15 +1378,6 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         histNSHGLG[j][i]->Write();        
       }
       fileOutput->cd();
-      // write graphs with fit values per board
-      gNoiseMeanHG[j]->Write(Form("mean_Noise_HG_B%d", j));
-      gNoiseSigmaHG[j]->Write(Form("sigma_Noise_HG_B%d", j));
-      gNoiseMeanLG[j]->Write(Form("mean_Noise_LG_B%d", j));
-      gNoiseSigmaLG[j]->Write(Form("sigma_Noise_LG_B%d", j));
-      gCorrLGHGSlope[j]->Write(Form("slope_corr_LGHG_B%d", j));
-      gCorrLGHGOffset[j]->Write(Form("offset_corr_LGHG_B%d", j));
-      gCorrHGLGSlope[j]->Write(Form("slope_corr_HGLG_B%d", j));
-      gCorrHGLGOffset[j]->Write(Form("offset_corr_HGLG_B%d", j));
       hist_T_NSCombHG[j]->Write();
     }
     // *******************************************************
@@ -1375,12 +1429,62 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     histLGHG_slope->Write();
     hist2DLGHG_offset->Write();
     
+    hist1DNoiseSigma_HG->Write();
+    hist1DNoiseMean_HG->Write();
+    hist1DNoiseSigma_LG->Write();
+    hist1DNoiseMean_LG->Write();
+    hist1DLGHG_slope->Write();
+    hist1DLGHG_offset->Write();
+    hist1DHGLG_slope->Write();
+    hist1DHGLG_offset->Write();
+    hist1DCAEN_NoiseSigma_HG->Write();
+    hist1DCAEN_NoiseMean_HG->Write();
+    hist1DCAEN_NoiseSigma_LG->Write();
+    hist1DCAEN_NoiseMean_LG->Write();
+    hist1DCAEN_LGHG_slope->Write();
+    hist1DCAEN_LGHG_offset->Write();
+    hist1DCAEN_HGLG_slope->Write();
+    hist1DCAEN_HGLG_offset->Write();
+
+    gNoiseMeanHG->Write();
+    gNoiseSigmaHG->Write();
+    gNoiseMeanLG->Write();
+    gNoiseSigmaLG->Write();
+    gCorrLGHGSlope->Write();
+    gCorrLGHGOffset->Write();
+    gCorrHGLGSlope->Write();
+    gCorrHGLGOffset->Write();
+    gCAEN_NoiseMeanHG->Write();
+    gCAEN_NoiseSigmaHG->Write();
+    gCAEN_NoiseMeanLG->Write();
+    gCAEN_NoiseSigmaLG->Write();
+    gCAEN_CorrLGHGSlope->Write();
+    gCAEN_CorrLGHGOffset->Write();
+    gCAEN_CorrHGLGSlope->Write();
+    gCAEN_CorrHGLGOffset->Write();
+
     hist1DMPV_HG->Write();
     hist1DMax_HG->Write();
     hist1DWidth_HG->Write();
     hist1DGWidth_HG->Write();
     hist1DFWHM_HG->Write();
+    hist1DCAEN_MPV_HG->Write();
+    hist1DCAEN_Max_HG->Write();
+    hist1DCAEN_Width_HG->Write();
+    hist1DCAEN_GWidth_HG->Write();
+    hist1DCAEN_FWHM_HG->Write();
 
+    graphMPV_HG->Write();
+    graphMax_HG->Write();
+    graphWidth_HG->Write();
+    graphGWidth_HG->Write();
+    graphFWHM_HG->Write();
+    graphCAEN_MPV_HG->Write();
+    graphCAEN_Max_HG->Write();
+    graphCAEN_Width_HG->Write();
+    graphCAEN_GWidth_HG->Write();
+    graphCAEN_FWHM_HG->Write();
+   
     hist2DMPV_HG->Write();
     hist2DMPVErr_HG->Write();
     hist2DWidth_HG->Write();

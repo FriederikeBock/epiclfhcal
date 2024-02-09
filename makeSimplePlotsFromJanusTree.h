@@ -114,28 +114,63 @@
     if (maxX != -10000) maxBin = hist->GetXaxis()->FindBin(maxX)+0.0001;
     Int_t largestBin = minBin;
     for (Int_t i= minBin; i < maxBin; i++){
-        if (largestContent < hist->GetBinContent(i)){
-            largestContent = hist->GetBinContent(i);
-            largestBin = i;
-        }
+      if (largestContent < hist->GetBinContent(i)){
+        largestContent = hist->GetBinContent(i);
+        largestBin = i;
+      }
     }
     return largestContent;
   }
-
-
 
   //__________________________________________________________________________________________________________
   // find bin with smallest content
   //__________________________________________________________________________________________________________
   Double_t FindSmallestBin1DHist(TH1* hist, Double_t maxStart = 1e6 ){
-      Double_t smallesContent     = maxStart;
-      for (Int_t i= 0; i < hist->GetNbinsX(); i++){
-          if (hist->GetBinContent(i) != 0 && smallesContent > hist->GetBinContent(i)){
-              smallesContent = hist->GetBinContent(i);
-          }
+    Double_t smallesContent     = maxStart;
+    for (Int_t i= 0; i < hist->GetNbinsX(); i++){
+      if (hist->GetBinContent(i) != 0 && smallesContent > hist->GetBinContent(i)){
+        smallesContent = hist->GetBinContent(i);
       }
-      return smallesContent;
+    }
+    return smallesContent;
   }
+
+  //__________________________________________________________________________________________________________
+  // Cleanup results graphs
+  //  - removes entries from TGraphErrors if their entry & error is 0 (default) or another setable y value and error 0
+  //__________________________________________________________________________________________________________
+  void CleanUpResultsGraph(TGraphErrors* graph, TString nameUpdate,  Double_t yClean = 0 ){
+    for (Int_t i= 0; i < graph->GetN(); i++){
+      if (graph->GetY()[i] == yClean && graph->GetEY()[i] == 0){
+        graph->RemovePoint(i);
+        i--;
+      }
+    }
+    graph->SetName(nameUpdate.Data());
+  }
+  
+
+  //__________________________________________________________________________________________________________
+  // Creates TGraphErrors from TH1 and cleans up unwanted values
+  //  - creates graph
+  //  - sets name
+  //  - sets axis lables according to histo labels
+  //  - removes entries from TGraphErrors if their entry & error is 0 (default) or another setable y value and error 0
+  //__________________________________________________________________________________________________________
+  TGraphErrors* CreateGraphFromHistAndCleanup(TH1* hist, TString nameUpdate,  Double_t yClean = 0 ){
+    TGraphErrors* graph = new TGraphErrors(hist);
+    graph->SetName(nameUpdate.Data());
+    graph->GetXaxis()->SetTitle(hist->GetXaxis()->GetTitle());
+    graph->GetYaxis()->SetTitle(hist->GetYaxis()->GetTitle());
+    for (Int_t i= 0; i < graph->GetN(); i++){
+      if (graph->GetY()[i] == yClean && graph->GetEY()[i] == 0){
+        graph->RemovePoint(i);
+        i--;
+      }
+    }
+    return graph;
+  }
+  
 
 
   //__________________________________________________________________________________________________________
