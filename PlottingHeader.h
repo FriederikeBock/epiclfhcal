@@ -25,6 +25,15 @@
     #endif
     #include <TProfile.h>
 
+    struct runInfo{
+        runInfo(): runNr(0), species(""), energy(0), vop(0), lgSet(0), hgSet(0){}
+        int runNr;
+        TString species;
+        float energy;
+        float vop;
+        float lgSet;
+        float hgSet;
+    } ;
     using namespace std; // necessary for non-ROOT compilation
 
     /************************************************************************************************
@@ -34,6 +43,85 @@
     ************************************************************************************************
     ************************************************************************************************/
 
+    //__________________________________________________________________________________________________________
+    //__________________ Read run infos from text file _________________________________________________________
+    //__________________________________________________________________________________________________________    
+    std::vector<runInfo> readRunInfosFromFile(TString runListFileName, Int_t debug ){
+        std::vector<runInfo> runs;
+        std::cout << "INFO: You have given the following run list file: " << runListFileName.Data() << std::endl;
+        ifstream runListFile;
+        runListFile.open(runListFileName,ios_base::in);
+        if (!runListFile) {
+            std::cout << "ERROR: file " << runListFileName.Data() << " not found!" << std::endl;
+            return runs;
+        }
+
+        for( TString tempLine; tempLine.ReadLine(runListFile, kTRUE); ) {
+            // check if line should be considered
+            if (tempLine.BeginsWith("%") || tempLine.BeginsWith("#")){
+                continue;
+            }
+            if (debug > 0) std::cout << tempLine.Data() << std::endl;
+
+            // Separate the string according to tabulators
+            TObjArray *tempArr  = tempLine.Tokenize("\t");
+            if(tempArr->GetEntries()<1){
+                if (debug > 1) std::cout << "nothing to be done" << std::endl;
+                delete tempArr;
+                continue;
+            } else if (tempArr->GetEntries() == 1 ){
+                // Separate the string according to space
+                tempArr       = tempLine.Tokenize(" ");
+                if(tempArr->GetEntries()<1){
+                    if (debug > 1) std::cout << "nothing to be done" << std::endl;
+                    delete tempArr;
+                    continue;
+                } else if (tempArr->GetEntries() == 1  ) {
+                    if (debug > 1) std::cout << ((TString)((TObjString*)tempArr->At(0))->GetString()).Data() << " has not been reset, no value given!" << std::endl;
+                    delete tempArr;
+                    continue;
+                }
+            }
+
+            // Put them to the correct variables    
+            runInfo tempRun;
+            tempRun.runNr    = ((TString)((TObjString*)tempArr->At(0))->GetString()).Atoi();
+            tempRun.species  = (TString)((TObjString*)tempArr->At(1))->GetString();
+            tempRun.energy   = ((TString)((TObjString*)tempArr->At(2))->GetString()).Atof();
+            tempRun.vop      = ((TString)((TObjString*)tempArr->At(3))->GetString()).Atof();
+            tempRun.hgSet    = ((TString)((TObjString*)tempArr->At(4))->GetString()).Atof();
+            tempRun.lgSet    = ((TString)((TObjString*)tempArr->At(5))->GetString()).Atof();
+                
+            if (debug > 0) std::cout << "Run " << tempRun.runNr << "\t species: " << tempRun.species << "\t energy: "  << tempRun.energy << "\t Vop: " << tempRun.vop << std::endl;
+            runs.push_back(tempRun);
+        }
+        std::cout << "registered " << runs.size() << std::endl;
+        return runs;
+    }
+    
+    //__________________________________________________________________________________________________________
+    //__________________________________________________________________________________________________________
+    //__________________________________________________________________________________________________________
+    Int_t findCurrentRun(std::vector<runInfo> runs, Int_t run){
+        Int_t currRun = 0;
+        while (runs.at(currRun).runNr != run && currRun < (Int_t)runs.size()) currRun++;
+        if (currRun == (Int_t)runs.size()) return -1;
+        else return currRun;
+    }
+    
+    //__________________________________________________________________________________________________________
+    //__________________________________________________________________________________________________________
+    //__________________________________________________________________________________________________________
+    runInfo GetRunInfoObject(std::vector<runInfo> runs, Int_t runIndex){
+        runInfo run;
+        run.runNr = runs.at(runIndex).runNr;
+        run.species = runs.at(runIndex).species;
+        run.energy = runs.at(runIndex).energy;
+        run.vop = runs.at(runIndex).vop;
+        run.lgSet = runs.at(runIndex).lgSet;
+        run.hgSet = runs.at(runIndex).hgSet;
+        return run;
+    }
     //__________________________________________________________________________________________________________
     //__________________________________________________________________________________________________________
     //__________________________________________________________________________________________________________

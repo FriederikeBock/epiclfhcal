@@ -119,7 +119,7 @@
 
 
 
-  TF1 *langaufit(TH1D *his, double *fitrange, double *startvalues, double *parlimitslo, double *parlimitshi, double *fitparams, double *fiterrors, double *ChiSqr, int *NDF)
+  TF1 *langaufit(TH1D *his, double *fitrange, double *startvalues, double *parlimitslo, double *parlimitshi, double *fitparams, double *fiterrors, double *ChiSqr, int *NDF, Int_t verbosity = 0)
   {
     // Once again, here are the Landau * Gaussian parameters:
     //   par[0]=Width (scale) parameter of Landau density
@@ -154,7 +154,11 @@
       ffit->SetParLimits(i, parlimitslo[i], parlimitshi[i]);
     }
 
-    his->Fit(FunName,"RLMNE0");   // fit within specified range, use ParLimits, do not plot
+    TString fitOption = "QRLMNE0";
+    if (verbosity > 1) 
+      fitOption = "RLMNE0";
+    
+    his->Fit(FunName,fitOption);   // fit within specified range, use ParLimits, do not plot
 
     ffit->GetParameters(fitparams);    // obtain fit parameters
     for (i=0; i<4; i++) {
