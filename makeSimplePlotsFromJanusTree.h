@@ -114,63 +114,28 @@
     if (maxX != -10000) maxBin = hist->GetXaxis()->FindBin(maxX)+0.0001;
     Int_t largestBin = minBin;
     for (Int_t i= minBin; i < maxBin; i++){
-      if (largestContent < hist->GetBinContent(i)){
-        largestContent = hist->GetBinContent(i);
-        largestBin = i;
-      }
+        if (largestContent < hist->GetBinContent(i)){
+            largestContent = hist->GetBinContent(i);
+            largestBin = i;
+        }
     }
     return largestContent;
   }
+
+
 
   //__________________________________________________________________________________________________________
   // find bin with smallest content
   //__________________________________________________________________________________________________________
   Double_t FindSmallestBin1DHist(TH1* hist, Double_t maxStart = 1e6 ){
-    Double_t smallesContent     = maxStart;
-    for (Int_t i= 0; i < hist->GetNbinsX(); i++){
-      if (hist->GetBinContent(i) != 0 && smallesContent > hist->GetBinContent(i)){
-        smallesContent = hist->GetBinContent(i);
+      Double_t smallesContent     = maxStart;
+      for (Int_t i= 0; i < hist->GetNbinsX(); i++){
+          if (hist->GetBinContent(i) != 0 && smallesContent > hist->GetBinContent(i)){
+              smallesContent = hist->GetBinContent(i);
+          }
       }
-    }
-    return smallesContent;
+      return smallesContent;
   }
-
-  //__________________________________________________________________________________________________________
-  // Cleanup results graphs
-  //  - removes entries from TGraphErrors if their entry & error is 0 (default) or another setable y value and error 0
-  //__________________________________________________________________________________________________________
-  void CleanUpResultsGraph(TGraphErrors* graph, TString nameUpdate,  Double_t yClean = 0 ){
-    for (Int_t i= 0; i < graph->GetN(); i++){
-      if (graph->GetY()[i] == yClean && graph->GetEY()[i] == 0){
-        graph->RemovePoint(i);
-        i--;
-      }
-    }
-    graph->SetName(nameUpdate.Data());
-  }
-  
-
-  //__________________________________________________________________________________________________________
-  // Creates TGraphErrors from TH1 and cleans up unwanted values
-  //  - creates graph
-  //  - sets name
-  //  - sets axis lables according to histo labels
-  //  - removes entries from TGraphErrors if their entry & error is 0 (default) or another setable y value and error 0
-  //__________________________________________________________________________________________________________
-  TGraphErrors* CreateGraphFromHistAndCleanup(TH1* hist, TString nameUpdate,  Double_t yClean = 0 ){
-    TGraphErrors* graph = new TGraphErrors(hist);
-    graph->SetName(nameUpdate.Data());
-    graph->GetXaxis()->SetTitle(hist->GetXaxis()->GetTitle());
-    graph->GetYaxis()->SetTitle(hist->GetYaxis()->GetTitle());
-    for (Int_t i= 0; i < graph->GetN(); i++){
-      if (graph->GetY()[i] == yClean && graph->GetEY()[i] == 0){
-        graph->RemovePoint(i);
-        i--;
-      }
-    }
-    return graph;
-  }
-  
 
 
   //__________________________________________________________________________________________________________
@@ -650,4 +615,88 @@
     canvas2D->SaveAs(nameOutput.Data());
   }
   
+  //__________________________________________________________________________________________________________
+  // QA
+  //__________________________________________________________________________________________________________
+
+    //Read TGraphs from file
+    std::vector<TGraphErrors*> readTGraphErrors(const char* filename) {
+    std::vector<TGraphErrors*> graphVector;
+    // Open the ROOT file
+    TFile file(filename, "READ");
+    
+    // Check if the file is open successfully
+    if (!file.IsOpen()) {
+        std::cerr << "Error: Unable to open file " << filename << std::endl;
+    }
+    
+    // Get the list of keys in the file
+    TList* keyList = file.GetListOfKeys();
+    
+    // Loop over the keys
+    TIter next(keyList);
+    TKey* key;
+    while ((key = dynamic_cast<TKey*>(next()))) {
+        // Print the name and class name of each key
+        std::cout << "Key Name: " << key->GetName() << ", Class Name: " << key->GetClassName() << std::endl;
+        
+        // Check if the object is a TGraph
+        if (strcmp(key->GetClassName(), "TGraphErrors") == 0) {
+            // Print the name of the TGraph key
+            const char* graphName = key->GetName();
+            std::cout << "TGraph Key Name: " << key->GetName() << std::endl;
+            
+            // Read the TGraph object associated with the key
+            TGraphErrors* graph = dynamic_cast<TGraphErrors*>(key->ReadObj());
+            // Check if the object was read successfully
+            if (graph) {
+                // Store the TGraph pointer in the vector
+                graphVector.push_back(graph);
+                //                namedGraphErrorsVector.push_back({key->GetName(), graph});
+            } else {
+                std::cerr << "Error reading TGraph from key " << key->GetName() << std::endl;
+            }
+            
+        }
+        
+    }
+    // Close the file
+    file.Close();
+    //    return namedGraphErrorsVector;
+    return graphVector;
+    
+}
+
+
+
+//Calculate mean value of a graph
+double calculateMeanYValue(TGraph* graph) {
+    int nPoints = graph->GetN();
+    
+    if (nPoints == 0) {
+        // Handle the case when the graph has no points
+        return 0.0;
+    }
+    
+    double sumY = 0.0;
+    
+    for (int i = 0; i < nPoints; ++i) {
+        double x, y;
+        graph->GetPoint(i, x, y);
+        sumY += y;
+    }
+    
+    double meanY = sumY / nPoints;
+    return meanY;
+}
+
+struct HistogramProperties {
+    int board;
+    int channel;
+    int isGood; // Property indicating whether the channel is bad (0), medium (1) or good (2)
+    // Add more properties as needed
+};
+
+  
+
 #endif
