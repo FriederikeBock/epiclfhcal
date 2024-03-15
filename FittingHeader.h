@@ -10,7 +10,7 @@
   //__________________________________________________________________________________________________________
   // Fit noise nicely
   //__________________________________________________________________________________________________________
-  Bool_t FitNoise (TH1D* histo, TF1* &fit, Double_t &mean, Double_t &meanErr, Double_t &sigma, Double_t &sigmaErr, Int_t cb, Int_t cc, TString baseName, TString nameGain){
+  Bool_t FitNoise (TH1D* histo, TF1* &fit, Double_t &mean, Double_t &meanErr, Double_t &sigma, Double_t &sigmaErr, Int_t cb, Int_t cc, TString baseName, TString nameGain, Int_t verbosity = 0){
 
     if (!(histo->GetEntries() > 0)) return kFALSE;
 
@@ -20,7 +20,7 @@
     fit->SetParameter(1, histo->GetMean());    // Mean
     fit->SetParameter(2, histo->GetStdDev());  // Sigma
     histo->Fit(fit,"QRMNE0");
-    std::cout << "Channel b: " << cb << "\t c: " << cc << "\t" << nameGain.Data() << "  mean: " << fit->GetParameter(1) << "\t width: " << fit->GetParameter(2) << std::endl;
+    if (verbosity > 0)  std::cout << "Channel b: " << cb << "\t c: " << cc << "\t" << nameGain.Data() << "  mean: " << fit->GetParameter(1) << "\t width: " << fit->GetParameter(2) << std::endl;
     mean = fit->GetParameter(1);
     meanErr = fit->GetParError(1);
     sigma = fit->GetParameter(2);

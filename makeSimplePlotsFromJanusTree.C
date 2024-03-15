@@ -167,7 +167,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           if (tempLine.BeginsWith("%") || tempLine.BeginsWith("#")){
               continue;
           }
-          cout << tempLine.Data() << endl;
+          if (verbosity > 0) cout << tempLine.Data() << endl;
 
           // Separate the string according to tabulators
           TObjArray *tempArr  = tempLine.Tokenize("\t");
@@ -195,7 +195,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           Int_t rowBoard  = ((TString)((TObjString*)tempArr->At(5))->GetString()).Atoi();
           Int_t colBoard  = ((TString)((TObjString*)tempArr->At(6))->GetString()).Atoi();
           
-          std::cout << "-->" << chCAEN << "\t" << layerMod << "\t"<< chBoard << "\t" << rowBoard << "\t" << colBoard << std::endl;
+          if (verbosity > 0) std::cout << "-->" << chCAEN << "\t" << layerMod << "\t"<< chBoard << "\t" << rowBoard << "\t" << colBoard << std::endl;
           mapping[chCAEN][0]    = layerMod; 
           mapping[chCAEN][1]    = chBoard; 
           mapping[chCAEN][2]    = rowBoard; 
@@ -203,12 +203,12 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           
           backwardMapping[chBoard][layerMod] = chCAEN;
           backwardMappingBoard[chBoard][layerMod] = ((TString)((TObjString*)tempArr->At(0))->GetString()).Atoi();
-          std::cout << backwardMapping[chBoard][layerMod] << std::endl;
+          if (verbosity > 0) std::cout << backwardMapping[chBoard][layerMod] << std::endl;
           delete tempArr;
       }
       
       for (Int_t ch = 0; ch< 64; ch++){
-        std::cout  << "channel: " << ch << " location plane: " << mapping[ch][0] << "\t tile: " << mapping[ch][1] << std::endl;
+        if (verbosity > 0) std::cout  << "channel: " << ch << " location plane: " << mapping[ch][0] << "\t tile: " << mapping[ch][1] << std::endl;
       }
     }
   
@@ -339,7 +339,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
 
         Int_t nChNoNoise = 0;             // number of channels above noise level
         // processing progress info
-        if(i>0 && nEntriesTree>100 && i%(nEntriesTree/(50))==0) std::cout << "//processed " << 100*(i)/nEntriesTree << "%"  << std::endl;
+        if(i>0 && nEntriesTree>100 && i%(nEntriesTree/(20))==0) std::cout << "//processed " << 100*(i)/nEntriesTree << "%"  << std::endl;
         if(verbosity>0){
           std::cout << "***********************************************************************************************************" << std::endl;
           std::cout << "event " << i << std::endl;
@@ -651,6 +651,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
             labelChannel->Draw();
 
           canvas2DCorr->SaveAs(Form("%s/T_HG_B%d_C%02d.pdf", outputDirPlotsDet.Data(), j,i));
+          delete labelChannel;
         }
         
         // ********************************************************
@@ -905,7 +906,8 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     // ********************************************************************************************************
     // Second loop over full tree to obtain noise subtracted histograms
     // ********************************************************************************************************
-    TRandom3* rand = new TRandom3();
+    TRandom3* rand    = new TRandom3();
+    nEventsProcessed  = 0;
     for (Long64_t i=startEvent; i<nEntriesTree;i++) {
         // load current event
         tt_event->GetEntry(i);
@@ -913,7 +915,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
 
         Int_t nChNoNoise = 0;
         // processing progress info
-        if(i>0 && nEntriesTree>100 && i%(nEntriesTree/(50))==0) std::cout << "//processed " << 100*(i)/nEntriesTree << "%"  << std::endl;
+        if(i>0 && nEntriesTree>100 && i%(nEntriesTree/(20))==0) std::cout << "//processed " << 100*(i)/nEntriesTree << "%"  << std::endl;
         if(verbosity>0){
           std::cout << "***********************************************************************************************************" << std::endl;
           std::cout << "event " << i << std::endl;
@@ -1066,7 +1068,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           // Setting fit range and start values
           double fr[2]    = {150, 2000};
           double sv[4]    = {50, 600, 5000, 5.0};
-          double pllo[4]  = {0.5, 200, 1.0, 0.4};
+          double pllo[4]  = {0.5, 100, 1.0, 0.4};
           double plhi[4]  = {500, 1000, 10000, 10};
           double fp[4];
           double fpe[4];

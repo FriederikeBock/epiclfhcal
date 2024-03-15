@@ -31,8 +31,8 @@
         TString species;
         float energy;
         float vop;
-        float lgSet;
-        float hgSet;
+        int lgSet;
+        int hgSet;
     } ;
     using namespace std; // necessary for non-ROOT compilation
 
@@ -89,8 +89,8 @@
             tempRun.species  = (TString)((TObjString*)tempArr->At(1))->GetString();
             tempRun.energy   = ((TString)((TObjString*)tempArr->At(2))->GetString()).Atof();
             tempRun.vop      = ((TString)((TObjString*)tempArr->At(3))->GetString()).Atof();
-            tempRun.hgSet    = ((TString)((TObjString*)tempArr->At(4))->GetString()).Atof();
-            tempRun.lgSet    = ((TString)((TObjString*)tempArr->At(5))->GetString()).Atof();
+            tempRun.hgSet    = ((TString)((TObjString*)tempArr->At(4))->GetString()).Atoi();
+            tempRun.lgSet    = ((TString)((TObjString*)tempArr->At(5))->GetString()).Atoi();
                 
             if (debug > 0) std::cout << "Run " << tempRun.runNr << "\t species: " << tempRun.species << "\t energy: "  << tempRun.energy << "\t Vop: " << tempRun.vop << std::endl;
             runs.push_back(tempRun);
