@@ -604,7 +604,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         bFit = kFALSE;
         // LG noise fits
         if (histLGTriggNoise[j][i]){
-          Bool_t bFit = FitNoise (histLGTriggNoise[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, "f_GaussBG_LG", "LG");
+          bFit = FitNoise (histLGTriggNoise[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, "f_GaussBG_LG", "LG");
           if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histLGTriggNoise[j][i], fitGausLG_BG[j][i],  mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, layer, chBoard, 
                                                   Form("%s/LG_NoiseWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
           histLGTriggNoise_mapped[layer][chBoard] = (TH1D*)histLGTriggNoise[j][i]->Clone(Form("h_LGTriggeredNoise_mapped_L%d_C%02d",layer,chBoard));
@@ -612,7 +612,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
             fitGausLG_BG_mapped[layer][chBoard] = (TF1*)fitGausLG_BG[j][i]->Clone(Form("f_GaussBG_LG_mapped_L%d_C%02d",layer,chBoard));
           }
         } else {
-          Bool_t bFit = FitNoise (histLG[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, "f_GaussBG_LG", "LG");
+          bFit = FitNoise (histLG[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, "f_GaussBG_LG", "LG");
           if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histLGTriggNoise[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, layer, chBoard, 
                                                   Form("%s/LG_NoiseWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
           if (bFit){
@@ -625,7 +625,6 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           hist2DNoiseSigma_LG->Fill(chBoard,layer,sigma[2][j][i]);
           histNoiseMean_LG->Fill(mean[2][j][i]);
           histNoiseSigma_LG->Fill(sigma[2][j][i]);
-       
           hist1DNoiseSigma_LG->SetBinContent(channelBin1D, sigma[2][j][i]);
           hist1DNoiseSigma_LG->SetBinError(channelBin1D, sigma[3][j][i]);
           hist1DNoiseMean_LG->SetBinContent(channelBin1D, mean[2][j][i]);
@@ -694,6 +693,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         // ********************************************************
         // Plot different triggers together
         // ********************************************************
+        std::cout <<"================================================================" << __LINE__ << std::endl;
         if (bDetPlot)PlotOverlayDiffTriggers( canvas1DDiffTrigg, histHG[j][i], histHGTrig[j][i], histHGTriggNoise[j][i], fitGausHG_BG[j][i],
                                               0, 1050, Form("%s/HG_DiffTriggers", outputDirPlotsDet.Data()),
                                               j, i, layer, chBoard, currentRunInfo, 0.04);
@@ -1334,7 +1334,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     TGraphErrors* graphCAEN_FWHM_HG   = CreateGraphFromHistAndCleanup(hist1DCAEN_FWHM_HG, "graphCAEN_FWHM_HG_channels");
 
     TObjString* stringRunInfo = new TObjString;
-    stringRunInfo->SetString(Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V, HG = %1.0f, LG = %1.0f", currentRunInfo.species.Data(), currentRunInfo.energy, currentRunInfo.runNr, currentRunInfo.vop, currentRunInfo.hgSet, currentRunInfo.lgSet));
+    stringRunInfo->SetString(Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V, HG = %1d, LG = %1d", currentRunInfo.species.Data(), currentRunInfo.energy, currentRunInfo.runNr, currentRunInfo.vop, currentRunInfo.hgSet, currentRunInfo.lgSet));
     
     // ********************************************************************************************************
     // write output to single file

@@ -206,6 +206,8 @@
                         double chi2, int ndf, double maxLG, double fwhm,
                         Int_t sl, Int_t sc, 
                         TString baseNameOut, runInfo currRunInfo, Double_t textSizeRel = 0.04){
+    
+    if (!histo || histo->GetEntries() == 0) return;
     canvas->cd();
     canvas->SetLogy(0);
       histo->GetYaxis()->SetRangeUser(0,FindLargestBin1DHist(histo,150,2200)*1.1);
@@ -245,6 +247,7 @@
                                 Double_t minPX, Double_t maxPX, TString baseNameOut,
                                 Int_t cb, Int_t cc, Int_t sl, Int_t sc, runInfo currRunInfo,
                                 Float_t textSizeRel = 0.04 ){
+    if (!hAll || hAll->GetEntries() == 0) return;
     canvas->cd();
       SetStyleHistoTH1ForGraphs( hAll, hAll->GetXaxis()->GetTitle(), hAll->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 0.9);  
       SetMarkerDefaults( hAll, 20, 0.8, kBlue+1,kBlue+1);

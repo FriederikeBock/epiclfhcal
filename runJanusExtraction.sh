@@ -1,7 +1,8 @@
 #! /bin/bash
 
 if [ $1 == "allEScan" ]; then
-  for i in 47 48 50 51 52 53 54 74 75 76 77 78 79 80 81 82 142 143 144 145 146 147 148 149 ; do
+  for i in 52 ; do
+#   for i in 47 48 50 51 52 53 54 74 75 76 77 78 79 80 81 82 142 143 144 145 146 147 148 149 ; do
     root -b -x -q -l makeSimplePlotsFromJanusTree.C\+\(\"202309_SPSH4/pionsEnergyScan/Run$i\_list.root\"\,\"ProcessedData/PionEnergyScan\"\,$i\,0\,0\,0\,1\,\"configs/mappingTBSetup_SPS1stdays_extended.txt\"\)
   done
 #position scan
