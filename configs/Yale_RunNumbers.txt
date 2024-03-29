@@ -1,2 +1,2 @@
 #run_number     species     energy      Vov     HGgain      LGgain
-1     mu     1000      6.5     50      50
+1     comics     1000      6.5     50      50

@@ -1246,5 +1246,34 @@
       }
       return;
     }
+
+    //********************************************************************************************************************************
+    //********************** Returns default labeling strings  ***********************************************************************
+    //********************************************************************************************************************************    
+    TString GetStringFromRunInfo(runInfo currRunInfo, Int_t option = 1){
+        if (option == 1){
+            if (currRunInfo.species.CompareTo("cosmics") == 0){
+                return  Form("cosmics, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  );
+            } else {
+                return  Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop  );
+            }
+        } else if (option == 2){
+            if (currRunInfo.species.CompareTo("cosmics") == 0){
+                return  "cosmics";
+            } else {
+                return  Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV", currRunInfo.species.Data(), currRunInfo.energy);
+            }
+        } else if (option == 3){
+            return Form("Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  )   ;
+        } else if (option == 4){
+            if (currRunInfo.species.CompareTo("cosmics") == 0){
+                return Form("cosmics, Run %d, #it{V}_{#it{op}} = %1.1f V, HG = %1d, LG = %1d", currRunInfo.runNr, currRunInfo.vop, currRunInfo.hgSet, currRunInfo.lgSet);
+            } else{
+                return Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V, HG = %1d, LG = %1d", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop, currRunInfo.hgSet, currRunInfo.lgSet);
+            }
+        }
+        
+        return "";
+    }
     
 #endif

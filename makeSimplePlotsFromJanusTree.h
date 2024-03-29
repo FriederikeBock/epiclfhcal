@@ -188,7 +188,7 @@
       histo->Draw("pe");
       fit->Draw("same");
 
-      DrawLatex(0.95, 0.92, Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop  ), true, textSizeRel, 42);
+      DrawLatex(0.95, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
       
       TLegend* legend = GetAndSetLegend2( 0.58, 0.76-textSizeRel, 0.95, 0.93-textSizeRel,textSizeRel, 1, Form("CAEN B %d, C %d, Stack L %d, C%d",cb, cc, sl, sc), 42,0.2);
       legend->AddEntry(fit, "Gauss noise fit", "l");
@@ -218,7 +218,7 @@
       histo->Draw("hist,pe");
       fit->Draw("same");
       
-      DrawLatex(0.95, 0.92, Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop  ), true, textSizeRel, 42);
+      DrawLatex(0.95, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
       
       TLegend* legend = GetAndSetLegend2( 0.63, 0.69-textSizeRel, 0.95, 0.93-textSizeRel,textSizeRel, 1, Form("Stack L %d, C%d",sl, sc), 42,0.12);
       legend->AddEntry(fit, "Landau-Gauss fit", "l");
@@ -233,7 +233,7 @@
       histo->GetYaxis()->SetRangeUser(1,FindLargestBin1DHist(histo,150,2200)*3);
       histo->Draw("pe");
       fit->Draw("same");
-      DrawLatex(0.95, 0.92, Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop  ), true, textSizeRel, 42);
+      DrawLatex(0.95, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
       legend->Draw();
 
     canvas->SaveAs(Form("%s_L%d_C%02d_logY.pdf", baseNameOut.Data(), sl,sc));
@@ -270,7 +270,7 @@
         DrawLines(fitN->GetParameter(1),fitN->GetParameter(1), hAll->GetMinimum(), hAll->GetMaximum()*0.3, 3, kGray+2, 3, 1);
       }
       
-      DrawLatex(0.95, 0.92, Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop  ), true, textSizeRel, 42);
+      DrawLatex(0.95, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
       
       TLegend* legend = GetAndSetLegend2( 0.61, 0.75-textSizeRel, 0.95, 0.93-textSizeRel,textSizeRel, 1, Form("CAEN B %d, C %d, Stack L %d, C%d",cb, cc, sl, sc), 42,0.2);
       legend->AddEntry(hAll, "All triggers", "p");
@@ -310,7 +310,7 @@
         else legend->AddEntry(histos[c], Form("%d",c), "l");
       }
       
-      DrawLatex(0.95, 0.92, Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop  ), true, textSizeRel, 42);
+      DrawLatex(0.95, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
 
       legend->Draw();
     canvas->SaveAs(Form("%s_L%d.pdf", baseNameOut.Data(), sl));
@@ -345,7 +345,7 @@
         else legend->AddEntry(histos[l][sc], Form("%d",l), "l");
       }
       
-      DrawLatex(0.95, 0.92, Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop  ), true, textSizeRel, 42);
+      DrawLatex(0.95, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
 
       legend->Draw();
     canvas->SaveAs(Form("%s_RB%d.pdf", baseNameOut.Data(), sc));
@@ -398,8 +398,8 @@
         labelChannel->Draw();
       }
       if (p ==4 ){
-        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-4*0.85*relSize8P[p]-1.4*relSize8P[p], Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV", currRunInfo.species.Data(), currRunInfo.energy), true, 0.85*relSize8P[p], 42);
-        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-4*0.85*relSize8P[p]-2.2*relSize8P[p], Form("Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  ), true, 0.85*relSize8P[p], 42);
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-4*0.85*relSize8P[p]-1.4*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-4*0.85*relSize8P[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42);
       }
     }
     canvas8Panel->SaveAs(nameOutput.Data());
@@ -458,8 +458,8 @@
         }
         legend->Draw();
       } else if (p == 3){
-        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-2.2*relSize8P[p], Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV", currRunInfo.species.Data(), currRunInfo.energy), true, 0.85*relSize8P[p], 42);
-        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-3.*relSize8P[p], Form("Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  ), true, 0.85*relSize8P[p], 42); 
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-3.*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42); 
       }
       histsAll[p+1]->Draw("axis,same");
       
@@ -529,8 +529,8 @@
         }
         legend->Draw();
       } else if (p == 3){
-        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-2.2*relSize8P[p], Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV", currRunInfo.species.Data(), currRunInfo.energy), true, 0.85*relSize8P[p], 42);
-        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-3.*relSize8P[p], Form("Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  ), true, 0.85*relSize8P[p], 42); 
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-3.*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42); 
       }
       hTriggC[p+1]->Draw("axis,same");
       
@@ -598,8 +598,8 @@
         }
         legend->Draw();
       } else if (p == 3){
-        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-2.2*relSize8P[p], Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV", currRunInfo.species.Data(), currRunInfo.energy), true, 0.85*relSize8P[p], 42);
-        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-3.*relSize8P[p], Form("Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  ), true, 0.85*relSize8P[p], 42); 
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-3.*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42); 
       }
       hTriggC[p+1]->Draw("axis,same");
       
@@ -657,8 +657,8 @@
       }
       if (p == 4) legend->Draw();
       else if (p == 3){
-        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-2.2*relSize8P[p], Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV", currRunInfo.species.Data(), currRunInfo.energy), true, 0.85*relSize8P[p], 42);
-        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-3.*relSize8P[p], Form("Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  ), true, 0.85*relSize8P[p], 42); 
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-3.*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42); 
       }
       TString label = Form("RB ch. %d", p+1);
       TLatex *labelChannel    = new TLatex(topRCornerX[p]-0.04,topRCornerY[p]-1.2*relSize8P[p],label);
@@ -671,17 +671,18 @@
   //__________________________________________________________________________________________________________
   // Plot 2D fit variables overview
   //__________________________________________________________________________________________________________  
-  void PlotSimpleMultiLayer2D( TCanvas* canvas2D, TH2* hist, Int_t maxl, Float_t textSizeRel, TString nameOutput, runInfo currRunInfo, Bool_t hasNeg = kFALSE ){
+  void PlotSimpleMultiLayer2D( TCanvas* canvas2D, TH2* hist, Int_t maxl, Int_t maxCh, Float_t textSizeRel, TString nameOutput, runInfo currRunInfo, Bool_t hasNeg = kFALSE ){
       canvas2D->cd();
       SetStyleHistoTH2ForGraphs( hist, hist->GetXaxis()->GetTitle(), hist->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 0.9);  
       hist->GetYaxis()->SetRangeUser(-0.5,maxl+1.5);
+      hist->GetXaxis()->SetRangeUser(0.5,maxCh+1.5);
       if (!hasNeg)
         hist->GetZaxis()->SetRangeUser(hist->GetMinimum(0),hist->GetMaximum());
       else 
         hist->GetZaxis()->SetRangeUser(hist->GetMinimum(),hist->GetMaximum());
       hist->Draw("colz,text");
       
-      DrawLatex(0.85, 0.92, Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop  ), true, textSizeRel, 42);
+      DrawLatex(0.85, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
 
     canvas2D->SaveAs(nameOutput.Data());
   }
