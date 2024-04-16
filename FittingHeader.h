@@ -12,6 +12,7 @@
   //__________________________________________________________________________________________________________
   Bool_t FitNoise (TH1D* histo, TF1* &fit, Double_t &mean, Double_t &meanErr, Double_t &sigma, Double_t &sigmaErr, Int_t cb, Int_t cc, TString baseName, TString nameGain, Int_t verbosity = 0){
 
+    if (!histo) return kFALSE;
     if (!(histo->GetEntries() > 0)) return kFALSE;
 
     fit = new TF1(Form("%s_B%d_C%02d",baseName.Data(),cb,cc), "gaus", 0, 100);

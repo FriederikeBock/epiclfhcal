@@ -427,7 +427,6 @@
       histsAll[p+1]->GetXaxis()->SetRangeUser(xPMin,xPMax);
       histsAll[p+1]->GetYaxis()->SetRangeUser(0.7,scaleYMax*maxY);
       histsAll[p+1]->Draw("pe");
-      
       if (hTriggN){
         if (hTriggN[p+1]){
             SetLineDefaults( hTriggN[p+1],kBlack, 2, 1);
@@ -440,19 +439,17 @@
           hTriggC[p+1]->Draw("hist,same");
         }
       }
-
       if (fits){
         if (fits[p+1]){
           SetStyleFit(fits[p+1] , 0, 120, 7, 7, kGray+1);
           fits[p+1]->Draw("same");
         }
       } 
-      
       if (p == 4){
         TLegend* legend = GetAndSetLegend2( topRCornerX[p]-8*relSize8P[p], topRCornerY[p]-5*0.85*relSize8P[p]-0.4*relSize8P[p], topRCornerX[p]-0.04, topRCornerY[p]-1.6*relSize8P[p],0.85*textSizePixel, 1, "", 43,0.2);
         legend->AddEntry(histsAll[p+1], "All triggers", "p");
-        if (hTriggC[p+1])legend->AddEntry(hTriggC[p+1], "Straight line trigg", "l");
-        if (hTriggN[p+1])legend->AddEntry(hTriggN[p+1], "noise trigg", "l");
+        if (hTriggC && hTriggC[p+1])legend->AddEntry(hTriggC[p+1], "Straight line trigg", "l");
+        if (hTriggN && hTriggN[p+1])legend->AddEntry(hTriggN[p+1], "noise trigg", "l");
         if (fits){
           if (fits[p+1])legend->AddEntry(fits[p+1], "noise fit", "l");
         }
@@ -468,7 +465,6 @@
       TLatex *labelChannel    = new TLatex(topRCornerX[p]-0.04,topRCornerY[p]-1.2*relSize8P[p],label);
       SetStyleTLatex( labelChannel, 0.85*textSizePixel,4,1,43,kTRUE,31);
       labelChannel->Draw();
-
     }
     canvas8Panel->SaveAs(nameOutput.Data());
   }
