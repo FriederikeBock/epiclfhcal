@@ -283,7 +283,51 @@
     return;
   }
 
+//__________________________________________________________________________________________________________
+  // Plot overlay of different triggers
+  //__________________________________________________________________________________________________________
+  void PlotOverlaySinglePhoton( TCanvas* canvas, TH1D* hAll, TH1D* hBGEstimate, TH1D* hSub, TF1* fitN,
+                                Double_t minPX, Double_t maxPX, TString baseNameOut,
+                                Int_t cb, Int_t cc, Int_t sl, Int_t sc, runInfo currRunInfo,
+                                Float_t textSizeRel = 0.04 ){
+    if (!hAll || hAll->GetEntries() == 0) return;
+    canvas->cd();
+      SetStyleHistoTH1ForGraphs( hAll, hAll->GetXaxis()->GetTitle(), hAll->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 0.9);  
+      SetMarkerDefaults( hAll, 20, 0.8, kBlue+1,kBlue+1);
+      
+      hAll->GetXaxis()->SetRangeUser(minPX,maxPX);
+      hAll->Draw("pe");
+      if (hSub){
+  //                   SetMarkerDefaults( hSub, 24, 0.8, kBlack,kBlack);
+          SetLineDefaults( hSub,kRed+1, 4, 1);
+          hSub->Draw("hist,same");
+      }
+      if (hBGEstimate){
+  //                   SetMarkerDefaults( hBGEstimate, 20, 0.8, kRed+1,kRed+1);
+          SetLineDefaults( hBGEstimate,kGray+1, 2, 1);
+          hBGEstimate->Draw("hist,same");
+      }
+      if (fitN){
+        SetStyleFit(fitN, 0, 4000, 7, 7, kGray+1);
+        fitN->Draw("same");
+        DrawLines(fitN->GetParameter(1),fitN->GetParameter(1), hAll->GetMinimum(), hAll->GetMaximum()*0.3, 3, kGray+2, 3, 1);
+      }
+      
+      DrawLatex(0.95, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
+      
+      TLegend* legend = GetAndSetLegend2( 0.61, 0.75-textSizeRel, 0.95, 0.93-textSizeRel,textSizeRel, 1, Form("CAEN B %d, C %d, Stack L %d, C%d",cb, cc, sl, sc), 42,0.2);
+      legend->AddEntry(hAll, "spectrum", "p");
+      if (hBGEstimate)legend->AddEntry(hBGEstimate, "BG estimate", "l");
+      if (hSub)legend->AddEntry(hSub, "sub. spectrum", "l");
+      if (fitN)legend->AddEntry(fitN, "SPE fit", "l");
+      legend->Draw();
+    canvas->SaveAs(Form("%s_B%d_C%02d.pdf", baseNameOut.Data(), cb,cc));
+    canvas->SaveAs(Form("%s_L%d_C%02d.pdf", baseNameOut.Data(), sl, sc));
+    return;
+  }
 
+  
+  
   //__________________________________________________________________________________________________________
   // Plot overlay of different channels within one readout board
   //__________________________________________________________________________________________________________
@@ -317,6 +361,47 @@
     return;
   }
 
+  //__________________________________________________________________________________________________________
+  // Plot overlay of different channels within one readout board with fitsBG
+  //__________________________________________________________________________________________________________
+  void PlotChannelOverlaySameLayerWithFitsBG( TCanvas* canvas, TH1D** histos, TF1** fits,  Int_t minC, Int_t maxC,
+                                              Double_t minPX, Double_t maxPX, Double_t minPY,  TString baseNameOut,
+                                              Int_t sl, runInfo currRunInfo,
+                                              Float_t textSizeRel = 0.04, TString plotStyle = "p,e" ){
+    canvas->cd();
+      Int_t maxCount = 0;
+      TLegend* legend = GetAndSetLegend2( 0.58, 0.93-4*textSizeRel, 0.95, 0.93-textSizeRel,textSizeRel, 4, Form("Layer %d, channel:",sl), 42,0.2);
+      TLegend* legendFits = GetAndSetLegend2( 0.58, 0.93-7*textSizeRel, 0.95, 0.93-4*textSizeRel,textSizeRel, 4, "Noise means", 42,0.2);
+      for (Int_t c = minC; c < maxC; c++){
+        if (maxCount < FindLargestBin1DHist(histos[c],minPX, maxPX)) maxCount = FindLargestBin1DHist(histos[c],minPX, maxPX);
+      }
+      for (Int_t c = minC; c < maxC; c++){
+        SetStyleHistoTH1ForGraphs( histos[c], histos[c]->GetXaxis()->GetTitle(), histos[c]->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 0.9);  
+        SetMarkerDefaults( histos[c], markerReadBoard[c-1], 0.8, colorReadBoard[c-1],colorReadBoard[c-1]);
+        if (plotStyle.Contains("hist")) histos[c]->SetLineWidth(3);
+        histos[c]->GetXaxis()->SetRangeUser(minPX,maxPX);
+        histos[c]->GetYaxis()->SetRangeUser(0.7*minPY,maxCount*1.1);      
+        if (c == minC) histos[c]->Draw(plotStyle.Data());
+        else histos[c]->Draw(Form("%s,same",plotStyle.Data()));
+        
+        if (fits && fits[c]){
+          SetStyleFit(fits[c] , 0, 120, 7, 7, colorReadBoard[c-1]);
+          fits[c]->Draw("same,l");
+          legendFits->AddEntry(fits[c], Form("%0.1f",fits[c]->GetParameter(1)), "l");
+        }
+        
+        if (c == maxC-1) histos[minC]->Draw("same,axis");
+        if (plotStyle.Contains("p")) legend->AddEntry(histos[c], Form("%d",c), "p");
+        else legend->AddEntry(histos[c], Form("%d",c), "l");
+      }
+      
+      DrawLatex(0.95, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
+
+      legend->Draw();
+      legendFits->Draw();
+    canvas->SaveAs(Form("%s_L%d.pdf", baseNameOut.Data(), sl));
+    return;
+  }  
   //__________________________________________________________________________________________________________
   // Plot overlay of different channels within one readout board
   //__________________________________________________________________________________________________________
@@ -681,6 +766,27 @@
       DrawLatex(0.85, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
 
     canvas2D->SaveAs(nameOutput.Data());
+  }
+  
+  //__________________________________________________________________________________________________________
+  // Write histo if there's content
+  //__________________________________________________________________________________________________________
+  void WriteOnlyIfFilled(TH2* hist){
+    if(hist){
+      if (hist->GetEntries() > 0)
+        hist->Write();
+    }
+    return;
+  }
+  //__________________________________________________________________________________________________________
+  // Write histo if there's content
+  //__________________________________________________________________________________________________________
+  void WriteOnlyIfFilled(TH1* hist){
+    if(hist){
+      if (hist->GetEntries() > 0)
+        hist->Write();
+    }
+    return;
   }
   
 #endif

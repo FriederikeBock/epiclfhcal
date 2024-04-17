@@ -6,7 +6,25 @@
 #ifndef FITTINGGENERAL
 #define FITTINGGENERAL
 
+  Int_t nPeaksMultGauss = 0;
     
+  //__________________________________________________________________________________________________________
+  // multiple Gauss fit
+  //__________________________________________________________________________________________________________
+  Double_t multGauss(Double_t * x, Double_t * par){
+    Double_t result = par[0] + par[1] * x[0];
+    for (Int_t p = 0; p < nPeaksMultGauss; p++){
+      Double_t norm = par[3 * p +2]; // "height" or "area"
+      Double_t mean = par[3 * p + 3];
+      Double_t sigma = par[3 * p + 4];
+      #if defined(__PEAKS_C_FIT_AREAS__)
+        norm /= sigma * (TMath::Sqrt(TMath::TwoPi())); // "area"
+      #endif                                               /* defined(__PEAKS_C_FIT_AREAS__) */
+        result += norm * TMath::Gaus(x[0], mean, sigma);
+    }
+    return result;
+  }
+
   //__________________________________________________________________________________________________________
   // Fit noise nicely
   //__________________________________________________________________________________________________________
@@ -29,6 +47,43 @@
     return kTRUE;
   }
 
+  //__________________________________________________________________________________________________________
+  // Fit noise nicely
+  //__________________________________________________________________________________________________________
+  Bool_t FitNoiseWithBG (TH1D* histo, TF1* &fit, Double_t &mean, Double_t &meanErr, Double_t &sigma, Double_t &sigmaErr, Int_t cb, Int_t cc, TString baseName, TString nameGain, Int_t verbosity = 0){
+
+    if (!histo) return kFALSE;
+    if (!(histo->GetEntries() > 0)) return kFALSE;
+
+    fit = new TF1(Form("%s_B%d_C%02d",baseName.Data(),cb,cc), "gaus", 0, 100);
+    // preset parames
+    Double_t largestContent     = 0;
+    Int_t minBin = histo->GetXaxis()->FindBin(0.0);
+    Int_t maxBin = histo->GetXaxis()->FindBin(100)+0.0001;
+    for (Int_t i= minBin; i < maxBin; i++){
+        if (largestContent < histo->GetBinContent(i)){
+            largestContent = histo->GetBinContent(i);
+        }
+    }
+
+    fit->SetParameter(0, 0.8* largestContent); // Amplitude
+    fit->SetParLimits(0, 0.1, largestContent); // Amplitude
+    fit->SetParameter(1, 50);    // Mean
+    fit->SetParLimits(1, 0, 100);    // Mean
+    fit->SetParameter(2, 20);  // Sigma
+    fit->SetParLimits(2, 0, 80);  // Sigma
+    histo->Fit(fit,"QRMNE0");
+    if (verbosity > 0)  std::cout << "Channel b: " << cb << "\t c: " << cc << "\t" << nameGain.Data() << "  mean: " << fit->GetParameter(1) << "\t width: " << fit->GetParameter(2) << std::endl;
+    
+    histo->Fit(fit,"QRMNE0","", fit->GetParameter(1)-3*fit->GetParameter(2), fit->GetParameter(1)+0.05*fit->GetParameter(2));
+    if (verbosity > 0)  std::cout << "2nd try Channel b: " << cb << "\t c: " << cc << "\t" << nameGain.Data() << "  mean: " << fit->GetParameter(1) << "\t width: " << fit->GetParameter(2) << std::endl;
+    
+    mean = fit->GetParameter(1);
+    meanErr = fit->GetParError(1);
+    sigma = fit->GetParameter(2);
+    sigmaErr = fit->GetParError(2);
+    return kTRUE;
+  }
   
   //__________________________________________________________________________________________________________
   // Plot & Fit gain Corr

@@ -38,6 +38,8 @@
 #include <TLegend.h>
 #include <TFrame.h>
 #include <TLorentzVector.h>
+#include <TSpectrum.h>
+#include <TVirtualFitter.h>
 
 #include "PlottingHeader.h"
 #include "FittingHeader.h"
@@ -68,23 +70,23 @@ Style_t markerReadBoard[8]  = { 20, 21, 33, 34, 29, 39, 40, 46};
 //__________________________________________________________________________________________________________
 //_____________________MAIN function !!! ___________________________________________________________________
 //__________________________________________________________________________________________________________
-void makeSimplePlotsFromJanusTree( TString fileName     = "", 
-                                   TString outputDir    = "ProcessedData/",
-                                   Int_t runnumber      = -1,
-                                   ULong_t minNEvent    = 0,
-                                   ULong_t maxNEvent    = 0,
-                                   Int_t verbosity      = 0,
-                                   Int_t isTBdata       = 0,
-                                   TString mappingFile  = "",
-                                   Bool_t bDetPlot      = kTRUE,
-                                   TString runListFileName = "configs/SPS_RunNumbers.txt"
-                                  ){
+void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "", 
+                                                TString outputDir    = "ProcessedData/",
+                                                Int_t runnumber      = -1,
+                                                ULong_t minNEvent    = 0,
+                                                ULong_t maxNEvent    = 0,
+                                                Int_t verbosity      = 0,
+                                                Int_t dataType       = 0,
+                                                TString mappingFile  = "",
+                                                Bool_t bDetPlot      = kTRUE,
+                                                TString runListFileName = "configs/SPS_RunNumbers.txt"
+                                              ){
                                
     //*******************************************************
     //********************Running modes:*********************
-    // isTBdata = 0       // local testing and parsing
-    // isTBdata = 1       // PS test beam 2023
-    // isTBdata = 2       // local test setups in small stack
+    // dataType = 0       // local testing and parsing
+    // dataType = 1       // PS test beam 2023
+    // dataType = 2       // local test setups in small stack
   
     StyleSettingsThesis("pdf");
     SetPlotStyle();
@@ -226,43 +228,42 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     Int_t nActiveRBCh     = 0;
     Int_t minActiveRBCh   = -1;
     Int_t maxActiveRBCh   = -1;
-//     if (isTBdata > 0){
-      std::cout << "===================================================================" << std::endl;
-      std::cout << "================ Visualization of layers ==========================" << std::endl;
-      std::cout << "===================================================================" << std::endl;
-      for (Int_t l = 0; l < gMaxLayers; l++){
-          for (Int_t c = 1; c < 9; c++){
-              std::cout << backwardMapping[c][l] << "\t || \t" ;
-              if (lActive[l] == kFALSE ){
-                  if ( backwardMapping[c][l] != -1 ) lActive[l] = kTRUE;
-              }
-              if (lActiveCh[c] == kFALSE ){
-                if ( backwardMapping[c][l] != -1 ) lActiveCh[c] = kTRUE;
-              }
-          }
-          std::cout << std::endl;
-      }
-      std::cout << "===================================================================" << std::endl;
-      
-      // count total number of active layers according to mapping file and determine maximum layer
-      for (Int_t l = 0; l<gMaxLayers; l++){
-        if (lActive[l]){
-          nActiveLayers++; 
-          maxActiveLayer = l;
-          if (minActiveLayer == -1) minActiveLayer = l;
+
+    std::cout << "===================================================================" << std::endl;
+    std::cout << "================ Visualization of layers ==========================" << std::endl;
+    std::cout << "===================================================================" << std::endl;
+    for (Int_t l = 0; l < gMaxLayers; l++){
+        for (Int_t c = 1; c < 9; c++){
+            std::cout << backwardMapping[c][l] << "\t || \t" ;
+            if (lActive[l] == kFALSE ){
+                if ( backwardMapping[c][l] != -1 ) lActive[l] = kTRUE;
+            }
+            if (lActiveCh[c] == kFALSE ){
+              if ( backwardMapping[c][l] != -1 ) lActiveCh[c] = kTRUE;
+            }
         }
+        std::cout << std::endl;
+    }
+    std::cout << "===================================================================" << std::endl;
+    
+    // count total number of active layers according to mapping file and determine maximum layer
+    for (Int_t l = 0; l<gMaxLayers; l++){
+      if (lActive[l]){
+        nActiveLayers++; 
+        maxActiveLayer = l;
+        if (minActiveLayer == -1) minActiveLayer = l;
       }
-      // count total number of active channel according to mapping file and determine maximum RBchannel
-      for (Int_t c = 0; c<9; c++){
-        if (lActiveCh[c]){
-          nActiveRBCh++; 
-          maxActiveRBCh = c;
-          if (minActiveRBCh == -1) minActiveRBCh = c;
-        }
+    }
+    // count total number of active channel according to mapping file and determine maximum RBchannel
+    for (Int_t c = 0; c<9; c++){
+      if (lActiveCh[c]){
+        nActiveRBCh++; 
+        maxActiveRBCh = c;
+        if (minActiveRBCh == -1) minActiveRBCh = c;
       }
-      std::cout << "There are " << nActiveLayers << " active layers. The lowest layer is " << minActiveLayer << "  and the highest layer is " << maxActiveLayer << std::endl;
-      std::cout << "There are " << nActiveRBCh << " active read-outboard channels. The lowest channel is " << minActiveRBCh << "  and the highest channel is " << maxActiveRBCh << std::endl;
-//     }
+    }
+    std::cout << "There are " << nActiveLayers << " active layers. The lowest layer is " << minActiveLayer << "  and the highest layer is " << maxActiveLayer << std::endl;
+    std::cout << "There are " << nActiveRBCh << " active read-outboard channels. The lowest channel is " << minActiveRBCh << "  and the highest channel is " << maxActiveRBCh << std::endl;
     
     // ********************************************************************************************************
     // RAW data monitoring histos per CAEN board and channel
@@ -272,23 +273,12 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     TH2D* hist_T_HG[gMaxBoard][gMaxChannels];                   // time dependent high gain all triggers
     TH2D* histLGHG[gMaxBoard][gMaxChannels];                    // LG - HG correlation
     TH2D* histHGLG[gMaxBoard][gMaxChannels];                    // HG - LG correlation
-    TH1D* histLGTrig[gMaxBoard][gMaxChannels];                  // low gain straight line triggers
-    TH1D* histHGTrig[gMaxBoard][gMaxChannels];                  // high gain straight line triggers
-    TH1D* histLGNoise[gMaxBoard][gMaxChannels];                 // low gain !(straight line triggers)
-    TH1D* histHGNoise[gMaxBoard][gMaxChannels];                 // high gain !(straight line triggers)
-    TH1D* histLGTriggNoise[gMaxBoard][gMaxChannels];            // low gain noise triggers
-    TH1D* histHGTriggNoise[gMaxBoard][gMaxChannels];            // high gain noise triggers
-    
     //***************************************************
     // mapped channels - layer & read-out board channels
     //***************************************************
     // channel counting in layer starts with 1, easier acces make array go to 8
     TH1D* histLG_mapped[gMaxLayers][9];                         // low gain all triggers
     TH1D* histHG_mapped[gMaxLayers][9];                         // high gain all triggers
-    TH1D* histLGTrig_mapped[gMaxLayers][9];                     // low gain straight line triggers
-    TH1D* histHGTrig_mapped[gMaxLayers][9];                     // high gain straight line triggers
-    TH1D* histLGTriggNoise_mapped[gMaxLayers][9];               // low gain noise triggers
-    TH1D* histHGTriggNoise_mapped[gMaxLayers][9];               // high gain noise triggers
     
     //***************************************************
     // map of triggers above threshold
@@ -299,48 +289,23 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     
     //***************************************************
     TH1D* histNChAboveNoise   = new TH1D("h_NchannelAboveNoise", "; N_{channels}; counts", (gMaxBoard*gMaxChannels+1), -0.5, (gMaxBoard*gMaxChannels-0.5));
-    TH1D* histNTrig           = new TH1D("h_NTriggStraigthLine", "; Channel_{board}; counts", 8, 0.5, 8.5);
-    TH1D* histNTrigNoise      = new TH1D("h_NTriggNoise", "; Channel_{board}; counts", 8, 0.5, 8.5);
     
     //***************************************************
     // Init histograms
     //***************************************************
     for (Int_t j = 0; j < gMaxBoard; j++){
       for (Int_t i = 0; i < gMaxChannels; i++){
-        if (isTBdata)
-          hist_T_HG[j][i]    = new TH2D(Form("h_T_HG_B%d_C%02d",j,i),"; t (min); HG (adc); counts",1000,0,120,4201,-200,4001);
-        else
-          hist_T_HG[j][i]    = new TH2D(Form("h_T_HG_B%d_C%02d",j,i),"; t (min); HG (adc); counts",1000,0,1000,4201,-200,4001);
+        hist_T_HG[j][i]    = new TH2D(Form("h_T_HG_B%d_C%02d",j,i),"; t (min); HG (adc); counts",2000,0,100,4002,-1,2000);
         histHG[j][i]    = new TH1D(Form("h_HG_B%d_C%02d",j,i),"; HG (adc); counts",4201,-200,4001);
         histLG[j][i]    = new TH1D(Form("h_LG_B%d_C%02d",j,i),"; LG (adc); counts",4201,-200,4001);
         histLGHG[j][i]  = new TH2D(Form("h_LGHG_B%d_C%02d",j,i),"; LG (adc); HG (adc)",4200/5,-200,4001,4200/5,-200,4001);
         histHGLG[j][i]  = new TH2D(Form("h_HGLG_B%d_C%02d",j,i),"; LG (adc); HG (adc)",4200/5,-200,4001,4200/5,-200,4001);
-        if (isTBdata > 0){
-          histLGTrig[j][i]        = new TH1D(Form("h_LGTrigg_B%d_C%02d",j,i),"coincidence trigg. front & back ; LG (adc); counts",4201,-200,4001);   // triggered 
-          histHGTrig[j][i]        = new TH1D(Form("h_HGTrigg_B%d_C%02d",j,i),"coincidence trigg. front & back ; HG (adc); counts",4201,-200,4001);
-          histLGNoise[j][i]       = new TH1D(Form("h_LGNoise_B%d_C%02d",j,i),"!(coincidence trigg. front & back) ; LG (adc); counts",4201,-200,4001);
-          histHGNoise[j][i]       = new TH1D(Form("h_HGNoise_B%d_C%02d",j,i),"!(coincidence trigg. front & back) ; HG (adc); counts",4201,-200,4001);
-          histLGTriggNoise[j][i]  = new TH1D(Form("h_LGTriggeredNoise_B%d_C%02d",j,i),"veto front & back ; LG (adc); counts",4201,-200,4001);
-          histHGTriggNoise[j][i]  = new TH1D(Form("h_HGTriggeredNoise_B%d_C%02d",j,i),"veto front & back ; HG (adc); counts",4201,-200,4001);
-        } else {
-          histLGTrig[j][i]        = nullptr;
-          histHGTrig[j][i]        = nullptr;
-          histLGNoise[j][i]       = nullptr;
-          histHGNoise[j][i]       = nullptr;
-          histLGTriggNoise[j][i]  = nullptr;
-          histHGTriggNoise[j][i]  = nullptr;
-          
-        }
       }
     }
     for (Int_t l = 0; l < gMaxLayers; l++){
       for (Int_t c = 0; c < 9; c++){
         histLG_mapped[l][c]             = nullptr;
         histHG_mapped[l][c]             = nullptr; 
-        histLGTrig_mapped[l][c]         = nullptr;
-        histHGTrig_mapped[l][c]         = nullptr;
-        histLGTriggNoise_mapped[l][c]   = nullptr;
-        histHGTriggNoise_mapped[l][c]   = nullptr;
       }
     }
     
@@ -371,7 +336,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         Int_t nChNoNoise = 0;             // number of channels above noise level
         // processing progress info
         if(i>0 && nEntriesTree>100 && i%(nEntriesTree/(20))==0) std::cout << "//processed " << 100*(i)/nEntriesTree << "%"  << std::endl;
-        if(verbosity>0){
+        if(verbosity>1){
           std::cout << "***********************************************************************************************************" << std::endl;
           std::cout << "event " << i << std::endl;
           std::cout << "***********************************************************************************************************" << std::endl;
@@ -379,8 +344,8 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         // temporary mapping of channels
         Int_t signal[2][64][3] = {{{0}}}; // [board][channel][HG, LG, trigg HG]
         // readEvent
-        if (verbosity > 0)std::cout << "------------- Event -------------------------" << std::endl;
-        if (verbosity > 0)std::cout << gTrID << "\t" << gTRtimeStamp << std::endl;
+        if (verbosity > 1)std::cout << "------------- Event -------------------------" << std::endl;
+        if (verbosity > 1)std::cout << gTrID << "\t" << gTRtimeStamp << std::endl;
         for(Int_t ch=0; ch<gMaxChannels && ch < nChmapped ; ch++){   
           signal[gBoard[ch]][gChannel[ch]][0] = gHG[ch];
           signal[gBoard[ch]][gChannel[ch]][1] = gLG[ch];
@@ -393,69 +358,18 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           histLG[gBoard[ch]][gChannel[ch]]->Fill(gLG[ch]); 
           histLGHG[gBoard[ch]][gChannel[ch]]->Fill(gLG[ch], gHG[ch]); 
           histHGLG[gBoard[ch]][gChannel[ch]]->Fill(gHG[ch], gLG[ch]); 
-          if (verbosity > 0)std::cout << "--> board: "<< gBoard[ch] << "\t ch:"<< gChannel[ch] << "\t LG:" << gLG[ch] << "\t HG:" << gHG[ch] << std::endl;
+          if (verbosity > 1)std::cout << "--> board: "<< gBoard[ch] << "\t ch:"<< gChannel[ch] << "\t LG:" << gLG[ch] << "\t HG:" << gHG[ch] << std::endl;
           if (gHG[ch] > adcThreshold){
             nChNoNoise++;
-            if (verbosity > 0) std::cout << "not noise" << std::endl;
-            if (isTBdata > 0){
-              hist3DMap->Fill(mapping[gChannel[ch]][0],mapping[gChannel[ch]][3],mapping[gChannel[ch]][2]);
-              hist2DMap->Fill(mapping[gChannel[ch]][1],mapping[gChannel[ch]][0]);
-              hist1DMap->Fill(mapping[gChannel[ch]][1]);
-            }
+            if (verbosity > 1) std::cout << "not noise" << std::endl;
+            hist3DMap->Fill(mapping[gChannel[ch]][0],mapping[gChannel[ch]][3],mapping[gChannel[ch]][2]);
+            hist2DMap->Fill(mapping[gChannel[ch]][1],mapping[gChannel[ch]][0]);
+            hist1DMap->Fill(mapping[gChannel[ch]][1]);
           }
         }
         // fill channels above noise
         histNChAboveNoise->Fill(nChNoNoise);
-        
-        // *****************************************************************
-        // check for conincidence between first and last channel 
-        // above noise or pure noise triggers
-        // *****************************************************************
-        if (isTBdata == 1  || isTBdata == 2){
-        // only for first CAEN board!!!!!
-          for (Int_t chCAEN = 0; chCAEN < 64; chCAEN++){            
-            Int_t chBoard = mapping[chCAEN][1];
-            Int_t nNeigh  = 0;
-            Int_t* neighborCh = new Int_t[5];
-            GetNeighborWithinBoard(chBoard, nNeigh, neighborCh);
-            if (verbosity > 2)std::cout << "channel in board "<< chBoard <<" found " << nNeigh << " neighbors " << std::endl;
-          
-            Int_t chCAENFront = backwardMapping[chBoard][minActiveLayer];
-            Int_t chCAENBack  = backwardMapping[chBoard][maxActiveLayer];
-            
-            // Determine straight line trigger
-            Bool_t  trigg         = (signal[0][chCAENFront][2] > 0 && signal[0][chCAENBack][2] > 0);
-            Float_t triggSignal   = (signal[0][chCAENFront][2] + signal[0][chCAENBack][2])/2;
-            
-            // Determine if its triggered noise
-            Bool_t triggNoise     = kFALSE;
-            Float_t triggSigFN     = signal[0][chCAENFront][2];
-            Float_t triggSigBN     = signal[0][chCAENBack][2];
-            for (Int_t n = 0; n < nNeigh; n++){
-                triggSigFN = triggSigFN + signal[0][backwardMapping[neighborCh[n]][minActiveLayer]][2];
-                triggSigBN = triggSigBN + signal[0][backwardMapping[neighborCh[n]][maxActiveLayer]][2];
-            }
-            if (triggSigFN == 0 && triggSigBN == 0)
-              triggNoise  = kTRUE;
-            
-            // Fill triggered histograms
-            if (verbosity > 0) std::cout << "channel board " << chCAEN << "\t" << chBoard << "\t" << chCAENFront << "\t" << chCAENBack << ""<< std::endl; 
-            if (trigg){
-              if(mapping[chCAEN][0] == 0) histNTrig->Fill(chBoard);
-              histHGTrig[0][chCAEN]->Fill(signal[0][chCAEN][0]); 
-              histLGTrig[0][chCAEN]->Fill(signal[0][chCAEN][1]); 
-            } else {
-              histHGNoise[0][chCAEN]->Fill(signal[0][chCAEN][0]); 
-              histLGNoise[0][chCAEN]->Fill(signal[0][chCAEN][1]);               
-            }
-            if (triggNoise){
-              if(mapping[chCAEN][0] == 0) histNTrigNoise->Fill(chBoard);
-              histHGTriggNoise[0][chCAEN]->Fill(signal[0][chCAEN][0]); 
-              histLGTriggNoise[0][chCAEN]->Fill(signal[0][chCAEN][1]);               
-            }
-          }
-        }
-        if (verbosity > 0) std::cout << "Channels above noise: "<< nChNoNoise << std::endl;        
+        if (verbosity > 1) std::cout << "Channels above noise: "<< nChNoNoise << std::endl;        
     }
     
     //**********************************************************************
@@ -576,6 +490,13 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         sigma[2][j][i] = -1;
         sigma[3][j][i] = -1;
 
+        if (! ((histHG[j][i] && histHG[j][i]->GetEntries() > 0)|| (histLG[j][i] && histLG[j][i]->GetEntries() > 0)) ){
+          fitGausLG_BG[j][i]  = nullptr;
+          fitGausHG_BG[j][i]  = nullptr;
+          fitLGHGCorr[j][i]   = nullptr;
+          fitHGLGCorr[j][i]   = nullptr;
+          continue;
+        }
         Int_t chMap     = j*64 + i;
         Int_t chBoard   = mapping[chMap][1];
         Int_t layer     = mapping[chMap][0];
@@ -589,9 +510,6 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         // ********************************************************
         histHG_mapped[layer][chBoard] = (TH1D*)histHG[j][i]->Clone(Form("h_HG_mapped_L%d_C%02d",layer,chBoard));
         histLG_mapped[layer][chBoard] = (TH1D*)histLG[j][i]->Clone(Form("h_LG_mapped_L%d_C%02d",layer,chBoard));
-        if (histHGTrig[j][i] ) histHGTrig_mapped[layer][chBoard] = (TH1D*)histHGTrig[j][i]->Clone(Form("h_HGTrigg_mapped_L%d_C%02d",layer,chBoard));
-        if (histLGTrig[j][i]) histLGTrig_mapped[layer][chBoard] = (TH1D*)histLGTrig[j][i]->Clone(Form("h_LGTrigg_mapped_L%d_C%02d",layer,chBoard));
-        
         // ********************************************************
         // Fit & plot noise histos
         // -> map noise histos from CAEN numb. -> physical
@@ -599,21 +517,11 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         // ********************************************************
         Bool_t bFit = kFALSE;
         // HG noise fits
-        if (histHGTriggNoise[j][i] && histHGTriggNoise[j][i]->GetEntries() > 0){
-          bFit = FitNoise (histHGTriggNoise[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, "f_GaussBG_HG", "HG");
-          if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histHGTriggNoise[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, layer, chBoard, 
-                                                  Form("%s/HG_NoiseWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
-          histHGTriggNoise_mapped[layer][chBoard] = (TH1D*)histHGTriggNoise[j][i]->Clone(Form("h_HGTriggeredNoise_mapped_L%d_C%02d",layer,chBoard));
-          if (bFit){
-            fitGausHG_BG_mapped[layer][chBoard] = (TF1*)fitGausHG_BG[j][i]->Clone(Form("f_GaussBG_HG_mapped_L%d_C%02d",layer,chBoard));
-          }
-        } else {
-          bFit = FitNoise (histHG[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, "f_GaussBG_HG", "HG");
-          if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histHG[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, layer, chBoard, 
-                                                  Form("%s/HG_NoiseWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
-          if (bFit){
-            fitGausHG_BG_mapped[layer][chBoard] = (TF1*)fitGausHG_BG[j][i]->Clone(Form("f_GaussBG_HG_mapped_L%d_C%02d",layer,chBoard));
-          }
+        bFit = FitNoiseWithBG (histHG[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, "f_GaussBG_HG", "HG", verbosity);
+        if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histHG[j][i], fitGausHG_BG[j][i], mean[0][j][i], mean[1][j][i], sigma[0][j][i], sigma[1][j][i], j, i, layer, chBoard, 
+                                                Form("%s/HG_NoiseWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
+        if (bFit){
+          fitGausHG_BG_mapped[layer][chBoard] = (TF1*)fitGausHG_BG[j][i]->Clone(Form("f_GaussBG_HG_mapped_L%d_C%02d",layer,chBoard));
         }
         if (bFit == kFALSE) fitGausHG_BG[j][i] = nullptr;
         // fill fit monitoring hists HG
@@ -635,21 +543,11 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         // reset boolean for fit success monitoring
         bFit = kFALSE;
         // LG noise fits
-        if (histLGTriggNoise[j][i] && histLGTriggNoise[j][i]->GetEntries() > 0){
-          bFit = FitNoise (histLGTriggNoise[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, "f_GaussBG_LG", "LG");
-          if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histLGTriggNoise[j][i], fitGausLG_BG[j][i],  mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, layer, chBoard, 
-                                                  Form("%s/LG_NoiseWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
-          histLGTriggNoise_mapped[layer][chBoard] = (TH1D*)histLGTriggNoise[j][i]->Clone(Form("h_LGTriggeredNoise_mapped_L%d_C%02d",layer,chBoard));
-          if (bFit){
-            fitGausLG_BG_mapped[layer][chBoard] = (TF1*)fitGausLG_BG[j][i]->Clone(Form("f_GaussBG_LG_mapped_L%d_C%02d",layer,chBoard));
-          }
-        } else {
-          bFit = FitNoise (histLG[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, "f_GaussBG_LG", "LG");
-          if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histLG[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, layer, chBoard, 
-                                                  Form("%s/LG_NoiseWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
-          if (bFit){
-            fitGausLG_BG_mapped[layer][chBoard] = (TF1*)fitGausLG_BG[j][i]->Clone(Form("f_GaussBG_LG_mapped_L%d_C%02d",layer,chBoard));
-          }
+        bFit = FitNoiseWithBG (histLG[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, "f_GaussBG_LG", "LG");
+        if (bFit && bDetPlot) PlotNoiseSingle (canvas1DNoise, histLG[j][i], fitGausLG_BG[j][i], mean[2][j][i], mean[3][j][i], sigma[2][j][i], sigma[3][j][i], j, i, layer, chBoard, 
+                                                Form("%s/LG_NoiseWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
+        if (bFit){
+          fitGausLG_BG_mapped[layer][chBoard] = (TF1*)fitGausLG_BG[j][i]->Clone(Form("f_GaussBG_LG_mapped_L%d_C%02d",layer,chBoard));
         }
         if (bFit == kFALSE) fitGausLG_BG[j][i] = nullptr;
         // fill fit monitoring hists LG
@@ -727,11 +625,10 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         // Plot different triggers together
         // ********************************************************
         Int_t hgmax = 1050;
-        if (isTBdata == 2) hgmax = 3999;
-        if (bDetPlot)PlotOverlayDiffTriggers( canvas1DDiffTrigg, histHG[j][i], histHGTrig[j][i], histHGTriggNoise[j][i], fitGausHG_BG[j][i],
+        if (bDetPlot)PlotOverlayDiffTriggers( canvas1DDiffTrigg, histHG[j][i], nullptr, nullptr, fitGausHG_BG[j][i],
                                               0, hgmax, Form("%s/HG_DiffTriggers", outputDirPlotsDet.Data()),
                                               j, i, layer, chBoard, currentRunInfo, 0.04);
-        if (bDetPlot)PlotOverlayDiffTriggers( canvas1DDiffTrigg, histLG[j][i], histLGTrig[j][i], histLGTriggNoise[j][i], fitGausLG_BG[j][i],
+        if (bDetPlot)PlotOverlayDiffTriggers( canvas1DDiffTrigg, histLG[j][i], nullptr, nullptr, fitGausLG_BG[j][i],
                                               0, 1050, Form("%s/LG_DiffTriggers", outputDirPlotsDet.Data()),
                                               j, i, layer, chBoard, currentRunInfo, 0.04);
       }
@@ -739,37 +636,23 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     
     for (Int_t l = 0; l < gMaxLayers; l++){
       if (!lActive[l]) continue;      
-      if (isTBdata == 1){
-        PlotNoiseWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                    histHGTriggNoise_mapped[l], fitGausHG_BG_mapped[l], 0, 275, 1.2, l,
-                                    Form("%s/Noise_HG_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        PlotNoiseWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                    histLGTriggNoise_mapped[l], fitGausLG_BG_mapped[l], 0, 275, 1.2, l,
-                                    Form("%s/Noise_LG_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-      }
-      if (isTBdata < 2){
-        PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                  histHG_mapped[l], histHGTrig_mapped[l], histHGTriggNoise_mapped[l], fitGausHG_BG_mapped[l], 
-                                  0, 3800, 1.2, l , Form("%s/TriggerOverlay_HG_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                  histHG_mapped[l], histHGTrig_mapped[l], histHGTriggNoise_mapped[l], fitGausHG_BG_mapped[l], 
-                                  0, 2100, 1.2, l , Form("%s/TriggerOverlay_HG_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                  histLG_mapped[l], histLGTrig_mapped[l], histLGTriggNoise_mapped[l], fitGausLG_BG_mapped[l], 
-                                  0, 3800, 1.2, l , Form("%s/TriggerOverlay_LG_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                  histLG_mapped[l], histLGTrig_mapped[l], histLGTriggNoise_mapped[l], fitGausLG_BG_mapped[l], 
-                                  0, 1525, 1.2, l , Form("%s/TriggerOverlay_LG_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-      }
-      
-    }
-    if (isTBdata == 1){
-      PlotOverlayFullLayer ( canvas8Panel, pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                              histHGTriggNoise_mapped, lActive, 0, gMaxLayers,
-                              0, 350, -10, 425, 3, Form("%s/HG_Noise_AllLayers.pdf", outputDirPlots.Data()), currentRunInfo, "pe");
-    }
-
+      PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                                histHG_mapped[l], nullptr, nullptr, fitGausHG_BG_mapped[l], 
+                                0, 1000, 1.2, l , Form("%s/TriggerOverlay_HG_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
+      PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                                histLG_mapped[l], nullptr, nullptr, fitGausLG_BG_mapped[l], 
+                                0, 800, 1.2, l , Form("%s/TriggerOverlay_LG_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
+    // ********************************************************************************************************
+    // Overlay in same layer
+    // ********************************************************************************************************
+      PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histHG_mapped[l], 1, 9,
+                                  -100, 1000, 1./5, Form("%s/HG", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
+      PlotChannelOverlaySameLayerWithFitsBG( canvas1DDiffTrigg, histHG_mapped[l], fitGausHG_BG_mapped[l], 1, 9,
+                                  -100, 1000, 1./5, Form("%s/HGWithFits", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
+      PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histLG_mapped[l], 1, 9,
+                                  -100, 500, 1, Form("%s/LG", outputDirPlots.Data()), l, currentRunInfo, 0.04);        
     
+    }    
     
     // ********************************************************
     // Create graphs per board and channels with calib values
@@ -799,18 +682,12 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     // ********************************************************************************************************    
     TH1D* histNSLG[gMaxBoard][gMaxChannels];                // low gain all triggers
     TH1D* histNSHG[gMaxBoard][gMaxChannels];                // high gain all triggers
-    TH1D* histNSCombHG[gMaxBoard][gMaxChannels];            // combined high&low gain all triggers
+    TH1D* histNSHG_BG[gMaxBoard][gMaxChannels];             // high gain all triggers backgrounds
+    TH1D* histNSHG_Sub[gMaxBoard][gMaxChannels];            // high gain all triggers BG sub
     TH2D* histNSLGHG[gMaxBoard][gMaxChannels];              // LG vs HG correlation
     TH2D* histNSHGLG[gMaxBoard][gMaxChannels];              // HG vs LG correlation
-    TH1D* histNSLGTrig[gMaxBoard][gMaxChannels];            // low gain straight line triggers
-    TH1D* histNSHGTrig[gMaxBoard][gMaxChannels];            // high gain straight line triggers
-    TH1D* histNSCombHGTrig[gMaxBoard][gMaxChannels];        // combined high&low gain straight line triggers
-    TH1D* histNSLGNoise[gMaxBoard][gMaxChannels];           // low gain !(straight line triggers)
-    TH1D* histNSHGNoise[gMaxBoard][gMaxChannels];           // high gain !(straight line triggers)
-    TH1D* histNSLGTriggNoise[gMaxBoard][gMaxChannels];      // low gain noise triggered
-    TH1D* histNSHGTriggNoise[gMaxBoard][gMaxChannels];      // high gain noise triggered
-    TH2D* hist_T_NSCombHG[gMaxBoard];                       // time vs high&low gain all triggers
-    TF1*  fitLandauG_NSHGTrig[gMaxBoard][gMaxChannels];     // Landau Gauss fits
+    TSpectrum* spectrumFitter[gMaxBoard][gMaxChannels];     // HG spectrum fittergHeader
+    TF1* fitMultGaussNSLG[gMaxBoard][gMaxChannels];         // fit HG multi gauss
     
     //***************************************************
     // mapped channels - layer & read-out board channels
@@ -818,22 +695,14 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     // channel counting in layer starts with 1, easier acces make array go to 8
     TH1D* histNSLG_mapped[gMaxLayers][9];                   // low gain all triggers
     TH1D* histNSHG_mapped[gMaxLayers][9];                   // high gain all triggers
-    TH1D* histNSCombHG_mapped[gMaxLayers][9];               // combined high&low gain all triggers
-    TH1D* histNSLGTrig_mapped[gMaxLayers][9];               // low gain straight line triggers
-    TH1D* histNSHGTrig_mapped[gMaxLayers][9];               // high gain straight line triggers
-    TH1D* histNSCombHGTrig_mapped[gMaxLayers][9];           // combined high&low gain straight line triggers
-    TH1D* histNSLGTriggNoise_mapped[gMaxLayers][9];         // low gain noise triggered
-    TH1D* histNSHGTriggNoise_mapped[gMaxLayers][9];         // high gain noise triggered
-
+    TH1D* histNSHG_BG_mapped[gMaxLayers][9];                // high gain all triggers background mapped
+    TH1D* histNSHG_Sub_mapped[gMaxLayers][9];                // high gain all triggers background sub
+    
     //***************************************************
     // mapped channels - layer & read-out board channels - rebinned
     //***************************************************
     // channel counting in layer starts with 1, easier acces make array go to 8
     TH1D* histNSHG_mappedReb[gMaxLayers][9];                   // high gain all triggers
-    TH1D* histNSCombHG_mappedReb[gMaxLayers][9];               // combined high&low gain all triggers
-    TH1D* histNSHGTrig_mappedReb[gMaxLayers][9];               // high gain straight line triggers
-    TH1D* histNSCombHGTrig_mappedReb[gMaxLayers][9];           // combined high&low gain straight line triggers
-    TF1*  fitLandauG_NSHGTrig_mapped[gMaxLayers][9];           // Landau Gauss fits
      
     //***************************************************
     // map of triggers above threshold  
@@ -841,59 +710,25 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     TH3D* histNS3DMap = new TH3D("h_map_NS_z_x_y", "; layer; col; row", 14, -0.5, 13.5, 4, -0.5, 3.5, 2, -0.5, 1.5);
     TH2D* histNS2DMap = new TH2D("h_map_NS_z_channel", "; channel; layer", 8, 0.5, 8.5, 14, -0.5, 13.5);
     TH1D* histNS1DMap = new TH1D("h_map_NS_channel", "; channel", 8, 0.5, 8.5);
-    TH2D* hist2DNSTrigg         = new TH2D("hist2D_NS_Trigg", "; channel; layer; counts", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DNSTriggNoise    = new TH2D("hist2D_NS_TriggeredNoise", "; channel; layer; counts", 8, 0.5, 8.5, 14, -0.5, 13.5);
     //***************************************************
     // Init histograms
     //***************************************************    
     for (Int_t j = 0; j < gMaxBoard; j++){
       for (Int_t i = 0; i < gMaxChannels; i++){
         histNSHG[j][i]    = new TH1D(Form("h_NS_HG_B%d_C%02d",j,i),";HG (adc); counts",4201,-200,4001);
-        histNSCombHG[j][i]= new TH1D(Form("h_NS_CombHG_B%d_C%02d",j,i),";comb HG equivalent (adc); counts",40201,-200,40001);
         histNSLG[j][i]    = new TH1D(Form("h_NS_LG_B%d_C%02d",j,i),";LG (adc); counts",4201,-200,4001);
         histNSLGHG[j][i]  = new TH2D(Form("h_NS_LGHG_B%d_C%02d",j,i),";LG (adc); HG (adc)",420,-200,4001,420,-200,4001);
         histNSHGLG[j][i]  = new TH2D(Form("h_NS_HGLG_B%d_C%02d",j,i),";HG (adc); LG (adc)",420,-200,4001,420,-200,4001);
-        if (isTBdata > 0){
-          histNSLGTrig[j][i]        = new TH1D(Form("h_NS_LGTrigg_B%d_C%02d",j,i),"coincidence trigg. front & back ; LG (adc); counts",4201,-200,4001);   // triggered 
-          histNSHGTrig[j][i]        = new TH1D(Form("h_NS_HGTrigg_B%d_C%02d",j,i),"coincidence trigg. front & back ; HG (adc); counts",4201,-200,4001);
-          histNSCombHGTrig[j][i]    = new TH1D(Form("h_NS_CombHGTrigg_B%d_C%02d",j,i),"coincidence trigg. front & back ; comb HG equivalent (adc); counts",40201,-200,40001);
-          histNSLGNoise[j][i]       = new TH1D(Form("h_NS_LGNoise_B%d_C%02d",j,i),"!(coincidence trigg. front & back) ;LG (adc); counts",4201,-200,4001);
-          histNSHGNoise[j][i]       = new TH1D(Form("h_NS_HGNoise_B%d_C%02d",j,i),"!(coincidence trigg. front & back) ;HG (adc); counts",4201,-200,4001);
-          histNSLGTriggNoise[j][i]  = new TH1D(Form("h_NS_LGTriggeredNoise_B%d_C%02d",j,i),"veto front & back; LG (adc); counts",4201,-200,4001);
-          histNSHGTriggNoise[j][i]  = new TH1D(Form("h_NS_HGTriggeredNoise_B%d_C%02d",j,i),"veto front & back; HG (adc); counts",4201,-200,4001);
-        } else {
-          histNSLGTrig[j][i]        = nullptr;
-          histNSHGTrig[j][i]        = nullptr;
-          histNSCombHGTrig[j][i]    = nullptr;
-          histNSLGNoise[j][i]       = nullptr;
-          histNSHGNoise[j][i]       = nullptr;
-          histNSLGTriggNoise[j][i]  = nullptr;
-          histNSHGTriggNoise[j][i]  = nullptr;
-        }
-        fitLandauG_NSHGTrig[j][i]     = nullptr;
+        spectrumFitter[j][i]  = new TSpectrum();
+        histNSHG_BG[j][i] = nullptr;
       }
-      if (isTBdata)
-        hist_T_NSCombHG[j]= new TH2D(Form("h_T_NS_CombHG_B%d",j),"; t (min); comb HG equivalent (adc)",1000,0,120,10000,0,1e6);
-      else 
-        hist_T_NSCombHG[j]= new TH2D(Form("h_T_NS_CombHG_B%d",j),"; t (min); comb HG equivalent (adc)",10000,0,1000,10000,0,1e6);
-      
-      
     }
     for (Int_t l = 0; l < gMaxLayers; l++){
       for (Int_t c = 0; c < 9; c++){
         histNSLG_mapped[l][c]             = nullptr;
         histNSHG_mapped[l][c]             = nullptr; 
-        histNSLGTrig_mapped[l][c]         = nullptr;
-        histNSHGTrig_mapped[l][c]         = nullptr;
-        histNSLGTriggNoise_mapped[l][c]   = nullptr;
-        histNSHGTriggNoise_mapped[l][c]   = nullptr;
-        histNSCombHG_mapped[l][c]         = nullptr; 
-        histNSCombHGTrig_mapped[l][c]     = nullptr;
-        histNSHG_mappedReb[l][c]             = nullptr;
-        histNSHGTrig_mappedReb[l][c]         = nullptr;
-        histNSCombHG_mappedReb[l][c]         = nullptr; 
-        histNSCombHGTrig_mappedReb[l][c]     = nullptr;
-        fitLandauG_NSHGTrig_mapped[l][c]     = nullptr;
+        histNSHG_BG_mapped[l][c]          = nullptr; 
+        histNSHG_mappedReb[l][c]          = nullptr;
       }
     }
 
@@ -959,17 +794,18 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         Int_t nChNoNoise = 0;
         // processing progress info
         if(i>0 && nEntriesTree>100 && i%(nEntriesTree/(20))==0) std::cout << "//processed " << 100*(i)/nEntriesTree << "%"  << std::endl;
-        if(verbosity>0){
+        if(verbosity>1){
           std::cout << "***********************************************************************************************************" << std::endl;
           std::cout << "event " << i << std::endl;
           std::cout << "***********************************************************************************************************" << std::endl;
         }
         // temporary mapping of channels after noise subtractions
-        Int_t signalNS[2][64][4] = {{{0}}};       // [board][channel][HG, LG, trigg HG,comb HG&LG]
+        Int_t signal[2][64][4] = {{{0}}};         // [board][channel][HG, LG, trigg HG,comb HG&LG]
+        Float_t signalNS[2][64][4] = {{{0}}};       // [board][channel][HG, LG, trigg HG,comb HG&LG]
         Double_t summed[2] = {0};                 // total channel sum
         // readEvent
-        if (verbosity > 0)std::cout << "------------- Event -------------------------" << std::endl;
-        if (verbosity > 0)std::cout << gTrID << "\t" << gTRtimeStamp << std::endl;
+        if (verbosity > 1)std::cout << "------------- Event -------------------------" << std::endl;
+        if (verbosity > 1)std::cout << gTrID << "\t" << gTRtimeStamp << std::endl;
         if (i == startEvent) tstapMin = gTRtimeStamp;
         tstapMax = gTRtimeStamp;
         Double_t tCurr= (tstapMax-tstapMin)/1e6/60; // elapsed time in min
@@ -981,6 +817,13 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           Double_t meanNLG = 0;
           if (mean[2][gBoard[ch]][gChannel[ch]] != -1)
             meanNLG = mean[2][gBoard[ch]][gChannel[ch]];
+
+          if (i == 0){
+            std::cout << ch << "\t means: " <<  meanNHG << "\t" << meanNLG << std::endl;
+          }
+          
+          signal[gBoard[ch]][gChannel[ch]][0] = gHG[ch];
+          signal[gBoard[ch]][gChannel[ch]][1] = gLG[ch];
           
           signalNS[gBoard[ch]][gChannel[ch]][0] = gHG[ch]-meanNHG;
           signalNS[gBoard[ch]][gChannel[ch]][1] = gLG[ch]-meanNLG;
@@ -995,275 +838,124 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           // fill histos
           histNSHG[gBoard[ch]][gChannel[ch]]->Fill(signalNS[gBoard[ch]][gChannel[ch]][0]); 
           histNSLG[gBoard[ch]][gChannel[ch]]->Fill(signalNS[gBoard[ch]][gChannel[ch]][1]); 
-          histNSCombHG[gBoard[ch]][gChannel[ch]]->Fill(signalNS[gBoard[ch]][gChannel[ch]][3]); 
           histNSLGHG[gBoard[ch]][gChannel[ch]]->Fill(signalNS[gBoard[ch]][gChannel[ch]][1], signalNS[gBoard[ch]][gChannel[ch]][0]); 
           histNSHGLG[gBoard[ch]][gChannel[ch]]->Fill(signalNS[gBoard[ch]][gChannel[ch]][0], signalNS[gBoard[ch]][gChannel[ch]][1]); 
           if (signalNS[gBoard[ch]][gChannel[ch]][0] > (adcThreshold-meanNHG)){
             nChNoNoise++;
-            if (verbosity > 0) std::cout << "not noise" << std::endl;
-            if (isTBdata > 0){
-              histNS3DMap->Fill(mapping[gChannel[ch]][0],mapping[gChannel[ch]][3],mapping[gChannel[ch]][2]);
-              histNS2DMap->Fill(mapping[gChannel[ch]][1],mapping[gChannel[ch]][0]);
-              histNS1DMap->Fill(mapping[gChannel[ch]][1]);
-            }
+            if (verbosity > 1) std::cout << "not noise" << std::endl;
+            histNS3DMap->Fill(mapping[gChannel[ch]][0],mapping[gChannel[ch]][3],mapping[gChannel[ch]][2]);
+            histNS2DMap->Fill(mapping[gChannel[ch]][1],mapping[gChannel[ch]][0]);
+            histNS1DMap->Fill(mapping[gChannel[ch]][1]);
           }
           // calculate summed signal
-          summed[gBoard[ch]] = summed[gBoard[ch]]+signalNS[gBoard[ch]][gChannel[ch]][3];
+          summed[gBoard[ch]] = summed[gBoard[ch]]+signalNS[gBoard[ch]][gChannel[ch]][3]; 
         }
         // fill summed signal
-        for (Int_t j = 0; j < gMaxBoard; j++)
-          hist_T_NSCombHG[j]->Fill(tCurr,summed[j]);
-        
-        // *****************************************************************
-        // check for conincidence between first and last channel 
-        // above noise or pure noise triggers
-        // *****************************************************************
-        if (isTBdata == 1 || isTBdata == 2){
-        // only for first CAEN board!!!!!
-          for (Int_t chCAEN = 0; chCAEN < 64; chCAEN++){            
-            Int_t chBoard = mapping[chCAEN][1];
-            Int_t nNeigh  = 0;
-            Int_t* neighborCh = new Int_t[5];
-            GetNeighborWithinBoard(chBoard, nNeigh, neighborCh);
-            if (verbosity > 2)std::cout << "channel in board "<< chBoard <<" found " << nNeigh << " neighbors " << std::endl;
-          
-            Int_t chCAENFront = backwardMapping[chBoard][minActiveLayer];
-            Int_t chCAENBack  = backwardMapping[chBoard][maxActiveLayer];
-            
-            // Determine straight line trigger
-            Bool_t  trigg         = (signalNS[0][chCAENFront][2] > 0 && signalNS[0][chCAENBack][2] > 0);
-            Float_t triggSignal   = (signalNS[0][chCAENFront][2] + signalNS[0][chCAENBack][2])/2;
-            
-            // Determine noise trigger
-            Bool_t triggNoise     = kFALSE;
-            Float_t triggSigFN     = signalNS[0][chCAENFront][2];
-            Float_t triggSigBN     = signalNS[0][chCAENBack][2];
-            for (Int_t n = 0; n < nNeigh; n++){
-                triggSigFN = triggSigFN + signalNS[0][backwardMapping[neighborCh[n]][minActiveLayer]][2];
-                triggSigBN = triggSigBN + signalNS[0][backwardMapping[neighborCh[n]][maxActiveLayer]][2];
-            }
-            if (triggSigFN == 0 && triggSigBN == 0)
-              triggNoise  = kTRUE;
-            
-            // Fill triggered histograms
-            if (verbosity > 0) std::cout << "channel board " << chCAEN << "\t" << chBoard << "\t" << chCAENFront << "\t" << chCAENBack << ""<< std::endl; 
-            if (trigg){
-              histNSHGTrig[0][chCAEN]->Fill(signalNS[0][chCAEN][0]); 
-              histNSCombHGTrig[0][chCAEN]->Fill(signalNS[0][chCAEN][3]); 
-              histNSLGTrig[0][chCAEN]->Fill(signalNS[0][chCAEN][1]); 
-              if (signalNS[0][chCAEN][0] > 0) hist2DNSTrigg->Fill(mapping[chCAEN][1],mapping[chCAEN][0]);
-            } else {
-              histNSHGNoise[0][chCAEN]->Fill(signalNS[0][chCAEN][0]); 
-              histNSLGNoise[0][chCAEN]->Fill(signalNS[0][chCAEN][1]);               
-            }
-            if (triggNoise){
-              histNSHGTriggNoise[0][chCAEN]->Fill(signalNS[0][chCAEN][0]); 
-              histNSLGTriggNoise[0][chCAEN]->Fill(signalNS[0][chCAEN][1]);       
-              hist2DNSTriggNoise->Fill(mapping[chCAEN][1],mapping[chCAEN][0]);
-            }
-          }
-        }
-        if (verbosity > 0)std::cout << "Channels above noise: "<< nChNoNoise << std::endl;        
+        if (verbosity > 1)std::cout << "Channels above noise: "<< nChNoNoise << std::endl;        
     }
     std::cout << "Total events processed:" << nEventsProcessed << std::endl;
 
-    
     // ********************************************************************************************************
     // Plotting of single channels after noise subtraction
     // -> remapping of CAEN board+channels to physicsal layers and readout-channels
     // ********************************************************************************************************    
     for (Int_t j = 0; j < gMaxBoard; j++){
       for (Int_t i = 0; i < gMaxChannels; i++){
+        if (! ((histNSHG[j][i] && histNSHG[j][i]->GetEntries() > 0)|| (histNSLG[j][i] && histNSLG[j][i]->GetEntries() > 0)) ){
+          fitMultGaussNSLG[j][i] = nullptr;
+          continue;
+        }
         Int_t chMap     = j*64 + i;
         Int_t chBoard   = mapping[chMap][1];
         Int_t layer     = mapping[chMap][0];
         if (verbosity > 0)std::cout << j << "\t" << i << "\t" << chMap << "\t L: " << layer  << "\t C:" <<  chBoard << std::endl;
         
-        histNSHG_mapped[layer][chBoard] = (TH1D*)histNSHG[j][i]->Clone(Form("h_NS_HG_mapped_L%d_C%02d",layer,chBoard));
-        histNSCombHG_mapped[layer][chBoard] = (TH1D*)histNSCombHG[j][i]->Clone(Form("h_NS_CombHG_mapped_L%d_C%02d",layer,chBoard));
-        histNSLG_mapped[layer][chBoard] = (TH1D*)histNSLG[j][i]->Clone(Form("h_NS_LG_mapped_L%d_C%02d",layer,chBoard));
-        if (histNSHGTrig[j][i]) histNSHGTrig_mapped[layer][chBoard] = (TH1D*)histNSHGTrig[j][i]->Clone(Form("h_NS_HGTrigg_mapped_L%d_C%02d",layer,chBoard));
-        if (histNSCombHGTrig[j][i]) histNSCombHGTrig_mapped[layer][chBoard] = (TH1D*)histNSCombHGTrig[j][i]->Clone(Form("h_NS_CombHGTrigg_mapped_L%d_C%02d",layer,chBoard));
-        if (histNSLGTrig[j][i]) histNSLGTrig_mapped[layer][chBoard] = (TH1D*)histNSLGTrig[j][i]->Clone(Form("h_NS_LGTrigg_mapped_L%d_C%02d",layer,chBoard));
-        if (histNSHGTriggNoise[j][i]) histNSHGTriggNoise_mapped[layer][chBoard] = (TH1D*)histNSHGTriggNoise[j][i]->Clone(Form("h_NS_HGTriggeredNoise_mapped_L%d_C%02d",layer,chBoard));
-        if (histNSLGTriggNoise[j][i]) histNSLGTriggNoise_mapped[layer][chBoard] = (TH1D*)histNSLGTriggNoise[j][i]->Clone(Form("h_NS_LGTriggeredNoise_mapped_L%d_C%02d",layer,chBoard));
         
-        Bool_t fTrigg   = kFALSE;
+        histNSHG_BG[j][i]                   = (TH1D*)spectrumFitter[j][i]->Background(histNSHG[j][i], 20, "smoothing");
+        histNSHG_BG_mapped[layer][chBoard]  = (TH1D*)histNSHG_BG[j][i]->Clone(Form("h_NS_HG_BG_mapped_L%d_C%02d",layer,chBoard));
+        histNSHG_Sub[j][i]                  = (TH1D*)histNSHG[j][i]->Clone(Form("h_NS_HG_Sub_B%d_C%02d",j,i));
+        histNSHG_Sub[j][i]->Sumw2();
+        histNSHG_Sub[j][i]->Add(histNSHG_BG[j][i], -1);
+        histNSHG_Sub_mapped[layer][chBoard]  = (TH1D*)histNSHG_Sub[j][i]->Clone(Form("h_NS_HG_Sub_mapped_L%d_C%02d",layer,chBoard));
+        
+        Int_t nfound = spectrumFitter[j][i]->Search(histNSHG_Sub_mapped[layer][chBoard], 7., "", 0.05); // Search for peaks
+        if (verbosity > 0) std::cout << "found " << nfound << "\t different peaks in spectrum" << std::endl;
+        
+        if (nfound > 2){
+          nPeaksMultGauss = 0;
+          Double_t *xpeaks;
+          Double_t par[3000];
+          xpeaks = spectrumFitter[j][i]->GetPositionX();
+          
+          // invert order of peaks
+          std::sort(xpeaks, xpeaks + nfound, [&](Double_t a, Double_t b) {
+              return a > b;
+          });
+          
+          std::cout << "Differences between consecutive entries:" << std::endl;
+          Double_t sum_diff = 0.0;
+          for (size_t f = 1; f < (size_t)nfound-1; ++f) {
+            Double_t diff = xpeaks[f - 1] - xpeaks[f];
+            std::cout << diff << " ";
+            sum_diff += diff;
+          }
+          std::cout << std::endl;
+          
+          Double_t average_diff = sum_diff / (nfound - 1);
+          std::cout << "Average of differences: " << average_diff << std::endl;
+          par[0]  = 0;
+          par[1]  = 0;
+          for (Int_t p = 0; p < (Int_t)nfound; p++){
+            Double_t xp   = xpeaks[p];
+
+            Int_t bin     = histNSHG_Sub[j][i]->GetXaxis()->FindBin(xp);
+            Double_t yp   = histNSHG_Sub[j][i]->GetBinContent(bin);
+            std::cout << p << "\t" << xp << "\t" << bin << "\t"<< yp << std::endl;            
+            par[3 * nPeaksMultGauss + 2] = yp;     // "height"
+            par[3 * nPeaksMultGauss + 3] = xp; // "mean"
+            par[3 * nPeaksMultGauss + 4] = 3;  // "sigma"
+            
+            std::cout<<xp<<std::endl;
+            nPeaksMultGauss++;
+          }
+          
+          fitMultGaussNSLG[j][i] = new TF1(Form("fitMultGauss_NS_HG_Sub_B%d_C%02d",j,i), multGauss, 0, 4096, 3 * nPeaksMultGauss);
+          fitMultGaussNSLG[j][i]->SetParameters(par);
+          fitMultGaussNSLG[j][i]->SetNpx(1000);
+          for (Int_t n = 0; n < fitMultGaussNSLG[j][i]->GetNpar(); n++){
+              std::cout << n << "\t" << fitMultGaussNSLG[j][i]->GetParameter(n) << std::endl;
+          }
+          histNSHG_Sub[j][i]->Fit(fitMultGaussNSLG[j][i]);
+        
+        } else {
+          std::cout << "no peaks from different pixels found" << std::endl;
+          fitMultGaussNSLG[j][i] = nullptr;
+        }
+        
+        
+        histNSHG_mapped[layer][chBoard] = (TH1D*)histNSHG[j][i]->Clone(Form("h_NS_HG_mapped_L%d_C%02d",layer,chBoard));
+        histNSLG_mapped[layer][chBoard] = (TH1D*)histNSLG[j][i]->Clone(Form("h_NS_LG_mapped_L%d_C%02d",layer,chBoard));
+        
         histNSHG_mapped[layer][chBoard]->Sumw2();
         histNSHG_mappedReb[layer][chBoard] = (TH1D*)histNSHG_mapped[layer][chBoard]->Rebin(2100,Form("%sReb",(histNSHG_mapped[layer][chBoard]->GetName())), binningADC);
         histNSHG_mappedReb[layer][chBoard]->Scale(1,"width");
-        if (histNSHGTrig[j][i]){
-          fTrigg    = kTRUE;
-          histNSHGTrig_mapped[layer][chBoard]->Sumw2();
-          histNSHGTrig_mappedReb[layer][chBoard] = (TH1D*)histNSHGTrig_mapped[layer][chBoard]->Rebin(2100,Form("%sReb",(histNSHGTrig_mapped[layer][chBoard]->GetName())), binningADC);
-          histNSHGTrig_mappedReb[layer][chBoard]->Scale(1,"width");
-        }
-        histNSCombHG_mapped[layer][chBoard]->Sumw2();
-        histNSCombHG_mappedReb[layer][chBoard] = (TH1D*)histNSCombHG_mapped[layer][chBoard]->Rebin(2780,Form("%sReb",(histNSCombHG_mapped[layer][chBoard]->GetName())), binningADC);
-        histNSCombHG_mappedReb[layer][chBoard]->Scale(1,"width");
-        if (histNSCombHGTrig[j][i]){
-          histNSCombHGTrig_mapped[layer][chBoard]->Sumw2();
-          histNSCombHGTrig_mappedReb[layer][chBoard] = (TH1D*)histNSCombHGTrig_mapped[layer][chBoard]->Rebin(2780,Form("%sReb",(histNSCombHGTrig_mapped[layer][chBoard]->GetName())), binningADC);
-          histNSCombHGTrig_mappedReb[layer][chBoard]->Scale(1,"width");
-        }
-        
-        if (fTrigg && histNSHGTrig_mappedReb[layer][chBoard]->GetEntries() > 0){
-          // Setting fit range and start values
-          double fr[2]    = {150, 2000};
-          double sv[4]    = {50, 600, 5000, 5.0};
-          double pllo[4]  = {0.5, 100, 1.0, 0.4};
-          double plhi[4]  = {500, 1000, 10000, 10};
-          double fp[4];
-          double fpe[4];
-          
-          if (verbosity > 0) std::cout << "\t Int: " << histNSHGTrig_mapped[layer][chBoard]->Integral() << "\t" << histNSHGTrig_mapped[layer][chBoard]->GetRMS() << std::endl;
-          if (histNSHGTrig_mapped[layer][chBoard]->Integral() < 5000){
-            histNSHGTrig_mapped[layer][chBoard]->Sumw2();
-            histNSHGTrig_mapped[layer][chBoard]->Rebin(2);
-            histNSHGTrig_mapped[layer][chBoard]->Scale(1,"width");          
-            histNSHGTrig_mappedReb[layer][chBoard]->Sumw2();
-            histNSHGTrig_mappedReb[layer][chBoard]->Rebin(2);
-            histNSHGTrig_mappedReb[layer][chBoard]->Scale(1./2);          
-            
-            histNSHGTrig[j][i]->Sumw2();
-            histNSHGTrig[j][i]->Rebin(2);
-            histNSHGTrig[j][i]->Scale(1,"width");          
-          }
-            
-          plhi[2]=histNSHGTrig_mapped[layer][chBoard]->Integral()*2;
-          plhi[3]=histNSHGTrig_mapped[layer][chBoard]->GetRMS()*2;
-          sv[2]=histNSHGTrig_mapped[layer][chBoard]->Integral(); 
-
-          fitLandauG_NSHGTrig_mapped[layer][chBoard]  = langaufit(histNSHGTrig_mappedReb[layer][chBoard],fr,sv,pllo,plhi,fp,fpe,&chisqr[layer][chBoard],&ndf[layer][chBoard], verbosity);
-          fitLandauG_NSHGTrig_mapped[layer][chBoard]->SetName(Form("f_LandauG_NSHG_L%d_C%02d",layer,chBoard));
-          fitLandauG_NSHGTrig[j][i]                   = (TF1*)fitLandauG_NSHGTrig_mapped[layer][chBoard]->Clone(Form("f_LandauG_NSHG_B%d_C%02d",j,i));
-          mpL[layer][chBoard]           = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(1);
-          mpLErr[layer][chBoard]        = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(1);
-          sigmaG[layer][chBoard]        = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(3);
-          sigmaGErr[layer][chBoard]     = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(3);
-          sigmaL[layer][chBoard]        = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(0);
-          sigmaLErr[layer][chBoard]     = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(0);
-          
-          hist2DMPV_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(1));
-          hist2DMPVErr_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(1));
-          hist2DWidth_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(0));
-          hist2DWidthErr_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(0));
-          hist2DGWidth_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(3));
-          hist2DGWidthErr_HG->Fill(chBoard, layer,fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(3));
-          
-          /// get bin to fill for 1D representation of channels for fit values
-          Int_t channelBin1D = hist1DMPV_HG->FindBin(layer*10+chBoard);          
-          hist1DMPV_HG->SetBinContent(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(1));
-          hist1DMPV_HG->SetBinError(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(1));
-          hist1DWidth_HG->SetBinContent(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(0));
-          hist1DWidth_HG->SetBinError(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(0));
-          hist1DGWidth_HG->SetBinContent(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(3));
-          hist1DGWidth_HG->SetBinError(channelBin1D, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(3));
-          
-          hist1DCAEN_MPV_HG->SetBinContent(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(1));
-          hist1DCAEN_MPV_HG->SetBinError(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(1));
-          hist1DCAEN_Width_HG->SetBinContent(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(0));
-          hist1DCAEN_Width_HG->SetBinError(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(0));
-          hist1DCAEN_GWidth_HG->SetBinContent(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(3));
-          hist1DCAEN_GWidth_HG->SetBinError(chMap+1, fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(3));
-          
-          double SNRPeak, SNRFWHM;
-          langaupro(fp,SNRPeak,SNRFWHM);
-
-          maxLandG[layer][chBoard]      = (Double_t)SNRPeak;
-          fwhmLandG[layer][chBoard]     = (Double_t)SNRFWHM;
-          
-          hist2DMax_HG->Fill(chBoard, layer,SNRPeak);
-          hist2DFWHM_HG->Fill(chBoard, layer,SNRFWHM);
-          hist1DMax_HG->SetBinContent(channelBin1D, SNRPeak);
-          hist1DFWHM_HG->SetBinContent(channelBin1D, SNRFWHM);
-          hist1DCAEN_Max_HG->SetBinContent(chMap+1, SNRPeak);
-          hist1DCAEN_FWHM_HG->SetBinContent(chMap+1, SNRFWHM);
-        } else {
-          fitLandauG_NSHGTrig_mapped[layer][chBoard]  = nullptr;
-          fitLandauG_NSHGTrig[j][i]                   = nullptr;
-        }
-
+      
         if (bDetPlot){
           // ********************************************************
           // Plot different triggers together
           // ********************{************************************
-          PlotOverlayDiffTriggers( canvas1DDiffTrigg, histNSHG[j][i], histNSHGTrig[j][i], histNSHGTriggNoise[j][i], NULL,
-                                -100, 4000, Form("%s/HG_NS_DiffTriggers", outputDirPlotsDet.Data()),
+          PlotOverlayDiffTriggers( canvas1DDiffTrigg, histNSHG[j][i], nullptr, nullptr, NULL,
+                                -100, 1100, Form("%s/HG_NS_DiffTriggers", outputDirPlotsDet.Data()),
                                 j, i, layer, chBoard, currentRunInfo, 0.04);
-          PlotOverlayDiffTriggers( canvas1DDiffTrigg, histNSLG[j][i], histNSLGTrig[j][i], histNSLGTriggNoise[j][i], NULL,
-                                -100, 4000, Form("%s/LG_NS_DiffTriggers", outputDirPlotsDet.Data()),
+          PlotOverlayDiffTriggers( canvas1DDiffTrigg, histNSLG[j][i], nullptr, nullptr, NULL,
+                                -100, 500, Form("%s/LG_NS_DiffTriggers", outputDirPlotsDet.Data()),
+                                j, i, layer, chBoard, currentRunInfo, 0.04);
+          PlotOverlaySinglePhoton( canvas1DDiffTrigg, histNSHG[j][i], histNSHG_BG[j][i], histNSHG_Sub[j][i],  fitMultGaussNSLG[j][i],
+                                -100, 1100, Form("%s/HG_NS_WithSpectrumBG_DiffTriggers", outputDirPlotsDet.Data()),
                                 j, i, layer, chBoard, currentRunInfo, 0.04);
         }
       }
     }
-    // ********************************************************************************************************
-    // Plotting summed signals vs time per board
-    // ********************************************************************************************************
-    for (Int_t j = 0; j < gMaxBoard; j++){
-      if (hist_T_NSCombHG[j] && bDetPlot){
-        canvas2DCorr->cd();
-        DefaultCancasSettings( canvas2DCorr, 0.1, 0.1, 0.04, 0.08);  
-          SetStyleHistoTH2ForGraphs( hist_T_NSCombHG[j], hist_T_NSCombHG[j]->GetXaxis()->GetTitle(), hist_T_NSCombHG[j]->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 1.25);  
-          hist_T_NSCombHG[j]->GetXaxis()->SetRangeUser(0,tdiff+0.1);
-          hist_T_NSCombHG[j]->Draw("colz");
-          
-          TLatex *labelChannel                     = new TLatex(0.85,0.90,Form("CAEN: B %d",j));
-          SetStyleTLatex( labelChannel, textSizeRel,4,1,42,kTRUE,31);
-          labelChannel->Draw();
-
-        canvas2DCorr->SaveAs(Form("%s/T_HGSummed_B%d.pdf", outputDirPlots.Data(), j));
-      }
-    }
-    canvas2DCorr->cd();
-    DefaultCancasSettings( canvas2DCorr, 0.1, 0.1, 0.02, 0.08);  
-      SetStyleHistoTH2ForGraphs( hist2DNSTrigg, hist2DNSTrigg->GetXaxis()->GetTitle(), hist2DNSTrigg->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 1.25);  
-      hist2DNSTrigg->GetYaxis()->SetRangeUser(-0.5,maxActiveLayer+1.5);
-      hist2DNSTrigg->GetZaxis()->SetRangeUser(hist2DNSTrigg->GetMinimum(1),hist2DNSTrigg->GetMaximum());
-      hist2DNSTrigg->Draw("colz,text");
-      
-      TLatex *labelTrigg                     = new TLatex(0.85,0.93,"straight line triggers");
-      SetStyleTLatex( labelTrigg, textSizeRel,4,1,42,kTRUE,31);
-      labelTrigg->Draw();
-
-    canvas2DCorr->SaveAs(Form("%s/NTrigg_2D.pdf", outputDirPlots.Data()));
-
-    canvas2DCorr->cd();
-    DefaultCancasSettings( canvas2DCorr, 0.1, 0.1, 0.02, 0.08);  
-      SetStyleHistoTH2ForGraphs( hist2DNSTriggNoise, hist2DNSTriggNoise->GetXaxis()->GetTitle(), hist2DNSTriggNoise->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 1.25);  
-      hist2DNSTriggNoise->GetYaxis()->SetRangeUser(-0.5,maxActiveLayer+1.5);
-      hist2DNSTriggNoise->GetZaxis()->SetRangeUser(hist2DNSTriggNoise->GetMinimum(1),hist2DNSTriggNoise->GetMaximum());
-      hist2DNSTriggNoise->Draw("colz,text");
-      
-      labelTrigg->SetText(0.85,0.93,"noise triggers");
-      labelTrigg->Draw();
-
-    canvas2DCorr->SaveAs(Form("%s/NTriggNoise_2D.pdf", outputDirPlots.Data()));
-
-    TH2D* hist2DNSTriggEffi = (TH2D*)hist2DNSTrigg->Clone("hist2DNSTrigg_effi");
-    hist2DNSTriggEffi->Reset();
-    hist2DNSTriggEffi->GetZaxis()->UnZoom();
-    for (Int_t c = 1; c < 9; c++){
-      for (Int_t l = 1; l < gMaxLayers+1; l++){
-        Double_t content = (Double_t)hist2DNSTrigg->GetBinContent(c,l)/hist2DNSTrigg->GetBinContent(c,1)*100;
-        hist2DNSTriggEffi->Fill(c,l-1,content );
-      }        
-    }
-    canvas2DCorr->cd();
-    canvas2DCorr->SetLogz(0);
-    DefaultCancasSettings( canvas2DCorr, 0.08, 0.13, 0.02, 0.08);  
-      SetStyleHistoTH2ForGraphs( hist2DNSTriggEffi, hist2DNSTriggEffi->GetXaxis()->GetTitle(), hist2DNSTriggEffi->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 0.9);  
-      hist2DNSTriggEffi->GetZaxis()->SetTitle("#varepsilon (%)");
-      hist2DNSTriggEffi->GetYaxis()->SetRangeUser(-0.5,maxActiveLayer+1.5);
-      hist2DNSTriggEffi->GetZaxis()->SetRangeUser(hist2DNSTriggEffi->GetMinimum(0.5),hist2DNSTriggEffi->GetMaximum());
-      if (verbosity > 0)std::cout << hist2DNSTriggEffi->GetMinimum(1) << "\t" << hist2DNSTriggEffi->GetMaximum() << std::endl;
-      hist2DNSTriggEffi->Draw("colz,text");
-      
-      labelTrigg->SetText(0.8,0.93,"rec. effi");
-      SetStyleTLatex( labelTrigg, textSizeRel,4,1,42,kTRUE,31);
-      labelTrigg->Draw();
-
-    canvas2DCorr->SaveAs(Form("%s/NTriggEff_2D.pdf", outputDirPlots.Data()));
 
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DNoiseMean_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HG_Noise_Mean.pdf", outputDirPlots.Data()), currentRunInfo);
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DNoiseSigma_HG, maxActiveLayer, maxActiveRBCh, textSizeRel,Form("%s/HG_Noise_Sigma.pdf", outputDirPlots.Data()), currentRunInfo);
@@ -1274,28 +966,12 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     
     for (Int_t l = 0; l < gMaxLayers; l++){
       if (!lActive[l]) continue; 
-      if (isTBdata == 0){
-        PlotNoiseWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                    histNSHG_mapped[l], nullptr, -120, 375, 1.2, l,
-                                    Form("%s/Noise_NS_HG_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                  histNSHG_mapped[l], nullptr, nullptr, nullptr, 
-                                  -80, 3800, 1.2, l , Form("%s/TriggerOverlay_HG_NS_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                  histNSLG_mapped[l], nullptr, nullptr, nullptr, 
-                                  -80, 3800, 1.2, l , Form("%s/TriggerOverlay_LG_NS_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-      } else if (isTBdata == 1){
-        PlotNoiseWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                    histNSHGTriggNoise_mapped[l], nullptr, -120, 375, 1.2, l,
-                                    Form("%s/Noise_NS_HG_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                  histNSHG_mapped[l], histNSHGTrig_mapped[l], histNSHGTriggNoise_mapped[l], nullptr, 
-                                  -80, 3800, 1.2, l , Form("%s/TriggerOverlay_HG_NS_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                  histNSLG_mapped[l], histNSLGTrig_mapped[l], histNSLGTriggNoise_mapped[l], nullptr, 
-                                  -80, 3800, 1.2, l , Form("%s/TriggerOverlay_LG_NS_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        
-      }
+      PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                                histNSHG_mapped[l], nullptr, nullptr, nullptr, 
+                                -80, 1000, 1.2, l , Form("%s/TriggerOverlay_HG_NS_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
+      PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                                histNSLG_mapped[l], nullptr, nullptr, nullptr, 
+                                -80, 500, 1.2, l , Form("%s/TriggerOverlay_LG_NS_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
     }
     
     // ********************************************************************************************************
@@ -1303,78 +979,23 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     // ********************************************************************************************************
     for (Int_t l = 0; l < gMaxLayers; l++){
       if (!lActive[l]) continue;      
-      for (Int_t c = 1; c < 9; c++){
-        
-        PlotMIPSingle (canvas1DNoise, histNSHGTrig_mapped[l][c],fitLandauG_NSHGTrig_mapped[l][c], chisqr[l][c], ndf[l][c], maxLandG[l][c], fwhmLandG[l][c],
-                        l, c, Form("%s/HG_TriggMipWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
-      }
-      if (isTBdata == 1){
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSHGTriggNoise_mapped[l], 1, 9,
-                                    -100, 400, 1, Form("%s/HGNS_Noise", outputDirPlots.Data()), l, currentRunInfo, 0.04);
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSHGTrig_mappedReb[l], 1, 9,
-                                    0, 4000, 1./5, Form("%s/HGNS_Trigg", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSHGTrig_mappedReb[l], 1, 9,
-                                    0, 2000, 1./2, Form("%s/HGNS_TriggZoomed", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSHG_mappedReb[l], 1, 9,
-                                    -100, 4000, 1./5, Form("%s/HGNS", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSLGTriggNoise_mapped[l], 1, 9,
-                                    -100, 400, 1, Form("%s/LGNS_Noise", outputDirPlots.Data()), l, currentRunInfo, 0.04);
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSLGTrig_mapped[l], 1, 9,
-                                    0, 4000, 1, Form("%s/LGNS_Trigg", outputDirPlots.Data()), l, currentRunInfo,0.04);
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSLG_mapped[l], 1, 9,
-                                    -100, 4000, 1, Form("%s/LGNS", outputDirPlots.Data()), l, currentRunInfo, 0.04);
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSCombHGTrig_mappedReb[l], 1, 9,
-                                    0, 40000, 1./100, Form("%s/CombHGNS_Trigg", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSCombHG_mappedReb[l], 1, 9,
-                                    -100, 40000, 1./100, Form("%s/CombHGNS", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
-        PlotStraigtLineTriggAndFitFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                            histNSHGTrig_mapped[l], fitLandauG_NSHGTrig_mapped[l],maxLandG[l],
-                                            150, 2200, 0, 2200, 1.2, l, Form("%s/TriggerWithFit_HG_NS_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        PlotStraigtLineTriggAndFitFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                            histNSHGTrig_mappedReb[l], fitLandauG_NSHGTrig_mapped[l],maxLandG[l],
-                                            150, 2200, 0, 2200, 1.2, l, Form("%s/TriggerWithFit_HG_NSReb_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-        PlotStraigtLineTriggAndFitFullLayerLin (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                              histNSHGTrig_mappedReb[l], fitLandauG_NSHGTrig_mapped[l],maxLandG[l],
-                                              150, 2200, 0, 2200, 1.05, l, Form("%s/TriggerWithFitLinY_HG_NS_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
-      } else {
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSHG_mappedReb[l], 1, 9,
-                                    -100, 4000, 1./5, Form("%s/HGNS", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSLG_mapped[l], 1, 9,
-                                    -100, 4000, 1, Form("%s/LGNS", outputDirPlots.Data()), l, currentRunInfo, 0.04);        
-        PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSCombHG_mappedReb[l], 1, 9,
-                                    -100, 40000, 1./100, Form("%s/CombHGNS", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
-      }
+//       for (Int_t c = 1; c < 9; c++){
+//         
+//         PlotMIPSingle (canvas1DNoise, histNSHG_mappedReb[l][c],nullptr, chisqr[l][c], ndf[l][c], maxLandG[l][c], fwhmLandG[l][c],
+//                         l, c, Form("%s/HG_TriggMipWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
+//       }
+      PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSHG_mappedReb[l], 1, 9,
+                                  -100, 1000, 1./5, Form("%s/HGNS", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
+      PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histNSLG_mapped[l], 1, 9,
+                                  -100, 500, 1, Form("%s/LGNS", outputDirPlots.Data()), l, currentRunInfo, 0.04);        
     }
     
     // ********************************************************************************************************
     // Overlay noise for same readout channel
     // ********************************************************************************************************
     for (Int_t c = 1; c < 9; c++){      
-      if (isTBdata == 2 && c > 1) continue; 
       PlotChannelOverlaySameReadoutChannel( canvas1DDiffTrigg, histNSHG_mappedReb, lActive, 0, gMaxLayers, 
-                                            -100,4000, 1./5, Form("%s/HGNS", outputDirPlots.Data()), c, currentRunInfo,0.04,"hist");    
-      PlotChannelOverlaySameReadoutChannel( canvas1DDiffTrigg, histNSCombHG_mappedReb, lActive, 0, gMaxLayers, 
-                                            -100,40000, 1./100, Form("%s/CombHGNS", outputDirPlots.Data()), c, currentRunInfo, 0.04, "hist");    
-      if (isTBdata == 1){
-        PlotChannelOverlaySameReadoutChannel( canvas1DDiffTrigg, histNSHGTriggNoise_mapped, lActive, 0, gMaxLayers, 
-                                              -200,400, 1, Form("%s/HGNS_Noise", outputDirPlots.Data()), c, currentRunInfo, 0.04);    
-        PlotChannelOverlaySameReadoutChannel( canvas1DDiffTrigg, histNSHGTrig_mappedReb, lActive, 0, gMaxLayers, 
-                                              0,4000, 1./5, Form("%s/HGNS_Trigg", outputDirPlots.Data()), c, currentRunInfo, 0.04,"hist");    
-        PlotChannelOverlaySameReadoutChannel( canvas1DDiffTrigg, histNSHGTrig_mappedReb, lActive, 0, gMaxLayers, 
-                                              0,2000, 1./2, Form("%s/HGNS_TriggZoomed", outputDirPlots.Data()), c, currentRunInfo, 0.04, "hist");    
-        PlotChannelOverlaySameReadoutChannel( canvas1DDiffTrigg, histNSCombHGTrig_mappedReb, lActive, 0, gMaxLayers, 
-                                              0,40000, 1./100, Form("%s/CombHGNS_Trigg", outputDirPlots.Data()), c, currentRunInfo, 0.04,"hist");    
-      }
-    }
-    if (isTBdata == 1){
-      PlotOverlayFullLayer ( canvas8Panel, pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                              histNSHGTriggNoise_mapped, lActive, 0, gMaxLayers,
-                              -100, 350, -125, 425, 1.5, Form("%s/HGNS_Noise_AllLayers.pdf", outputDirPlots.Data()), currentRunInfo, "pe");
-    }
-    if (isTBdata == 1){
-      PlotOverlayFullLayer ( canvas8Panel, pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                              histNSHGTrig_mappedReb, lActive, 0, gMaxLayers,
-                              200, 2200, -10, 2200, 1.5, Form("%s/HGNS_Trigg_AllLayers.pdf", outputDirPlots.Data()), currentRunInfo, "hist");
+                                            -100,1000, 1./5, Form("%s/HGNS", outputDirPlots.Data()), c, currentRunInfo,0.04,"hist");    
     }
 
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DMPV_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_MPV.pdf", outputDirPlots.Data()), currentRunInfo);
@@ -1424,81 +1045,41 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
       for (Int_t i = 0; i < gMaxChannels; i++){
         // raw data
         fileOutput->cd("RawData");
-        if(histHG[j][i])histHG[j][i]->Write();
-        if(hist_T_HG[j][i])hist_T_HG[j][i]->Write();
-        if (isTBdata){
-          if(histHGTrig[j][i])histHGTrig[j][i]->Write();
-          if(histHGNoise[j][i])histHGNoise[j][i]->Write();
-          if(histHGTriggNoise[j][i])histHGTriggNoise[j][i]->Write();
-          if (fitGausHG_BG[j][i]) fitGausHG_BG[j][i]->Write();
-        }
-        if (histLG[j][i])histLG[j][i]->Write();
-        if (isTBdata){
-          if(histLGTrig[j][i])histLGTrig[j][i]->Write();
-          if(histLGNoise[j][i])histLGNoise[j][i]->Write();
-          if(histLGTriggNoise[j][i])histLGTriggNoise[j][i]->Write();
-          if (fitGausLG_BG[j][i]) fitGausLG_BG[j][i]->Write();          
-        }
-    
+        WriteOnlyIfFilled(histHG[j][i]);
+        WriteOnlyIfFilled(hist_T_HG[j][i]);
+        WriteOnlyIfFilled(histLG[j][i]);
         // noise subtracted
         fileOutput->cd("NoiseSubtracted");
-        if(histNSHG[j][i])histNSHG[j][i]->Write();
-        if(histNSCombHG[j][i])histNSCombHG[j][i]->Write();
-        if (isTBdata){
-          if(histNSHGTrig[j][i])histNSHGTrig[j][i]->Write();
-          if(histNSCombHGTrig[j][i])histNSCombHGTrig[j][i]->Write();
-          if(histNSHGNoise[j][i])histNSHGNoise[j][i]->Write();
-          if(histNSHGTriggNoise[j][i])histNSHGTriggNoise[j][i]->Write();
-          if(fitLandauG_NSHGTrig[j][i])fitLandauG_NSHGTrig[j][i]->Write();
-        }
-        if(histNSLG[j][i])histNSLG[j][i]->Write();
-        if (isTBdata){
-          if(histNSLGTrig[j][i])histNSLGTrig[j][i]->Write();
-          if(histNSLGNoise[j][i])histNSLGNoise[j][i]->Write();
-          if(histNSLGTriggNoise[j][i])histNSLGTriggNoise[j][i]->Write();
-        }
+        WriteOnlyIfFilled(histNSHG[j][i]);
+        WriteOnlyIfFilled(histNSLG[j][i]);
+        if (fitMultGaussNSLG[j][i]) fitMultGaussNSLG[j][i]->Write();
         // correlation histograms
         fileOutput->cd("CorrelationLGHG");
-        if(histLGHG[j][i])histLGHG[j][i]->Write();
+        WriteOnlyIfFilled(histLGHG[j][i]);
+        WriteOnlyIfFilled(histNSLGHG[j][i]);
         if (fitLGHGCorr[j][i]) fitLGHGCorr[j][i]->Write();
-        if(histNSLGHG[j][i])histNSLGHG[j][i]->Write();        
         fileOutput->cd("CorrelationHGLG");
-        if(histHGLG[j][i])histHGLG[j][i]->Write();
+        WriteOnlyIfFilled(histHGLG[j][i]);
+        WriteOnlyIfFilled(histNSHGLG[j][i]);
         if (fitHGLGCorr[j][i]) fitHGLGCorr[j][i]->Write();
-        if(histNSHGLG[j][i])histNSHGLG[j][i]->Write();            
       }
       fileOutput->cd();
-      if(hist_T_NSCombHG[j])hist_T_NSCombHG[j]->Write();
     }
-
+    std::cout << __LINE__ << std::endl;
     // *******************************************************
     // run over all physical layers and readout board channels
     // *******************************************************
     for (Int_t l = 0; l  < gMaxLayers; l++){
       for (Int_t c = 1; c < 9; c++){
         fileOutput->cd("RawDataMapped");
-        if (histHG_mapped[l][c]) histHG_mapped[l][c]->Write();
-        if (histHGTrig_mapped[l][c]) histHGTrig_mapped[l][c]->Write();
-        if (histHGTriggNoise_mapped[l][c]) histHGTriggNoise_mapped[l][c]->Write();
+        WriteOnlyIfFilled(histHG_mapped[l][c]);
         if (fitGausHG_BG_mapped[l][c]) fitGausHG_BG_mapped[l][c]->Write();
-        if (histLG_mapped[l][c]) histLG_mapped[l][c]->Write();
-        if (histLGTrig_mapped[l][c]) histLGTrig_mapped[l][c]->Write();
-        if (histLGTriggNoise_mapped[l][c]) histLGTriggNoise_mapped[l][c]->Write();
+        WriteOnlyIfFilled(histLG_mapped[l][c]);
         if (fitGausLG_BG_mapped[l][c]) fitGausLG_BG_mapped[l][c]->Write();
         fileOutput->cd("NoiseSubtractedMapped");
-        if (histNSHG_mapped[l][c]) histNSHG_mapped[l][c]->Write();
-        if (histNSHG_mappedReb[l][c]) histNSHG_mappedReb[l][c]->Write();
-        if (histNSLG_mapped[l][c]) histNSLG_mapped[l][c]->Write();
-        if (histNSCombHG_mapped[l][c]) histNSCombHG_mapped[l][c]->Write();
-        if (histNSCombHG_mappedReb[l][c]) histNSCombHG_mappedReb[l][c]->Write();
-        if (histNSHGTrig_mapped[l][c]) histNSHGTrig_mapped[l][c]->Write();
-        if (fitLandauG_NSHGTrig_mapped[l][c]) fitLandauG_NSHGTrig_mapped[l][c]->Write(Form("LandauGauss_NSHGTrig_L%d_C%02d",l,c));
-        if (histNSHGTrig_mappedReb[l][c]) histNSHGTrig_mappedReb[l][c]->Write();
-        if (histNSLGTrig_mapped[l][c]) histNSLGTrig_mapped[l][c]->Write();
-        if (histNSCombHGTrig_mapped[l][c]) histNSCombHGTrig_mapped[l][c]->Write();
-        if (histNSCombHGTrig_mappedReb[l][c]) histNSCombHGTrig_mappedReb[l][c]->Write();
-        if (histNSHGTriggNoise_mapped[l][c]) histNSHGTriggNoise_mapped[l][c]->Write();
-        if (histNSLGTriggNoise_mapped[l][c]) histNSLGTriggNoise_mapped[l][c]->Write();
+        WriteOnlyIfFilled(histNSHG_mapped[l][c]);
+        WriteOnlyIfFilled(histNSHG_mappedReb[l][c]);
+        WriteOnlyIfFilled(histNSLG_mapped[l][c]);
       }
     }
     // *******************************************************
@@ -1507,8 +1088,6 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     fileOutput->cd();
     stringRunInfo->Write();
     histNChAboveNoise->Write();
-    histNTrig->Write();
-    histNTrigNoise->Write();
     hist2DNoiseMean_HG->Write();
     histNoiseMean_HG->Write();
     hist2DNoiseSigma_HG->Write();
@@ -1586,18 +1165,12 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     hist2DMax_HG->Write();
     hist2DFWHM_HG->Write();
         
-    hist2DNSTrigg->Write();
-    hist2DNSTriggNoise->Write();
-    hist2DNSTriggEffi->Write();
-    
-    if (isTBdata){
-      hist3DMap->Write();
-      hist2DMap->Write();
-      hist1DMap->Write();
-      histNS3DMap->Write();
-      histNS2DMap->Write();
-      histNS1DMap->Write();
-    }
+    hist3DMap->Write();
+    hist2DMap->Write();
+    hist1DMap->Write();
+    histNS3DMap->Write();
+    histNS2DMap->Write();
+    histNS1DMap->Write();
      // write output file
     fileOutput->Write();
     fileOutput->Close();
@@ -1607,3 +1180,4 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
 
 }                                  
                                   
+  

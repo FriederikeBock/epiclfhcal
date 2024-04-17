@@ -4,7 +4,12 @@
 #include "TSpectrum.h"
 #include "TCanvas.h"
 #include "TLatex.h"
-
+#include "TMath.h"
+#include "TLeaf.h"
+#include "TF1.h"
+#include "TGraph.h"
+#include "TMultiGraph.h"
+#include "TVirtualFitter.h"
 #include <iostream>
 
 typedef double Double_t;
@@ -34,7 +39,7 @@ Double_t fpeaks(Double_t * x, Double_t * par)
 }
 
 
-void MultiMultiphotonPG(){
+void MultiMultiphoton(){
     
     const int ch[4] = {00, 01, 32, 33};
     TH1D *h[4];
@@ -127,7 +132,7 @@ void MultiMultiphotonPG(){
             
             std::cout << "Differences between consecutive entries:" << std::endl;
             Double_t sum_diff = 0.0;
-            for (size_t i = 1; i < nfound; ++i) {
+            for (size_t i = 1; i < (Int_t)nfound; ++i) {
                 Double_t diff = xpeaks[i - 1] - xpeaks[i];
                 std::cout << diff << " ";
                 sum_diff += diff;
@@ -138,7 +143,7 @@ void MultiMultiphotonPG(){
             std::cout << "Average of differences: " << average_diff << std::endl;
             yAvg[k][i] = average_diff;
       
-            for (Int_t p = 0; p < nfound; p++)
+            for (Int_t p = 0; p < (Int_t)nfound; p++)
             {
                 Double_t xp = xpeaks[p];
                 Int_t bin = h[k]->GetXaxis()->FindBin(xp);
@@ -187,6 +192,7 @@ void MultiMultiphotonPG(){
             
         }
     }
+    c->SaveAs("fittedPeak.pdf");
 //    cout<<yAvg[0][0]<<endl;
 //    cout<<yAvg[3][2]<<endl;
     
