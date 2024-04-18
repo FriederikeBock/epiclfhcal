@@ -1,0 +1,8 @@
+438 /home/ewa/Janus/epiclfhcal/ProcessedData/SinglePhotonORNLNew/Run00438/output_basics.root
+439 /home/ewa/Janus/epiclfhcal/ProcessedData/SinglePhotonORNLNew/Run00439/output_basics.root
+440 /home/ewa/Janus/epiclfhcal/ProcessedData/SinglePhotonORNLNew/Run00440/output_basics.root
+441 /home/ewa/Janus/epiclfhcal/ProcessedData/SinglePhotonORNLNew/Run00441/output_basics.root
+442 /home/ewa/Janus/epiclfhcal/ProcessedData/SinglePhotonORNLNew/Run00442/output_basics.root
+443 /home/ewa/Janus/epiclfhcal/ProcessedData/SinglePhotonORNLNew/Run00443/output_basics.root
+444 /home/ewa/Janus/epiclfhcal/ProcessedData/SinglePhotonORNLNew/Run00444/output_basics.root
+445 /home/ewa/Janus/epiclfhcal/ProcessedData/SinglePhotonORNLNew/Run00445/output_basics.root
