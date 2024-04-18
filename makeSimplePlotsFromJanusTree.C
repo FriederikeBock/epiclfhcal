@@ -1194,6 +1194,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           PlotOverlayDiffTriggers( canvas1DDiffTrigg, histNSLG[j][i], histNSLGTrig[j][i], histNSLGTriggNoise[j][i], NULL,
                                 -100, 4000, Form("%s/LG_NS_DiffTriggers", outputDirPlotsDet.Data()),
                                 j, i, layer, chBoard, currentRunInfo, 0.04);
+          
         }
       }
     }

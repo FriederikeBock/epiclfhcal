@@ -696,8 +696,8 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     TH1D* histNSLG_mapped[gMaxLayers][9];                   // low gain all triggers
     TH1D* histNSHG_mapped[gMaxLayers][9];                   // high gain all triggers
     TH1D* histNSHG_BG_mapped[gMaxLayers][9];                // high gain all triggers background mapped
-    TH1D* histNSHG_Sub_mapped[gMaxLayers][9];                // high gain all triggers background sub
-    
+    TH1D* histNSHG_Sub_mapped[gMaxLayers][9];               // high gain all triggers background sub
+    TF1* fitMultGaussNSLG_mapped[gMaxLayers][9];            // fit HG multi gauss
     //***************************************************
     // mapped channels - layer & read-out board channels - rebinned
     //***************************************************
@@ -729,6 +729,7 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
         histNSHG_mapped[l][c]             = nullptr; 
         histNSHG_BG_mapped[l][c]          = nullptr; 
         histNSHG_mappedReb[l][c]          = nullptr;
+        fitMultGaussNSLG_mapped[l][c]     = nullptr;
       }
     }
 
@@ -747,39 +748,23 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     // 1D channel representation of fit values, x axis scales as 10x layer count + channel within one assembley, 
     // - layer 3 channel 3: 33
     // - layer 0 channel 2: 2
-    TH1D* hist1DMPV_HG          = new TH1D("hist1DMPV_HG_channels", "; 10x layer + board channel; MPV_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DMax_HG          = new TH1D("hist1DMax_HG_channels", "; 10x layer + board channel; Max_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DFWHM_HG         = new TH1D("hist1DFWHM_HG_channels", "; 10x layer + board channel; FWHM_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DWidth_HG        = new TH1D("hist1DWidth_HG_channels", "; 10x layer + board channel; Width_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DGWidth_HG       = new TH1D("hist1DGWidth_HG_channels", "; 10x layer + board channel; Gauss Width_{mip} (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DnSPEPeaks_HG          = new TH1D("hist1DnSPEPeaks_HG_channels", "; 10x layer + board channel; # SPE peaks", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DAvDiffSPEPeaks_HG      = new TH1D("hist1DAvDiffSPEPeaks_HG_channels", "; 10x layer + board channel; #mu(#Delta_{SPE}) (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DAvDiffSPEPeaksFit_HG   = new TH1D("hist1DAvDiffSPEPeaksFit_HG_channels", "; 10x layer + board channel; #mu(#Delta_{SPE,fit}) (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
 
     // 1D channel representation of fit values, x axis scales as CAEN board channelns 64x CAEN board # + CAEN channel
-    TH1D* hist1DCAEN_MPV_HG     = new TH1D("hist1DCAEN_MPV_HG_channels", "; 64x CAEN board + CAEN channel; MPV_{mip} (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
-    TH1D* hist1DCAEN_Max_HG     = new TH1D("hist1DCAEN_Max_HG_channels", "; 64x CAEN board + CAEN channel; Max_{mip} (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
-    TH1D* hist1DCAEN_FWHM_HG    = new TH1D("hist1DCAEN_FWHM_HG_channels", "; 64x CAEN board + CAEN channel; FWHM_{mip} (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
-    TH1D* hist1DCAEN_Width_HG   = new TH1D("hist1DCAEN_Width_HG_channels", "; 64x CAEN board + CAEN channel; Width_{mip} (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
-    TH1D* hist1DCAEN_GWidth_HG  = new TH1D("hist1DCAEN_GWidth_HG_channels", "; 64x CAEN board + CAEN channel; Gauss Width_{mip} (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
-    
+    TH1D* hist1DCAEN_nSPEPeaks_HG           = new TH1D("hist1DCAEN_nSPEPeaks_HG_channels", "; 64x CAEN board + CAEN channel; # SPE peaks", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_AvDiffSPEPeaks_HG      = new TH1D("hist1DCAEN_AvDiffSPEPeaks_HG_channels", "; 64x CAEN board + CAEN channel; #mu(#Delta_{SPE}) (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_AvDiffSPEPeaksFit_HG   = new TH1D("hist1DCAEN_AvDiffSPEPeaksFit_HG_channels", "; 64x CAEN board + CAEN channel; #mu(#Delta_{SPE,fit}) (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+        
     // 2D representation of fit values
-    TH2D* hist2DMPV_HG          = new TH2D("hist2DMPV_HG_z_channel", "; channel; layer; MPV_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DMPVErr_HG       = new TH2D("hist2DMPVErr_HG_z_channel", "; channel; layer; #Delta(MPV_{mip}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DMax_HG          = new TH2D("hist2DMax_HG_z_channel", "; channel; layer; Max_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DFWHM_HG         = new TH2D("hist2DFWHM_HG_z_channel", "; channel; layer; FWHM_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DWidth_HG        = new TH2D("hist2DWidth_HG_z_channel", "; channel; layer; Width_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DWidthErr_HG     = new TH2D("hist2DWidthErr_HG_z_channel", "; channel; layer; #Delta(Width_{mip}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DGWidth_HG       = new TH2D("hist2DGWidth_HG_z_channel", "; channel; layer; Gauss Width_{mip} (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
-    TH2D* hist2DGWidthErr_HG    = new TH2D("hist2DGWidthErr_HG_z_channel", "; channel; layer; #Delta(Gauss Width_{mip}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
+    TH2D* hist2DnSPEPeaks_HG          = new TH2D("hist2DnSPEPeaks_HG_z_channel", "; channel; layer; # SPE (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
+    TH2D* hist2DAvDiffSPEPeaks_HG     = new TH2D("hist2DAvDiffSPEPeaks_HG_z_channel", "; channel; layer; #mu(#Delta_{SPE}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
+    TH2D* hist2DAvDiffSPEPeaksFits_HG = new TH2D("hist2DAvDiffSPEPeaksFits_HG_z_channel", "; channel; layer; #mu(#Delta_{SPE}) (HG ADC)", 8, 0.5, 8.5, 14, -0.5, 13.5);
     
-    Double_t mpL[gMaxLayers][9]       = {{0.}};
-    Double_t mpLErr[gMaxLayers][9]    = {{0.}};
-    Double_t sigmaG[gMaxLayers][9]    = {{0.}};
-    Double_t sigmaGErr[gMaxLayers][9] = {{0.}};
-    Double_t sigmaL[gMaxLayers][9]    = {{0.}};
-    Double_t sigmaLErr[gMaxLayers][9] = {{0.}};
-    Double_t maxLandG[gMaxLayers][9]  = {{0.}};
-    Double_t fwhmLandG[gMaxLayers][9] = {{0.}};
-    double chisqr[gMaxLayers][9]      = {{0.}};
-    int ndf[gMaxLayers][9]            = {{0}};
+    Int_t nSPE[gMaxLayers][9]                = {{0}};
+    Double_t avDiffSPEPeaks[gMaxLayers][9]      = {{0.}};
+    Double_t avDiffSPEPeaksFits[gMaxLayers][9]  = {{0.}};
   
     // ********************************************************************************************************
     // Second loop over full tree to obtain noise subtracted histograms
@@ -861,80 +846,118 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     // ********************************************************************************************************    
     for (Int_t j = 0; j < gMaxBoard; j++){
       for (Int_t i = 0; i < gMaxChannels; i++){
-        if (! ((histNSHG[j][i] && histNSHG[j][i]->GetEntries() > 0)|| (histNSLG[j][i] && histNSLG[j][i]->GetEntries() > 0)) ){
-          fitMultGaussNSLG[j][i] = nullptr;
-          continue;
-        }
         Int_t chMap     = j*64 + i;
         Int_t chBoard   = mapping[chMap][1];
         Int_t layer     = mapping[chMap][0];
+        if (! ((histNSHG[j][i] && histNSHG[j][i]->GetEntries() > 0)|| (histNSLG[j][i] && histNSLG[j][i]->GetEntries() > 0)) ){
+          fitMultGaussNSLG[j][i] = nullptr;
+          fitMultGaussNSLG_mapped[layer][chBoard] = nullptr;
+          continue;
+        }
         if (verbosity > 0)std::cout << j << "\t" << i << "\t" << chMap << "\t L: " << layer  << "\t C:" <<  chBoard << std::endl;
         
         
-        histNSHG_BG[j][i]                   = (TH1D*)spectrumFitter[j][i]->Background(histNSHG[j][i], 20, "smoothing");
+        histNSHG_BG[j][i]                   = (TH1D*)spectrumFitter[j][i]->Background(histNSHG[j][i], 18, "smoothing3");
         histNSHG_BG_mapped[layer][chBoard]  = (TH1D*)histNSHG_BG[j][i]->Clone(Form("h_NS_HG_BG_mapped_L%d_C%02d",layer,chBoard));
         histNSHG_Sub[j][i]                  = (TH1D*)histNSHG[j][i]->Clone(Form("h_NS_HG_Sub_B%d_C%02d",j,i));
         histNSHG_Sub[j][i]->Sumw2();
         histNSHG_Sub[j][i]->Add(histNSHG_BG[j][i], -1);
         histNSHG_Sub_mapped[layer][chBoard]  = (TH1D*)histNSHG_Sub[j][i]->Clone(Form("h_NS_HG_Sub_mapped_L%d_C%02d",layer,chBoard));
         
-        Int_t nfound = spectrumFitter[j][i]->Search(histNSHG_Sub_mapped[layer][chBoard], 7., "", 0.05); // Search for peaks
-        if (verbosity > 0) std::cout << "found " << nfound << "\t different peaks in spectrum" << std::endl;
+        nSPE[j][i] = spectrumFitter[j][i]->Search(histNSHG_Sub_mapped[layer][chBoard], 7., "", 0.05); // Search for peaks
         
-        if (nfound > 2){
+        if (verbosity > 0) std::cout << "found " << nSPE[j][i] << "\t different peaks in spectrum" << std::endl;
+        
+        if (nSPE[j][i] > 2){
           nPeaksMultGauss = 0;
           Double_t *xpeaks;
           Double_t par[3000];
           xpeaks = spectrumFitter[j][i]->GetPositionX();
           
           // invert order of peaks
-          std::sort(xpeaks, xpeaks + nfound, [&](Double_t a, Double_t b) {
+          std::sort(xpeaks, xpeaks + nSPE[j][i], [&](Double_t a, Double_t b) {
               return a > b;
           });
           
           std::cout << "Differences between consecutive entries:" << std::endl;
           Double_t sum_diff = 0.0;
-          for (size_t f = 1; f < (size_t)nfound-1; ++f) {
+          for (size_t f = 1; f < (size_t)nSPE[j][i]-1; ++f) {
             Double_t diff = xpeaks[f - 1] - xpeaks[f];
             std::cout << diff << " ";
             sum_diff += diff;
           }
           std::cout << std::endl;
           
-          Double_t average_diff = sum_diff / (nfound - 1);
-          std::cout << "Average of differences: " << average_diff << std::endl;
+          avDiffSPEPeaks[j][i] = sum_diff / (nSPE[j][i] - 2);
+          std::cout << "Average of differences: " << avDiffSPEPeaks[j][i] << std::endl;
           par[0]  = 0;
           par[1]  = 0;
-          for (Int_t p = 0; p < (Int_t)nfound; p++){
+          for (Int_t p = 0; p < (Int_t)nSPE[j][i]; p++){
             Double_t xp   = xpeaks[p];
 
             Int_t bin     = histNSHG_Sub[j][i]->GetXaxis()->FindBin(xp);
             Double_t yp   = histNSHG_Sub[j][i]->GetBinContent(bin);
-            std::cout << p << "\t" << xp << "\t" << bin << "\t"<< yp << std::endl;            
+            if (verbosity > 1) std::cout << p << "\t" << xp << "\t" << bin << "\t"<< yp << std::endl;            
             par[3 * nPeaksMultGauss + 2] = yp;     // "height"
             par[3 * nPeaksMultGauss + 3] = xp; // "mean"
             par[3 * nPeaksMultGauss + 4] = 3;  // "sigma"
             
-            std::cout<<xp<<std::endl;
+            if (verbosity > 1) std::cout<<xp<<std::endl;
             nPeaksMultGauss++;
           }
           
           fitMultGaussNSLG[j][i] = new TF1(Form("fitMultGauss_NS_HG_Sub_B%d_C%02d",j,i), multGauss, 0, 4096, 3 * nPeaksMultGauss);
           fitMultGaussNSLG[j][i]->SetParameters(par);
           fitMultGaussNSLG[j][i]->SetNpx(1000);
-          for (Int_t n = 0; n < fitMultGaussNSLG[j][i]->GetNpar(); n++){
-              std::cout << n << "\t" << fitMultGaussNSLG[j][i]->GetParameter(n) << std::endl;
+          if (verbosity > 1) {
+            for (Int_t n = 0; n < fitMultGaussNSLG[j][i]->GetNpar(); n++){
+                std::cout << n << "\t" << fitMultGaussNSLG[j][i]->GetParameter(n) << std::endl;
+            }
           }
-          histNSHG_Sub[j][i]->Fit(fitMultGaussNSLG[j][i]);
-        
+          histNSHG_Sub[j][i]->Fit(fitMultGaussNSLG[j][i],"QRMNE0");
+          Double_t sum_diff_Fit     = 0.0;
+          Double_t xPeaksFits[3000] = {0};
+          for (Int_t p = 0; p < (Int_t)nSPE[j][i]-1; p++){
+            std::cout << p << "\t mu=" <<  fitMultGaussNSLG[j][i]->GetParameter(3*p + 3) << "\t sigma=" << fitMultGaussNSLG[j][i]->GetParameter(3*p + 4);
+            xPeaksFits[p] = fitMultGaussNSLG[j][i]->GetParameter(3*p + 3);
+            if (p > 0) {
+                Double_t diffTemp = xPeaksFits[p-1] - xPeaksFits[p];
+                std::cout << "\t diff = " << diffTemp;
+                sum_diff_Fit += diffTemp;
+            }
+            std::cout << std::endl;
+          }
+          avDiffSPEPeaksFits[j][i] = sum_diff_Fit / (nSPE[j][i] - 2);
+          std::cout << "Average of differences fit: " << avDiffSPEPeaksFits[j][i] << std::endl;
         } else {
           std::cout << "no peaks from different pixels found" << std::endl;
           fitMultGaussNSLG[j][i] = nullptr;
         }
+
+        // ****************************************************************************
+        // fill Monitoring histogramms
+        // ****************************************************************************
+        hist2DnSPEPeaks_HG->Fill(chBoard, layer,nSPE[j][i]);
+        hist2DAvDiffSPEPeaks_HG->Fill(chBoard, layer,avDiffSPEPeaks[j][i]);
+        hist2DAvDiffSPEPeaksFits_HG->Fill(chBoard, layer,avDiffSPEPeaks[j][i]);
         
+        /// get bin to fill for 1D representation of channels for fit values
+        Int_t channelBin1D = hist1DnSPEPeaks_HG->FindBin(layer*10+chBoard);          
+        hist1DnSPEPeaks_HG->SetBinContent(channelBin1D, nSPE[j][i]);
+        hist1DAvDiffSPEPeaks_HG->SetBinError(channelBin1D, avDiffSPEPeaks[j][i]);
+        hist1DAvDiffSPEPeaksFit_HG->SetBinError(channelBin1D, avDiffSPEPeaksFits[j][i]);
         
+        hist1DCAEN_nSPEPeaks_HG->SetBinContent(chMap+1, nSPE[j][i]);
+        hist1DCAEN_AvDiffSPEPeaks_HG->SetBinContent(chMap+1, avDiffSPEPeaks[j][i]);
+        hist1DCAEN_AvDiffSPEPeaksFit_HG->SetBinContent(chMap+1, avDiffSPEPeaksFits[j][i]);
+        
+        // ****************************************************************************
+        // create layer mapped hists/fits
+        // ****************************************************************************
         histNSHG_mapped[layer][chBoard] = (TH1D*)histNSHG[j][i]->Clone(Form("h_NS_HG_mapped_L%d_C%02d",layer,chBoard));
         histNSLG_mapped[layer][chBoard] = (TH1D*)histNSLG[j][i]->Clone(Form("h_NS_LG_mapped_L%d_C%02d",layer,chBoard));
+        if (fitMultGaussNSLG[j][i])
+          fitMultGaussNSLG_mapped[layer][chBoard] = (TF1*)fitMultGaussNSLG[j][i]->Clone(Form("fitMultiGauss_NS_HG_mapped_L%d_C%02d",layer,chBoard));
         
         histNSHG_mapped[layer][chBoard]->Sumw2();
         histNSHG_mappedReb[layer][chBoard] = (TH1D*)histNSHG_mapped[layer][chBoard]->Rebin(2100,Form("%sReb",(histNSHG_mapped[layer][chBoard]->GetName())), binningADC);
@@ -962,15 +985,21 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DNoiseMean_LG, maxActiveLayer, maxActiveRBCh, textSizeRel,Form("%s/LG_Noise_Mean.pdf", outputDirPlots.Data()), currentRunInfo);
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DNoiseSigma_LG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/LG_Noise_Sigma.pdf", outputDirPlots.Data()), currentRunInfo);
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DLGHG_slope, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/LGHG_Slope.pdf", outputDirPlots.Data()), currentRunInfo);
-    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DLGHG_offset, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/LGHG_Offset.pdf", outputDirPlots.Data()), currentRunInfo, kTRUE);
+    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DnSPEPeaks_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/NPeaksVisible.pdf", outputDirPlots.Data()), currentRunInfo, kTRUE);
+    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DAvDiffSPEPeaks_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/AvDiffSPEPeaks.pdf", outputDirPlots.Data()), currentRunInfo, kTRUE);
+    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DAvDiffSPEPeaksFits_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/AvDiffSPEPeaksFits.pdf", outputDirPlots.Data()), currentRunInfo, kTRUE);
+    
     
     for (Int_t l = 0; l < gMaxLayers; l++){
       if (!lActive[l]) continue; 
       PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
                                 histNSHG_mapped[l], nullptr, nullptr, nullptr, 
                                 -80, 1000, 1.2, l , Form("%s/TriggerOverlay_HG_NS_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
+      PlotSPEFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                                histNSHG_mapped[l], histNSHG_Sub_mapped[l], histNSHG_BG_mapped[l], fitMultGaussNSLG_mapped[l],
+                                -80, 500, 1.2, l , Form("%s/SPEOverlay_HG_NS_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
       PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                histNSLG_mapped[l], nullptr, nullptr, nullptr, 
+                                histNSLG_mapped[l],  nullptr, nullptr, nullptr, 
                                 -80, 500, 1.2, l , Form("%s/TriggerOverlay_LG_NS_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
     }
     
@@ -998,29 +1027,16 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
                                             -100,1000, 1./5, Form("%s/HGNS", outputDirPlots.Data()), c, currentRunInfo,0.04,"hist");    
     }
 
-    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DMPV_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_MPV.pdf", outputDirPlots.Data()), currentRunInfo);
-    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DMPVErr_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_MPVErr.pdf", outputDirPlots.Data()), currentRunInfo);
-    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DMax_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_Max.pdf", outputDirPlots.Data()), currentRunInfo);
-    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DFWHM_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_FWHM.pdf", outputDirPlots.Data()), currentRunInfo);
-    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DWidth_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_Width.pdf", outputDirPlots.Data()), currentRunInfo);
-    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DWidthErr_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_WidthErr.pdf", outputDirPlots.Data()), currentRunInfo);
-    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DGWidth_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_GWidth.pdf", outputDirPlots.Data()), currentRunInfo);
-    PlotSimpleMultiLayer2D( canvas2DCorr, hist2DGWidthErr_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_GWidthErr.pdf", outputDirPlots.Data()), currentRunInfo);
-       
     // *****************************************************************
     // Create graphs per board and channels with calib values MIP values
     // *****************************************************************
-    TGraphErrors* graphMPV_HG     = CreateGraphFromHistAndCleanup(hist1DMPV_HG, "graphMPV_HG_channels");
-    TGraphErrors* graphMax_HG     = CreateGraphFromHistAndCleanup(hist1DMax_HG, "graphMax_HG_channels");
-    TGraphErrors* graphWidth_HG   = CreateGraphFromHistAndCleanup(hist1DWidth_HG, "graphWidth_HG_channels");
-    TGraphErrors* graphGWidth_HG  = CreateGraphFromHistAndCleanup(hist1DGWidth_HG, "graphGWidth_HG_channels");
-    TGraphErrors* graphFWHM_HG    = CreateGraphFromHistAndCleanup(hist1DFWHM_HG, "graphFWHM_HG_channels");
+    TGraphErrors* graphnSPEPeaks_HG           = CreateGraphFromHistAndCleanup(hist1DnSPEPeaks_HG, "graphnSPEPeaks_HG_channels");
+    TGraphErrors* graphAvDiffSPEPeaks_HG      = CreateGraphFromHistAndCleanup(hist1DAvDiffSPEPeaks_HG, "graphAvDiffSPEPeaks_HG_channels");
+    TGraphErrors* graphAvDiffSPEPeaksFit_HG   = CreateGraphFromHistAndCleanup(hist1DAvDiffSPEPeaksFit_HG, "graphAvDiffSPEPeaksFit_HG_channels");
 
-    TGraphErrors* graphCAEN_MPV_HG    = CreateGraphFromHistAndCleanup(hist1DCAEN_MPV_HG, "graphCAEN_MPV_HG_channels");
-    TGraphErrors* graphCAEN_Max_HG    = CreateGraphFromHistAndCleanup(hist1DCAEN_Max_HG, "graphCAEN_Max_HG_channels");
-    TGraphErrors* graphCAEN_Width_HG  = CreateGraphFromHistAndCleanup(hist1DCAEN_Width_HG, "graphCAEN_Width_HG_channels");
-    TGraphErrors* graphCAEN_GWidth_HG = CreateGraphFromHistAndCleanup(hist1DCAEN_GWidth_HG, "graphCAEN_GWidth_HG_channels");
-    TGraphErrors* graphCAEN_FWHM_HG   = CreateGraphFromHistAndCleanup(hist1DCAEN_FWHM_HG, "graphCAEN_FWHM_HG_channels");
+    TGraphErrors* graphCAEN_nSPEPeaks_HG           = CreateGraphFromHistAndCleanup(hist1DCAEN_nSPEPeaks_HG, "graphCAEN_nSPEPeaks_HG_channels");
+    TGraphErrors* graphCAEN_AvDiffSPEPeaks_HG      = CreateGraphFromHistAndCleanup(hist1DCAEN_AvDiffSPEPeaks_HG, "graphCAEN_AvDiffSPEPeaks_HG_channels");
+    TGraphErrors* graphCAEN_AvDiffSPEPeaksFit_HG   = CreateGraphFromHistAndCleanup(hist1DCAEN_AvDiffSPEPeaksFit_HG, "graphCAEN_AvDiffSPEPeaksFit_HG_channels");
 
     TObjString* stringRunInfo = new TObjString;
     stringRunInfo->SetString(GetStringFromRunInfo(currentRunInfo,4));
@@ -1134,37 +1150,24 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     gCAEN_CorrHGLGSlope->Write();
     gCAEN_CorrHGLGOffset->Write();
 
-    hist1DMPV_HG->Write();
-    hist1DMax_HG->Write();
-    hist1DWidth_HG->Write();
-    hist1DGWidth_HG->Write();
-    hist1DFWHM_HG->Write();
-    hist1DCAEN_MPV_HG->Write();
-    hist1DCAEN_Max_HG->Write();
-    hist1DCAEN_Width_HG->Write();
-    hist1DCAEN_GWidth_HG->Write();
-    hist1DCAEN_FWHM_HG->Write();
+    hist1DnSPEPeaks_HG->Write();
+    hist1DAvDiffSPEPeaks_HG->Write();
+    hist1DAvDiffSPEPeaksFit_HG->Write();
+    hist1DCAEN_nSPEPeaks_HG->Write();
+    hist1DCAEN_AvDiffSPEPeaks_HG->Write();
+    hist1DCAEN_AvDiffSPEPeaksFit_HG->Write();
 
-    graphMPV_HG->Write();
-    graphMax_HG->Write();
-    graphWidth_HG->Write();
-    graphGWidth_HG->Write();
-    graphFWHM_HG->Write();
-    graphCAEN_MPV_HG->Write();
-    graphCAEN_Max_HG->Write();
-    graphCAEN_Width_HG->Write();
-    graphCAEN_GWidth_HG->Write();
-    graphCAEN_FWHM_HG->Write();
-   
-    hist2DMPV_HG->Write();
-    hist2DMPVErr_HG->Write();
-    hist2DWidth_HG->Write();
-    hist2DWidthErr_HG->Write();
-    hist2DGWidth_HG->Write();
-    hist2DGWidthErr_HG->Write();
-    hist2DMax_HG->Write();
-    hist2DFWHM_HG->Write();
-        
+    graphnSPEPeaks_HG->Write();
+    graphAvDiffSPEPeaks_HG->Write();
+    graphAvDiffSPEPeaksFit_HG->Write();
+    graphCAEN_nSPEPeaks_HG->Write();
+    graphCAEN_AvDiffSPEPeaks_HG->Write();
+    graphCAEN_AvDiffSPEPeaksFit_HG->Write();
+
+    hist2DnSPEPeaks_HG->Write();
+    hist2DAvDiffSPEPeaks_HG->Write();
+    hist2DAvDiffSPEPeaksFits_HG->Write();
+
     hist3DMap->Write();
     hist2DMap->Write();
     hist1DMap->Write();

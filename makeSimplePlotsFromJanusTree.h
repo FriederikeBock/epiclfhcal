@@ -298,21 +298,17 @@
       hAll->GetXaxis()->SetRangeUser(minPX,maxPX);
       hAll->Draw("pe");
       if (hSub){
-  //                   SetMarkerDefaults( hSub, 24, 0.8, kBlack,kBlack);
           SetLineDefaults( hSub,kRed+1, 4, 1);
           hSub->Draw("hist,same");
       }
       if (hBGEstimate){
-  //                   SetMarkerDefaults( hBGEstimate, 20, 0.8, kRed+1,kRed+1);
           SetLineDefaults( hBGEstimate,kGray+1, 2, 1);
           hBGEstimate->Draw("hist,same");
       }
       if (fitN){
         SetStyleFit(fitN, 0, 4000, 7, 7, kGray+1);
         fitN->Draw("same");
-        DrawLines(fitN->GetParameter(1),fitN->GetParameter(1), hAll->GetMinimum(), hAll->GetMaximum()*0.3, 3, kGray+2, 3, 1);
       }
-      
       DrawLatex(0.95, 0.92, GetStringFromRunInfo(currRunInfo,1), true, textSizeRel, 42);
       
       TLegend* legend = GetAndSetLegend2( 0.61, 0.75-textSizeRel, 0.95, 0.93-textSizeRel,textSizeRel, 1, Form("CAEN B %d, C %d, Stack L %d, C%d",cb, cc, sl, sc), 42,0.2);
@@ -554,6 +550,70 @@
     canvas8Panel->SaveAs(nameOutput.Data());
   }
 
+  //__________________________________________________________________________________________________________
+  // Plot data with fits for for Full layer
+  //__________________________________________________________________________________________________________
+  void PlotSPEFullLayer (TCanvas* canvas8Panel, TPad* pads[8], Double_t* topRCornerX,  Double_t* topRCornerY, Double_t* relSize8P, Int_t textSizePixel, 
+                          TH1D** histsAll,  TH1D** hSub, TH1D** hBGEstimate, TF1** fits,
+                          Double_t xPMin, Double_t xPMax, Double_t scaleYMax, Int_t layer, TString nameOutput, runInfo currRunInfo){
+                                  
+    Double_t maxY = 0;
+    for (Int_t p = 0; p < 8; p++){
+      if (maxY < FindLargestBin1DHist(histsAll[p+1], xPMin , xPMax)) maxY = FindLargestBin1DHist(histsAll[p+1], xPMin , xPMax);
+    }
+    
+    for (Int_t p = 0; p < 8; p++){
+      canvas8Panel->cd();
+      pads[p]->Draw();
+      pads[p]->cd();
+      pads[p]->SetLogy();
+      SetStyleHistoTH1ForGraphs( histsAll[p+1], histsAll[p+1]->GetXaxis()->GetTitle(), histsAll[p+1]->GetYaxis()->GetTitle(), 0.85*textSizePixel, textSizePixel, 0.85*textSizePixel, textSizePixel,0.9, 1.1, 510, 510, 43, 63);  
+      SetMarkerDefaults(histsAll[p+1], 20, 1, kBlue+1, kBlue+1, kFALSE);
+      histsAll[p+1]->GetXaxis()->SetRangeUser(xPMin,xPMax);
+      histsAll[p+1]->GetYaxis()->SetRangeUser(0.7,scaleYMax*maxY);
+      histsAll[p+1]->Draw("pe");
+      if (hBGEstimate){
+        if (hBGEstimate[p+1]){
+            SetLineDefaults( hBGEstimate[p+1],kGray+1, 2, 1);
+            hBGEstimate[p+1]->Draw("hist,same");
+        }
+      }
+      if (hSub){
+        if (hSub[p+1]){
+          SetLineDefaults( hSub[p+1],kRed+1, 3, 1);
+          hSub[p+1]->Draw("hist,same");
+        }
+      }
+      if (fits){
+        if (fits[p+1]){
+          SetStyleFit(fits[p+1] , 0, 2000, 7, 7, kGray+1);
+          fits[p+1]->Draw("same");
+        }
+      } 
+      if (p == 4){
+        TLegend* legend = GetAndSetLegend2( topRCornerX[p]-8*relSize8P[p], topRCornerY[p]-5*0.85*relSize8P[p]-0.4*relSize8P[p], topRCornerX[p]-0.04, topRCornerY[p]-1.6*relSize8P[p],0.85*textSizePixel, 1, "", 43,0.2);
+        legend->AddEntry(histsAll[p+1], "All triggers", "p");
+        if (hBGEstimate && hBGEstimate[p+1])legend->AddEntry(hBGEstimate[p+1], "BG estimate", "l");
+        if (hSub && hSub[p+1])legend->AddEntry(hSub[p+1], "sub. spectrum", "l");
+        if (fits){
+          if (fits[p+1])legend->AddEntry(fits[p+1], "SPE fit", "l");
+        }
+        legend->Draw();
+      } else if (p == 3){
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+        DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-3.*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42); 
+      }
+      histsAll[p+1]->Draw("axis,same");
+      
+      TString label = Form("RB ch. %d", p+1);
+      if (p == 4) label = Form("layer %d, RB ch. %d", layer, p+1);
+      TLatex *labelChannel    = new TLatex(topRCornerX[p]-0.04,topRCornerY[p]-1.2*relSize8P[p],label);
+      SetStyleTLatex( labelChannel, 0.85*textSizePixel,4,1,43,kTRUE,31);
+      labelChannel->Draw();
+    }
+    canvas8Panel->SaveAs(nameOutput.Data());
+  }
+  
   
  //__________________________________________________________________________________________________________
   void PlotStraigtLineTriggAndFitFullLayer (TCanvas* canvas8Panel, TPad* pads[8], Double_t* topRCornerX,  Double_t* topRCornerY, Double_t* relSize8P, Int_t textSizePixel, 
