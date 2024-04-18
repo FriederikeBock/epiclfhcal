@@ -445,14 +445,16 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     // 1D channel representation of fit values, x axis scales as 10x layer count + channel within one assembley, 
     // - layer 3 channel 3: 33
     // - layer 0 channel 2: 2
-    TH1D* hist1DNoiseSigma_HG   = new TH1D("hist1DNoiseSigma_HG_channels", "; 10x layer + board channel; noise #sigma (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DNoiseMean_HG    = new TH1D("hist1DNoiseMean_HG_channels", "; 10x layer + board channel; noise #mu (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DNoiseSigma_LG   = new TH1D("hist1DNoiseSigma_LG_channels", "; 10x layer + board channel; noise #sigma (LG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DNoiseMean_LG    = new TH1D("hist1DNoiseMean_LG_channels", "; 10x layer + board channel; noise #mu (LG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DLGHG_slope      = new TH1D("hist1DLGHG_slope_channels", "; 10x layer + board channel; slope (HG adc/LG adc)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DLGHG_offset     = new TH1D("hist1DLGHG_slope_channels", "; 10x layer + board channel; offset (HG adc/LG adc)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DHGLG_slope      = new TH1D("hist1DHGLG_slope_channels", "; 10x layer + board channel; slope (LG adc/HG adc)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DHGLG_offset     = new TH1D("hist1DHGLG_slope_channels", "; 10x layer + board channel; offset (LG adc/HG adc)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    Int_t tempLayerBinning = maxActiveLayer;
+    if (maxActiveLayer == 0) tempLayerBinning = 1;
+    TH1D* hist1DNoiseSigma_HG   = new TH1D("hist1DNoiseSigma_HG_channels", "; 10x layer + board channel; noise #sigma (HG ADC)", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
+    TH1D* hist1DNoiseMean_HG    = new TH1D("hist1DNoiseMean_HG_channels", "; 10x layer + board channel; noise #mu (HG ADC)", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
+    TH1D* hist1DNoiseSigma_LG   = new TH1D("hist1DNoiseSigma_LG_channels", "; 10x layer + board channel; noise #sigma (LG ADC)", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
+    TH1D* hist1DNoiseMean_LG    = new TH1D("hist1DNoiseMean_LG_channels", "; 10x layer + board channel; noise #mu (LG ADC)", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
+    TH1D* hist1DLGHG_slope      = new TH1D("hist1DLGHG_slope_channels", "; 10x layer + board channel; slope (HG adc/LG adc)", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
+    TH1D* hist1DLGHG_offset     = new TH1D("hist1DLGHG_slope_channels", "; 10x layer + board channel; offset (HG adc/LG adc)", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
+    TH1D* hist1DHGLG_slope      = new TH1D("hist1DHGLG_slope_channels", "; 10x layer + board channel; slope (LG adc/HG adc)", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
+    TH1D* hist1DHGLG_offset     = new TH1D("hist1DHGLG_slope_channels", "; 10x layer + board channel; offset (LG adc/HG adc)", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
     
     // 1D channel representation of fit values, x axis scales as CAEN board channelns 64x CAEN board # + CAEN channel
     TH1D* hist1DCAEN_NoiseSigma_HG   = new TH1D("hist1DCAEN_NoiseSigma_HG_channels", "; 64x CAEN board + CAEN channel; noise #sigma (HG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
@@ -461,8 +463,8 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     TH1D* hist1DCAEN_NoiseMean_LG    = new TH1D("hist1DCAEN_NoiseMean_LG_channels", "; 64x CAEN board + CAEN channel; noise #mu (LG ADC)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
     TH1D* hist1DCAEN_LGHG_slope      = new TH1D("hist1DCAEN_LGHG_slope_channels", "; 64x CAEN board + CAEN channel; slope (HG adc/LG adc)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
     TH1D* hist1DCAEN_LGHG_offset     = new TH1D("hist1DCAEN_LGHG_slope_channels", "; 64x CAEN board + CAEN channel; offset (HG adc/LG adc)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
-    TH1D* hist1DCAEN_HGLG_slope      = new TH1D("hist1DCAEN_HGLG_slope_channels", "; 10x layer + board channel; slope (LG adc/HG adc)", 64*gMaxBoard+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DCAEN_HGLG_offset     = new TH1D("hist1DCAEN_HGLG_slope_channels", "; 10x layer + board channel; offset (LG adc/HG adc)", 64*gMaxBoard+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DCAEN_HGLG_slope      = new TH1D("hist1DCAEN_HGLG_slope_channels", "; 64x CAEN board + CAEN channel; slope (LG adc/HG adc)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
+    TH1D* hist1DCAEN_HGLG_offset     = new TH1D("hist1DCAEN_HGLG_slope_channels", "; 64x CAEN board + CAEN channel; offset (LG adc/HG adc)", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
 
     //**********************************************************************
     // Initialize fits for all layers and channels to nullptr
@@ -748,9 +750,9 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     // 1D channel representation of fit values, x axis scales as 10x layer count + channel within one assembley, 
     // - layer 3 channel 3: 33
     // - layer 0 channel 2: 2
-    TH1D* hist1DnSPEPeaks_HG          = new TH1D("hist1DnSPEPeaks_HG_channels", "; 10x layer + board channel; # SPE peaks", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DAvDiffSPEPeaks_HG      = new TH1D("hist1DAvDiffSPEPeaks_HG_channels", "; 10x layer + board channel; #mu(#Delta_{SPE}) (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
-    TH1D* hist1DAvDiffSPEPeaksFit_HG   = new TH1D("hist1DAvDiffSPEPeaksFit_HG_channels", "; 10x layer + board channel; #mu(#Delta_{SPE,fit}) (HG ADC)", 10*maxActiveLayer+1, -0.5, 10*maxActiveLayer+0.5 );
+    TH1D* hist1DnSPEPeaks_HG          = new TH1D("hist1DnSPEPeaks_HG_channels", "; 10x layer + board channel; # SPE peaks", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
+    TH1D* hist1DAvDiffSPEPeaks_HG      = new TH1D("hist1DAvDiffSPEPeaks_HG_channels", "; 10x layer + board channel; #mu(#Delta_{SPE}) (HG ADC)", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
+    TH1D* hist1DAvDiffSPEPeaksFit_HG   = new TH1D("hist1DAvDiffSPEPeaksFit_HG_channels", "; 10x layer + board channel; #mu(#Delta_{SPE,fit}) (HG ADC)", 10*tempLayerBinning+1, -0.5, 10*tempLayerBinning+0.5 );
 
     // 1D channel representation of fit values, x axis scales as CAEN board channelns 64x CAEN board # + CAEN channel
     TH1D* hist1DCAEN_nSPEPeaks_HG           = new TH1D("hist1DCAEN_nSPEPeaks_HG_channels", "; 64x CAEN board + CAEN channel; # SPE peaks", 64*gMaxBoard+1, -0.5, 64*gMaxBoard+0.5 );
@@ -944,8 +946,8 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
         /// get bin to fill for 1D representation of channels for fit values
         Int_t channelBin1D = hist1DnSPEPeaks_HG->FindBin(layer*10+chBoard);          
         hist1DnSPEPeaks_HG->SetBinContent(channelBin1D, nSPE[j][i]);
-        hist1DAvDiffSPEPeaks_HG->SetBinError(channelBin1D, avDiffSPEPeaks[j][i]);
-        hist1DAvDiffSPEPeaksFit_HG->SetBinError(channelBin1D, avDiffSPEPeaksFits[j][i]);
+        hist1DAvDiffSPEPeaks_HG->SetBinContent(channelBin1D, avDiffSPEPeaks[j][i]);
+        hist1DAvDiffSPEPeaksFit_HG->SetBinContent(channelBin1D, avDiffSPEPeaksFits[j][i]);
         
         hist1DCAEN_nSPEPeaks_HG->SetBinContent(chMap+1, nSPE[j][i]);
         hist1DCAEN_AvDiffSPEPeaks_HG->SetBinContent(chMap+1, avDiffSPEPeaks[j][i]);
