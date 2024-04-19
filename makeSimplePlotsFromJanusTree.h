@@ -157,15 +157,22 @@
   //  - sets axis lables according to histo labels
   //  - removes entries from TGraphErrors if their entry & error is 0 (default) or another setable y value and error 0
   //__________________________________________________________________________________________________________
-  TGraphErrors* CreateGraphFromHistAndCleanup(TH1* hist, TString nameUpdate,  Double_t yClean = 0 ){
+  TGraphErrors* CreateGraphFromHistAndCleanup(TH1* hist, TString nameUpdate,  Double_t yClean = 0, Bool_t cleanSThan = kFALSE ){
     TGraphErrors* graph = new TGraphErrors(hist);
     graph->SetName(nameUpdate.Data());
     graph->GetXaxis()->SetTitle(hist->GetXaxis()->GetTitle());
     graph->GetYaxis()->SetTitle(hist->GetYaxis()->GetTitle());
     for (Int_t i= 0; i < graph->GetN(); i++){
-      if (graph->GetY()[i] == yClean && graph->GetEY()[i] == 0){
-        graph->RemovePoint(i);
-        i--;
+      if (cleanSThan){
+        if (graph->GetY()[i] < yClean){
+          graph->RemovePoint(i);
+          i--;
+        }
+      } else {
+        if (graph->GetY()[i] == yClean && graph->GetEY()[i] == 0){
+          graph->RemovePoint(i);
+          i--;
+        }
       }
     }
     return graph;

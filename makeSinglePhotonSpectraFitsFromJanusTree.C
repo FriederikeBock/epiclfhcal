@@ -689,8 +689,8 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     TH2D* histNSLGHG[gMaxBoard][gMaxChannels];              // LG vs HG correlation
     TH2D* histNSHGLG[gMaxBoard][gMaxChannels];              // HG vs LG correlation
     TSpectrum* spectrumFitter[gMaxBoard][gMaxChannels];     // HG spectrum fittergHeader
-    TF1* fitMultGaussNSLG[gMaxBoard][gMaxChannels];         // fit HG multi gauss
-    
+    TF1* fitMultGaussNSHG[gMaxBoard][gMaxChannels];         // fit HG multi gauss
+    TF1* fitMultGaussNSHGPreset[gMaxBoard][gMaxChannels];   // fit HG multi gauss preset values for peaks
     //***************************************************
     // mapped channels - layer & read-out board channels
     //***************************************************
@@ -699,7 +699,8 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     TH1D* histNSHG_mapped[gMaxLayers][9];                   // high gain all triggers
     TH1D* histNSHG_BG_mapped[gMaxLayers][9];                // high gain all triggers background mapped
     TH1D* histNSHG_Sub_mapped[gMaxLayers][9];               // high gain all triggers background sub
-    TF1* fitMultGaussNSLG_mapped[gMaxLayers][9];            // fit HG multi gauss
+    TF1* fitMultGaussNSHG_mapped[gMaxLayers][9];            // fit HG multi gauss
+    TF1* fitMultGaussNSHGPreset_mapped[gMaxLayers][9];            // fit HG multi gauss
     //***************************************************
     // mapped channels - layer & read-out board channels - rebinned
     //***************************************************
@@ -731,7 +732,8 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
         histNSHG_mapped[l][c]             = nullptr; 
         histNSHG_BG_mapped[l][c]          = nullptr; 
         histNSHG_mappedReb[l][c]          = nullptr;
-        fitMultGaussNSLG_mapped[l][c]     = nullptr;
+        fitMultGaussNSHG_mapped[l][c]     = nullptr;
+        fitMultGaussNSHGPreset_mapped[l][c]     = nullptr;
       }
     }
 
@@ -852,28 +854,35 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
         Int_t chBoard   = mapping[chMap][1];
         Int_t layer     = mapping[chMap][0];
         if (! ((histNSHG[j][i] && histNSHG[j][i]->GetEntries() > 0)|| (histNSLG[j][i] && histNSLG[j][i]->GetEntries() > 0)) ){
-          fitMultGaussNSLG[j][i] = nullptr;
-          fitMultGaussNSLG_mapped[layer][chBoard] = nullptr;
+          fitMultGaussNSHG[j][i] = nullptr;
+          fitMultGaussNSHG_mapped[layer][chBoard] = nullptr;
           continue;
         }
         if (verbosity > 0)std::cout << j << "\t" << i << "\t" << chMap << "\t L: " << layer  << "\t C:" <<  chBoard << std::endl;
         
-        
-        histNSHG_BG[j][i]                   = (TH1D*)spectrumFitter[j][i]->Background(histNSHG[j][i], 18, "smoothing3");
+        if (currentRunInfo.vop < 3.5){
+          histNSHG_BG[j][i]                   = (TH1D*)spectrumFitter[j][i]->Background(histNSHG[j][i], 14, "smoothing3");
+        } else {
+           histNSHG_BG[j][i]                   = (TH1D*)spectrumFitter[j][i]->Background(histNSHG[j][i], 18, "smoothing3");
+        }
         histNSHG_BG_mapped[layer][chBoard]  = (TH1D*)histNSHG_BG[j][i]->Clone(Form("h_NS_HG_BG_mapped_L%d_C%02d",layer,chBoard));
         histNSHG_Sub[j][i]                  = (TH1D*)histNSHG[j][i]->Clone(Form("h_NS_HG_Sub_B%d_C%02d",j,i));
         histNSHG_Sub[j][i]->Sumw2();
         histNSHG_Sub[j][i]->Add(histNSHG_BG[j][i], -1);
         histNSHG_Sub_mapped[layer][chBoard]  = (TH1D*)histNSHG_Sub[j][i]->Clone(Form("h_NS_HG_Sub_mapped_L%d_C%02d",layer,chBoard));
         
-        nSPE[j][i] = spectrumFitter[j][i]->Search(histNSHG_Sub_mapped[layer][chBoard], 7., "", 0.05); // Search for peaks
-        
+        if (currentRunInfo.vop < 3.5){
+          nSPE[j][i] = spectrumFitter[j][i]->Search(histNSHG_Sub_mapped[layer][chBoard], 5., "", 0.05); // Search for peaks
+        } else {
+          nSPE[j][i] = spectrumFitter[j][i]->Search(histNSHG_Sub_mapped[layer][chBoard], 7., "", 0.05); // Search for peaks
+        }
         if (verbosity > 0) std::cout << "found " << nSPE[j][i] << "\t different peaks in spectrum" << std::endl;
         
         if (nSPE[j][i] > 2){
           nPeaksMultGauss = 0;
           Double_t *xpeaks;
           Double_t par[3000];
+          Double_t par2[3000];
           xpeaks = spectrumFitter[j][i]->GetPositionX();
           
           // invert order of peaks
@@ -894,34 +903,44 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
           std::cout << "Average of differences: " << avDiffSPEPeaks[j][i] << std::endl;
           par[0]  = 0;
           par[1]  = 0;
+          
           for (Int_t p = 0; p < (Int_t)nSPE[j][i]; p++){
             Double_t xp   = xpeaks[p];
 
             Int_t bin     = histNSHG_Sub[j][i]->GetXaxis()->FindBin(xp);
             Double_t yp   = histNSHG_Sub[j][i]->GetBinContent(bin);
+
             if (verbosity > 1) std::cout << p << "\t" << xp << "\t" << bin << "\t"<< yp << std::endl;            
             par[3 * nPeaksMultGauss + 2] = yp;     // "height"
             par[3 * nPeaksMultGauss + 3] = xp; // "mean"
-            par[3 * nPeaksMultGauss + 4] = 3;  // "sigma"
+            par[3 * nPeaksMultGauss + 4] = 5;  // "sigma"
             
             if (verbosity > 1) std::cout<<xp<<std::endl;
             nPeaksMultGauss++;
           }
           
-          fitMultGaussNSLG[j][i] = new TF1(Form("fitMultGauss_NS_HG_Sub_B%d_C%02d",j,i), multGauss, 0, 4096, 3 * nPeaksMultGauss);
-          fitMultGaussNSLG[j][i]->SetParameters(par);
-          fitMultGaussNSLG[j][i]->SetNpx(1000);
+          fitMultGaussNSHG[j][i] = new TF1(Form("fitMultGauss_NS_HG_Sub_B%d_C%02d",j,i), multGauss, 0, 4096, 3 * nPeaksMultGauss);
+          fitMultGaussNSHG[j][i]->SetParameters(par);
+          fitMultGaussNSHG[j][i]->SetNpx(1000);
+          fitMultGaussNSHGPreset[j][i] = new TF1(Form("fitMultGauss_NS_HG_SubPre_B%d_C%02d",j,i), multGauss, 0, 4096, 3 * nPeaksMultGauss);
+          fitMultGaussNSHGPreset[j][i]->SetParameters(par);
+          for (Int_t p = 0; p < (Int_t)nSPE[j][i]; p++){
+              fitMultGaussNSHG[j][i]->FixParameter(3*p+3, fitMultGaussNSHG[j][i]->GetParameter(3*p+3));
+          }
+          
+          fitMultGaussNSHGPreset[j][i]->SetNpx(1000);
           if (verbosity > 1) {
-            for (Int_t n = 0; n < fitMultGaussNSLG[j][i]->GetNpar(); n++){
-                std::cout << n << "\t" << fitMultGaussNSLG[j][i]->GetParameter(n) << std::endl;
+            for (Int_t n = 0; n < fitMultGaussNSHG[j][i]->GetNpar(); n++){
+                std::cout << n << "\t" << fitMultGaussNSHG[j][i]->GetParameter(n) << std::endl;
             }
           }
-          histNSHG_Sub[j][i]->Fit(fitMultGaussNSLG[j][i],"QRMNE0");
+          histNSHG_Sub[j][i]->Fit(fitMultGaussNSHG[j][i],"QRMNE0");
+          histNSHG_Sub[j][i]->Fit(fitMultGaussNSHGPreset[j][i],"QRMNE0");
           Double_t sum_diff_Fit     = 0.0;
           Double_t xPeaksFits[3000] = {0};
           for (Int_t p = 0; p < (Int_t)nSPE[j][i]-1; p++){
-            std::cout << p << "\t mu=" <<  fitMultGaussNSLG[j][i]->GetParameter(3*p + 3) << "\t sigma=" << fitMultGaussNSLG[j][i]->GetParameter(3*p + 4);
-            xPeaksFits[p] = fitMultGaussNSLG[j][i]->GetParameter(3*p + 3);
+            std::cout << p << "\t mu=" <<  fitMultGaussNSHG[j][i]->GetParameter(3*p + 3) << "\t sigma=" << fitMultGaussNSHG[j][i]->GetParameter(3*p + 4);
+            xPeaksFits[p] = fitMultGaussNSHG[j][i]->GetParameter(3*p + 3);
             if (p > 0) {
                 Double_t diffTemp = xPeaksFits[p-1] - xPeaksFits[p];
                 std::cout << "\t diff = " << diffTemp;
@@ -933,7 +952,8 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
           std::cout << "Average of differences fit: " << avDiffSPEPeaksFits[j][i] << std::endl;
         } else {
           std::cout << "no peaks from different pixels found" << std::endl;
-          fitMultGaussNSLG[j][i] = nullptr;
+          fitMultGaussNSHG[j][i] = nullptr;
+          fitMultGaussNSHGPreset[j][i] = nullptr;
         }
 
         // ****************************************************************************
@@ -958,9 +978,10 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
         // ****************************************************************************
         histNSHG_mapped[layer][chBoard] = (TH1D*)histNSHG[j][i]->Clone(Form("h_NS_HG_mapped_L%d_C%02d",layer,chBoard));
         histNSLG_mapped[layer][chBoard] = (TH1D*)histNSLG[j][i]->Clone(Form("h_NS_LG_mapped_L%d_C%02d",layer,chBoard));
-        if (fitMultGaussNSLG[j][i])
-          fitMultGaussNSLG_mapped[layer][chBoard] = (TF1*)fitMultGaussNSLG[j][i]->Clone(Form("fitMultiGauss_NS_HG_mapped_L%d_C%02d",layer,chBoard));
-        
+        if (fitMultGaussNSHG[j][i]){
+          fitMultGaussNSHG_mapped[layer][chBoard] = (TF1*)fitMultGaussNSHG[j][i]->Clone(Form("fitMultiGauss_NS_HG_mapped_L%d_C%02d",layer,chBoard));
+          fitMultGaussNSHGPreset_mapped[layer][chBoard] = (TF1*)fitMultGaussNSHG[j][i]->Clone(Form("fitMultiGauss_NS_HGPre_mapped_L%d_C%02d",layer,chBoard));
+        }
         histNSHG_mapped[layer][chBoard]->Sumw2();
         histNSHG_mappedReb[layer][chBoard] = (TH1D*)histNSHG_mapped[layer][chBoard]->Rebin(2100,Form("%sReb",(histNSHG_mapped[layer][chBoard]->GetName())), binningADC);
         histNSHG_mappedReb[layer][chBoard]->Scale(1,"width");
@@ -975,8 +996,11 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
           PlotOverlayDiffTriggers( canvas1DDiffTrigg, histNSLG[j][i], nullptr, nullptr, NULL,
                                 -100, 500, Form("%s/LG_NS_DiffTriggers", outputDirPlotsDet.Data()),
                                 j, i, layer, chBoard, currentRunInfo, 0.04);
-          PlotOverlaySinglePhoton( canvas1DDiffTrigg, histNSHG[j][i], histNSHG_BG[j][i], histNSHG_Sub[j][i],  fitMultGaussNSLG[j][i],
+          PlotOverlaySinglePhoton( canvas1DDiffTrigg, histNSHG[j][i], histNSHG_BG[j][i], histNSHG_Sub[j][i],  fitMultGaussNSHG[j][i],
                                 -100, 1100, Form("%s/HG_NS_WithSpectrumBG_DiffTriggers", outputDirPlotsDet.Data()),
+                                j, i, layer, chBoard, currentRunInfo, 0.04);
+          PlotOverlaySinglePhoton( canvas1DDiffTrigg, histNSHG[j][i], histNSHG_BG[j][i], histNSHG_Sub[j][i],  fitMultGaussNSHGPreset[j][i],
+                                -100, 1100, Form("%s/HG_NS_WithSpectrumBGPreset_DiffTriggers", outputDirPlotsDet.Data()),
                                 j, i, layer, chBoard, currentRunInfo, 0.04);
         }
       }
@@ -998,8 +1022,11 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
                                 histNSHG_mapped[l], nullptr, nullptr, nullptr, 
                                 -80, 1000, 1.2, l , Form("%s/TriggerOverlay_HG_NS_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
       PlotSPEFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
-                                histNSHG_mapped[l], histNSHG_Sub_mapped[l], histNSHG_BG_mapped[l], fitMultGaussNSLG_mapped[l],
+                                histNSHG_mapped[l], histNSHG_Sub_mapped[l], histNSHG_BG_mapped[l], fitMultGaussNSHG_mapped[l],
                                 -80, 500, 1.2, l , Form("%s/SPEOverlay_HG_NS_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
+      PlotSPEFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                                histNSHG_mapped[l], histNSHG_Sub_mapped[l], histNSHG_BG_mapped[l], fitMultGaussNSHGPreset_mapped[l],
+                                -80, 500, 1.2, l , Form("%s/SPEOverlay_HG_NS_Preset_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
       PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
                                 histNSLG_mapped[l],  nullptr, nullptr, nullptr, 
                                 -80, 500, 1.2, l , Form("%s/TriggerOverlay_LG_NS_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
@@ -1032,11 +1059,12 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     // *****************************************************************
     // Create graphs per board and channels with calib values MIP values
     // *****************************************************************
-    TGraphErrors* graphnSPEPeaks_HG           = CreateGraphFromHistAndCleanup(hist1DnSPEPeaks_HG, "graphnSPEPeaks_HG_channels");
+    // only create data point if more than 2 peaks were visible in SPE in graphs
+    TGraphErrors* graphnSPEPeaks_HG           = CreateGraphFromHistAndCleanup(hist1DnSPEPeaks_HG, "graphnSPEPeaks_HG_channels", 3, kTRUE);
     TGraphErrors* graphAvDiffSPEPeaks_HG      = CreateGraphFromHistAndCleanup(hist1DAvDiffSPEPeaks_HG, "graphAvDiffSPEPeaks_HG_channels");
     TGraphErrors* graphAvDiffSPEPeaksFit_HG   = CreateGraphFromHistAndCleanup(hist1DAvDiffSPEPeaksFit_HG, "graphAvDiffSPEPeaksFit_HG_channels");
 
-    TGraphErrors* graphCAEN_nSPEPeaks_HG           = CreateGraphFromHistAndCleanup(hist1DCAEN_nSPEPeaks_HG, "graphCAEN_nSPEPeaks_HG_channels");
+    TGraphErrors* graphCAEN_nSPEPeaks_HG           = CreateGraphFromHistAndCleanup(hist1DCAEN_nSPEPeaks_HG, "graphCAEN_nSPEPeaks_HG_channels", 3, kTRUE);
     TGraphErrors* graphCAEN_AvDiffSPEPeaks_HG      = CreateGraphFromHistAndCleanup(hist1DCAEN_AvDiffSPEPeaks_HG, "graphCAEN_AvDiffSPEPeaks_HG_channels");
     TGraphErrors* graphCAEN_AvDiffSPEPeaksFit_HG   = CreateGraphFromHistAndCleanup(hist1DCAEN_AvDiffSPEPeaksFit_HG, "graphCAEN_AvDiffSPEPeaksFit_HG_channels");
 
@@ -1070,7 +1098,7 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
         fileOutput->cd("NoiseSubtracted");
         WriteOnlyIfFilled(histNSHG[j][i]);
         WriteOnlyIfFilled(histNSLG[j][i]);
-        if (fitMultGaussNSLG[j][i]) fitMultGaussNSLG[j][i]->Write();
+        if (fitMultGaussNSHG[j][i]) fitMultGaussNSHG[j][i]->Write();
         // correlation histograms
         fileOutput->cd("CorrelationLGHG");
         WriteOnlyIfFilled(histLGHG[j][i]);

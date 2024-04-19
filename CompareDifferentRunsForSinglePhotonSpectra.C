@@ -51,7 +51,7 @@ const int gMaxGainS     = 7;
 const int gMaxChannels  = 8;
 
 struct spectraFitDataPoint{
-    spectraFitDataPoint(): layer(0), channel(0), vop(0), runnr(0), lgSet(0), hgSet(0) {}
+    spectraFitDataPoint(): layer(0), channel(0), vop(0), runnr(0), lgSet(0), hgSet(0), assemNr (0) {}
     int layer;
     int channel;
     float vop;
@@ -61,19 +61,25 @@ struct spectraFitDataPoint{
     int nSPEPeaks;
     double avDiffSPEPeaks;
     double avDiffSPEPeaksFit;
+    int assemNr;
 } ;
 //__________________________________________________________________________________________________________
 //_____________________MAIN function !!! ___________________________________________________________________
 //__________________________________________________________________________________________________________
-void CompareDifferentRunsForSinglePhotonSpectra( TString configFileName     = "configs/BoardA16_RunNumbers",                // list of runs to analyze, filename + runNumber, should be run for one board at the time
-                                                TString outputDir          = "Compare/A16/",
+void CompareDifferentRunsForSinglePhotonSpectra( TString configFileName   = "configs/BoardA16_RunNumbers",         // list of runs to analyze, filename + runNumber, should be run for one board at the time
+                                                TString outputDir         = "Compare/A16/",
                                                 Int_t verbosity           = 0,
-                                                TString mappingFile       = "configs/mappingA16_SinglePhoton.txt",       // board name here 
-                                                TString runListFileName   = "configs/ORNL_RunNumbers.txt"  // general list of the runs, no board name
+                                                TString mappingFile       = "configs/mappingA16_SinglePhoton.txt", // board name here 
+                                                TString runListFileName   = "configs/ORNL_RunNumbers.txt",         // general list of the runs, no board name
+                                                Int_t specialData         = 0                                      // specialData: 0- std. TB data, 1 - local ORNL SPE
                                   ){
     StyleSettingsThesis("pdf");
     SetPlotStyle();
     Double_t textSizeRel = 0.04;
+    
+    Color_t colorReadBoard[8] = { kRed+1, kBlue+1, kCyan+1, kMagenta+1, kOrange, kGreen+1, kPink+5, kViolet-9};
+    Style_t markerReadBoard[8]  = { 20, 21, 33, 34, 29, 39, 40, 46};                             
+
     
       // make output directory
     TString dateForOutput = ReturnDateStr();
@@ -84,7 +90,7 @@ void CompareDifferentRunsForSinglePhotonSpectra( TString configFileName     = "c
     // ********************************************************************************************************
     // read run list and corresponding settings
     // ********************************************************************************************************
-    std::vector<runInfo> allRuns = readRunInfosFromFile(runListFileName, 1 );
+    std::vector<runInfo> allRuns = readRunInfosFromFile(runListFileName, 1, specialData);
     
     // ********************************************************************************************************    
     // read folder and name from file
@@ -151,7 +157,11 @@ void CompareDifferentRunsForSinglePhotonSpectra( TString configFileName     = "c
         currentRunInfo = GetRunInfoObject(allRuns,indexCRun);
       }
       compRuns.push_back(currentRunInfo);
-      std::cout <<  runnumbers.at(r) << "\t" << fileNames.at(r).Data() << "\t" << compRuns.at(r).vop << std::endl;
+      if (specialData == 1){
+        std::cout <<  runnumbers.at(r) << "\t" << fileNames.at(r).Data() << "\t" << compRuns.at(r).vop << "\t"<< compRuns.at(r).assemblyNr << std::endl;
+      } else {
+        std::cout <<  runnumbers.at(r) << "\t" << fileNames.at(r).Data() << "\t" << compRuns.at(r).vop  << std::endl;
+      }
       
       TFile* tempFile = new TFile(fileNames.at(r).Data(), "OPEN");
       if (tempFile->IsZombie()){
@@ -166,6 +176,7 @@ void CompareDifferentRunsForSinglePhotonSpectra( TString configFileName     = "c
     }
     std::cout<<"=============================================================="<<std::endl;
 
+    Double_t rangeDiffPeaks[2] = {0.};
     std::vector<spectraFitDataPoint> spectraFitPoints;
     for (Int_t r = 0; r < runsToComp; r++){
       std::cout <<  runnumbers.at(r) << "\t" << fileNames.at(r).Data() << "\t" << compRuns.at(r).species.Data() << "\t" << compRuns.at(r).vop << std::endl;
@@ -184,36 +195,41 @@ void CompareDifferentRunsForSinglePhotonSpectra( TString configFileName     = "c
         currFit.nSPEPeaks          = (int)(graphsNSPEPeaks.at(r)->GetY()[e]);
         currFit.avDiffSPEPeaks     = (double)(graphsAvDiffSPEPeaks.at(r)->GetY()[e]);
         currFit.avDiffSPEPeaksFit  = (double)(graphsAvDiffSPEPeaksFit.at(r)->GetY()[e]);
-
+        if (specialData == 1) currFit.assemNr = (int)(compRuns.at(r).assemblyNr);
 //         std::cout << graphsMPV.at(r)->GetX()[e] << "\t l: " << currMip.layer << "\t c: " << currMip.channel << "\t vop: " << currMip.vop << std::endl;
         spectraFitPoints.push_back(currFit);
+        if (currFit.avDiffSPEPeaks < rangeDiffPeaks[0]) rangeDiffPeaks[0] = currFit.avDiffSPEPeaks;
+        if (currFit.avDiffSPEPeaks > rangeDiffPeaks[1]) rangeDiffPeaks[1] = currFit.avDiffSPEPeaks;
       }      
     }
 
-    TGraphErrors* graphAvSPEDiffVsVop[gMaxChannels];
-    TGraphErrors* graphAvSPEDiffFitVsVop[gMaxChannels];
+    Int_t gMaxAssemblies = 100;
+    TGraphErrors* graphAvSPEDiffVsVop[gMaxAssemblies][gMaxChannels];
+    TGraphErrors* graphAvSPEDiffFitVsVop[gMaxAssemblies][gMaxChannels];
 
-    for (Int_t ch=0; ch<gMaxChannels; ch++){
-      graphAvSPEDiffVsVop[ch]     = new TGraphErrors();
-      graphAvSPEDiffFitVsVop[ch]  = new TGraphErrors();
+    for (Int_t a = 0; a < gMaxAssemblies; a++){
+      for (Int_t ch=0; ch<gMaxChannels; ch++){
+        graphAvSPEDiffVsVop[a][ch]     = new TGraphErrors();
+        graphAvSPEDiffFitVsVop[a][ch]  = new TGraphErrors();
+      }
     }
-
     for(Int_t f = 0; f<(Int_t)spectraFitPoints.size(); f++){
-      Int_t   ch  = spectraFitPoints.at(f).channel-1;
-      Int_t   nPeaks  = spectraFitPoints.at(f).nSPEPeaks;
-
-      if( nPeaks < 3) continue;
-      cout << "channel: " << ch << endl;
-      cout << "nPeaks: " << spectraFitPoints.at(f).nSPEPeaks << endl;
-      graphAvSPEDiffVsVop[ch]->SetPoint(graphAvSPEDiffVsVop[ch]->GetN(), spectraFitPoints.at(f).vop, spectraFitPoints.at(f).avDiffSPEPeaks);
-      cout << "av diff " << spectraFitPoints.at(f).avDiffSPEPeaks << endl;
-      graphAvSPEDiffFitVsVop[ch]->SetPoint(graphAvSPEDiffFitVsVop[ch]->GetN(), spectraFitPoints.at(f).vop, spectraFitPoints.at(f).avDiffSPEPeaksFit);
-      cout << endl;    
+      Int_t ch      = spectraFitPoints.at(f).channel-1;
+      Int_t nPeaks  = spectraFitPoints.at(f).nSPEPeaks;
+      Int_t assem   = spectraFitPoints.at(f).layer;
+      if (specialData == 1){
+        assem = spectraFitPoints.at(f).assemNr;
+      }
+      graphAvSPEDiffVsVop[assem][ch]->SetPoint(graphAvSPEDiffVsVop[assem][ch]->GetN(), spectraFitPoints.at(f).vop, spectraFitPoints.at(f).avDiffSPEPeaks);
+      graphAvSPEDiffFitVsVop[assem][ch]->SetPoint(graphAvSPEDiffFitVsVop[assem][ch]->GetN(), spectraFitPoints.at(f).vop, spectraFitPoints.at(f).avDiffSPEPeaksFit);
     }
 
-    for(Int_t ch=0; ch<gMaxChannels; ch++){
-      if( graphAvSPEDiffVsVop[ch]->GetN() !=0)      graphAvSPEDiffVsVop[ch]->Sort();
-      if( graphAvSPEDiffFitVsVop[ch]->GetN() !=0)   graphAvSPEDiffFitVsVop[ch]->Sort();
+    for (Int_t a = 0; a < gMaxAssemblies; a++){
+      for(Int_t ch=0; ch<gMaxChannels; ch++){
+//         std::cout << "A" << a <<" channel: " << ch << std::endl;
+        if( graphAvSPEDiffVsVop[a][ch]->GetN() !=0)      graphAvSPEDiffVsVop[a][ch]->Sort();
+        if( graphAvSPEDiffFitVsVop[a][ch]->GetN() !=0)   graphAvSPEDiffFitVsVop[a][ch]->Sort();
+      }
     }
 
     // ********************************************************************************************************
@@ -224,29 +240,42 @@ void CompareDifferentRunsForSinglePhotonSpectra( TString configFileName     = "c
     DefaultCancasSettings( canvas1DSimple, 0.08, 0.02, 0.02, 0.08);
 
 
-    TH1D* histDummyAvDiffSPEvsVop = new TH1D("histDummyAvDiffSPEvsVop","", 70, 0, 7 );
-    SetStyleHistoTH1ForGraphs( histDummyAvDiffSPEvsVop, "#it{V}_{ov} (V)", "av diff SPE (HG ADC)",0.85* textSizeRel, textSizeRel, 0.85* textSizeRel, textSizeRel, 0.9, 0.95);
-    // histDummyAvDiffSPEvsVop->GetYaxis()->SetRangeUser(rangeMaxMIP[0], rangeMaxMIP[1]);
+    TH1D* histDummyAvDiffSPEvsVop = new TH1D("histDummyAvDiffSPEvsVop","", 55, 1.5, 7 );
+    SetStyleHistoTH1ForGraphs( histDummyAvDiffSPEvsVop, "#it{V}_{ov} (V)", "#mu(#Delta_{SPE}) (HG ADC)",0.85* textSizeRel, textSizeRel, 0.85* textSizeRel, textSizeRel, 0.9, 0.95);
+    histDummyAvDiffSPEvsVop->GetYaxis()->SetRangeUser(rangeDiffPeaks[0], rangeDiffPeaks[1]*1.5);
     histDummyAvDiffSPEvsVop->Draw();
     Bool_t lenteredAll[2]  = {0, 0};
     Bool_t plottedA      = 0; 
-    TLegend* legend = GetAndSetLegend2( 0.12, 0.95-2*textSizeRel, 0.25, 0.95,textSizeRel, 2, "Channel:", 42,0.4);
+    TLegend* legend = GetAndSetLegend2( 0.12, 0.95-3*textSizeRel, 0.7, 0.95,textSizeRel, 4, "RB-Channel:", 42,0.1);
 
-    for(Int_t ch=0; ch<gMaxChannels; ch++){
-      if(graphAvSPEDiffVsVop[ch]->GetN() != 0 ) {
-        SetMarkerDefaultsTGraphErr( graphAvSPEDiffVsVop[ch], 24, 0.8, kRed+1,kRed+1);
-        graphAvSPEDiffVsVop[ch]->Draw("p,e,same");
-        legend->AddEntry(graphAvSPEDiffVsVop[ch], Form("%d",ch), "p");
+    for (Int_t a = 0; a < gMaxAssemblies; a++){
+      for(Int_t ch=0; ch<gMaxChannels; ch++){
+        if(graphAvSPEDiffVsVop[a][ch]->GetN() != 0 ) {
+          SetMarkerDefaultsTGraphErr( graphAvSPEDiffVsVop[a][ch], markerReadBoard[ch], 0.8, colorReadBoard[ch],markerReadBoard[ch]);
+          graphAvSPEDiffVsVop[a][ch]->Draw("p,e,same");
+          legend->AddEntry(graphAvSPEDiffVsVop[a][ch], Form("A%02d, %d",a, ch+1), "p");
+        }
       }
-
-      if( graphAvSPEDiffFitVsVop[ch]->GetN() != 0 ){
-        SetMarkerDefaultsTGraphErr( graphAvSPEDiffFitVsVop[ch], 25, 0.8, kBlue+1,kBlue+1);
-        graphAvSPEDiffFitVsVop[ch]->Draw("p,e,same");
-        legend->AddEntry(graphAvSPEDiffFitVsVop[ch], Form("%d, fit",ch), "p");
-      }
-
     }
     // DrawLatex(0.95, 0.92, Form("%s", labelTB.Data()), true, textSizeRel, 42);        
     legend->Draw();
     canvas1DSimple->SaveAs(Form("%s/AvDiffSPEPeaks.pdf",outputDirPlots.Data()));
+    
+    TH1D* histDummyAvDiffSPEvsVopF = new TH1D("histDummyAvDiffSPEvsVopF","", 55, 1.5, 7 );
+    SetStyleHistoTH1ForGraphs( histDummyAvDiffSPEvsVopF, "#it{V}_{ov} (V)", "#mu(#Delta_{SPE,fit}) (HG ADC)",0.85* textSizeRel, textSizeRel, 0.85* textSizeRel, textSizeRel, 0.9, 0.95);
+    histDummyAvDiffSPEvsVopF->GetYaxis()->SetRangeUser(rangeDiffPeaks[0], rangeDiffPeaks[1]*1.5);
+    histDummyAvDiffSPEvsVopF->Draw();
+    
+    for (Int_t a = 0; a < gMaxAssemblies; a++){
+      for(Int_t ch=0; ch<gMaxChannels; ch++){
+        if( graphAvSPEDiffFitVsVop[a][ch]->GetN() != 0 ){
+          SetMarkerDefaultsTGraphErr( graphAvSPEDiffFitVsVop[a][ch], markerReadBoard[ch], 0.8, colorReadBoard[ch],markerReadBoard[ch]);
+          graphAvSPEDiffFitVsVop[a][ch]->Draw("p,e,same");
+        }
+
+      }
+    }
+    // DrawLatex(0.95, 0.92, Form("%s", labelTB.Data()), true, textSizeRel, 42);        
+    legend->Draw();
+    canvas1DSimple->SaveAs(Form("%s/AvDiffSPEPeaksFits.pdf",outputDirPlots.Data()));
 }

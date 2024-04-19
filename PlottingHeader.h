@@ -26,13 +26,14 @@
     #include <TProfile.h>
 
     struct runInfo{
-        runInfo(): runNr(0), species(""), energy(0), vop(0), lgSet(0), hgSet(0){}
+        runInfo(): runNr(0), species(""), energy(0), vop(0), lgSet(0), hgSet(0), assemblyNr(0){}
         int runNr;
         TString species;
         float energy;
         float vop;
         int lgSet;
         int hgSet;
+        int assemblyNr;
     } ;
     using namespace std; // necessary for non-ROOT compilation
 
@@ -46,7 +47,8 @@
     //__________________________________________________________________________________________________________
     //__________________ Read run infos from text file _________________________________________________________
     //__________________________________________________________________________________________________________    
-    std::vector<runInfo> readRunInfosFromFile(TString runListFileName, Int_t debug ){
+    // specialData: 0 - std. TB, 1 - SPE data ORNL
+    std::vector<runInfo> readRunInfosFromFile(TString runListFileName, Int_t debug, Int_t specialData = 0 ){
         std::vector<runInfo> runs;
         std::cout << "INFO: You have given the following run list file: " << runListFileName.Data() << std::endl;
         ifstream runListFile;
@@ -91,6 +93,7 @@
             tempRun.vop      = ((TString)((TObjString*)tempArr->At(3))->GetString()).Atof();
             tempRun.hgSet    = ((TString)((TObjString*)tempArr->At(4))->GetString()).Atoi();
             tempRun.lgSet    = ((TString)((TObjString*)tempArr->At(5))->GetString()).Atoi();
+            if (specialData == 1) tempRun.assemblyNr = ((TString)((TObjString*)tempArr->At(6))->GetString()).Atoi();
                 
             if (debug > 0) std::cout << "Run " << tempRun.runNr << "\t species: " << tempRun.species << "\t energy: "  << tempRun.energy << "\t Vop: " << tempRun.vop << std::endl;
             runs.push_back(tempRun);
@@ -120,6 +123,7 @@
         run.vop = runs.at(runIndex).vop;
         run.lgSet = runs.at(runIndex).lgSet;
         run.hgSet = runs.at(runIndex).hgSet;
+        run.assemblyNr = runs.at(runIndex).assemblyNr;
         return run;
     }
     //__________________________________________________________________________________________________________
