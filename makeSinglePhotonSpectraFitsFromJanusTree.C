@@ -8,7 +8,7 @@
 #include <TVector3.h>
 #include <iostream>
 #include <fstream>
-#include <TParticlePDG.h>
+// #include <TParticlePDG.h>
 #include <TDatabasePDG.h>
 #include <TRandom3.h>
 
@@ -107,6 +107,12 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     if (fileName.EndsWith(".root")) {                     // are we loading a single root tree?
         std::cout << "loading a single root file" << std::endl;
         tt_event->AddFile(fileName);
+        TFile testFile(fileName.Data());
+        if (testFile.IsZombie()){
+          std::cout << Form("The file %s is not a root file or doesn't exit, please fix the file path", fileName.Data()) << std::endl;
+          return;
+        }
+        
     } else {
         std::cout << "please try again this isn't a root file" << std::endl;
     } 
