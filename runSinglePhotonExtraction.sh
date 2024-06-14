@@ -13,6 +13,6 @@ elif [ $1 == "new" ]; then
 elif [ $1 == "FullA15" ]; then
 #   for i in 438 ; do
   for i in 442 ; do
-    root -b -x -q -l makeSinglePhotonSpectraFitsFromJanusTree.C\+\(\"TestingORNLLocal/05_27_2024_SinglePhoton/Run$i\_list.root\"\,\"ProcessedData/SinglePhotonORNL_May2024\"\,$i\,0\,0\,1\,0\,\"configs/mappingA15_SinglePhoton.txt\"\,kTRUE\,\"configs/ORNL_RunNumbers_May2024.txt\"\)
+    root -b -x -q -l makeSinglePhotonSpectraFitsFromJanusTree02.C\+\(\"TestingORNLLocal/05_27_2024_SinglePhoton/Run$i\_list.root\"\,\"ProcessedData/SinglePhotonORNL_May2024\"\,$i\,0\,0\,1\,0\,\"configs/mappingA15_SinglePhoton.txt\"\,kTRUE\,\"configs/ORNL_RunNumbers_May2024.txt\"\)
   done  
 fi
