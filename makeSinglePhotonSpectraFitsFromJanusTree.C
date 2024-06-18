@@ -925,13 +925,14 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
             nPeaksMultGauss++;
           }
           
-          fitMultGaussNSHG[j][i] = new TF1(Form("fitMultGauss_NS_HG_Sub_B%d_C%02d",j,i), multGauss, 0, 4096, 3 * nPeaksMultGauss);
+          fitMultGaussNSHG[j][i] = new TF1(Form("fitMultGauss_NS_HG_Sub_B%d_C%02d",j,i), multGauss, 0, 4096, 3 * nPeaksMultGauss+2);
           fitMultGaussNSHG[j][i]->SetParameters(par);
           fitMultGaussNSHG[j][i]->SetNpx(1000);
-          fitMultGaussNSHGPreset[j][i] = new TF1(Form("fitMultGauss_NS_HG_SubPre_B%d_C%02d",j,i), multGauss, 0, 4096, 3 * nPeaksMultGauss);
+          fitMultGaussNSHGPreset[j][i] = new TF1(Form("fitMultGauss_NS_HG_SubPre_B%d_C%02d",j,i), multGauss, 0, 4096, 3 * nPeaksMultGauss+2);
           fitMultGaussNSHGPreset[j][i]->SetParameters(par);
           for (Int_t p = 0; p < (Int_t)nSPE[j][i]; p++){
-              fitMultGaussNSHG[j][i]->FixParameter(3*p+3, fitMultGaussNSHG[j][i]->GetParameter(3*p+3));
+              fitMultGaussNSHGPreset[j][i]->FixParameter(3*p+3, fitMultGaussNSHGPreset[j][i]->GetParameter(3*p+3));
+              
           }
           
           fitMultGaussNSHGPreset[j][i]->SetNpx(1000);
