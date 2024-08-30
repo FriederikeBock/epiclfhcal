@@ -633,9 +633,11 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
         // Plot different triggers together
         // ********************************************************
         Int_t hgmax = 1050;
+        std::cout << __LINE__ << std::endl;
         if (bDetPlot)PlotOverlayDiffTriggers( canvas1DDiffTrigg, histHG[j][i], nullptr, nullptr, fitGausHG_BG[j][i],
                                               0, hgmax, Form("%s/HG_DiffTriggers", outputDirPlotsDet.Data()),
                                               j, i, layer, chBoard, currentRunInfo, 0.04);
+        std::cout << __LINE__ << std::endl;
         if (bDetPlot)PlotOverlayDiffTriggers( canvas1DDiffTrigg, histLG[j][i], nullptr, nullptr, fitGausLG_BG[j][i],
                                               0, 1050, Form("%s/LG_DiffTriggers", outputDirPlotsDet.Data()),
                                               j, i, layer, chBoard, currentRunInfo, 0.04);
@@ -643,20 +645,25 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
     }
     
     for (Int_t l = 0; l < gMaxLayers; l++){
-      if (!lActive[l]) continue;      
+      if (!lActive[l]) continue;     
+      std::cout << __LINE__ << std::endl;
       PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
                                 histHG_mapped[l], nullptr, nullptr, fitGausHG_BG_mapped[l], 
                                 0, 1000, 1.2, l , Form("%s/TriggerOverlay_HG_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
+      std::cout << __LINE__ << std::endl;
       PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
                                 histLG_mapped[l], nullptr, nullptr, fitGausLG_BG_mapped[l], 
                                 0, 800, 1.2, l , Form("%s/TriggerOverlay_LG_Zoomed_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
     // ********************************************************************************************************
     // Overlay in same layer
     // ********************************************************************************************************
+      std::cout << __LINE__ << std::endl;
       PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histHG_mapped[l], 1, 9,
                                   -100, 1000, 1./5, Form("%s/HG", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
+      std::cout << __LINE__ << std::endl;
       PlotChannelOverlaySameLayerWithFitsBG( canvas1DDiffTrigg, histHG_mapped[l], fitGausHG_BG_mapped[l], 1, 9,
                                   -100, 1000, 1./5, Form("%s/HGWithFits", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
+      std::cout << __LINE__ << std::endl;
       PlotChannelOverlaySameLayer( canvas1DDiffTrigg, histLG_mapped[l], 1, 9,
                                   -100, 500, 1, Form("%s/LG", outputDirPlots.Data()), l, currentRunInfo, 0.04);        
     
@@ -919,8 +926,8 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
             if (verbosity > 1) std::cout << p << "\t" << xp << "\t" << bin << "\t"<< yp << std::endl;            
             par[3 * nPeaksMultGauss + 2] = yp;     // "height"
             par[3 * nPeaksMultGauss + 3] = xp; // "mean"
-            par[3 * nPeaksMultGauss + 4] = 5;  // "sigma"
-            
+            // par[3 * nPeaksMultGauss + 4] = 5;  // "sigma"
+            par[3 * nPeaksMultGauss + 4] = sigma[0][j][i];  // "sigma"
             if (verbosity > 1) std::cout<<xp<<std::endl;
             nPeaksMultGauss++;
           }
@@ -931,6 +938,7 @@ void makeSinglePhotonSpectraFitsFromJanusTree(  TString fileName     = "",
           fitMultGaussNSHGPreset[j][i] = new TF1(Form("fitMultGauss_NS_HG_SubPre_B%d_C%02d",j,i), multGauss, 0, 4096, 3 * nPeaksMultGauss+2);
           fitMultGaussNSHGPreset[j][i]->SetParameters(par);
           for (Int_t p = 0; p < (Int_t)nSPE[j][i]; p++){
+              fitMultGaussNSHG[j][i]->SetParLimits( 3*p+3, xpeaks[p] - 20, xpeaks[p] + 20);
               fitMultGaussNSHGPreset[j][i]->FixParameter(3*p+3, fitMultGaussNSHGPreset[j][i]->GetParameter(3*p+3));
               
           }

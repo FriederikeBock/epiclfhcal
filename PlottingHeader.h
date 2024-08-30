@@ -1256,7 +1256,7 @@
     //********************************************************************************************************************************    
     TString GetStringFromRunInfo(runInfo currRunInfo, Int_t option = 1){
         if (option == 1){
-            if (currRunInfo.species.CompareTo("cosmics") == 0){
+            if (currRunInfo.species.Contains("cosmics")){
                 return  Form("cosmics, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  );
             } else if (currRunInfo.species.CompareTo("g") == 0){
                 return  Form("LED, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  );

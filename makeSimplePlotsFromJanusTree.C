@@ -166,6 +166,12 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
       }
       lActive[l] = kFALSE;
     }
+    for (Int_t i = 0; i < 128; i++){
+      for (Int_t k = 0; k < 4; k++){
+        mapping[i][k] = -1;
+      }
+    }  
+    
     Int_t nChmapped = 0;
     cout << "INFO: You have chosen the given the following config file: " << mappingFile.Data() << endl;
     ifstream fileMapping;
@@ -313,7 +319,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     //***************************************************
     for (Int_t j = 0; j < gMaxBoard; j++){
       for (Int_t i = 0; i < gMaxChannels; i++){
-        if (isTBdata)
+        if (isTBdata == 1)
           hist_T_HG[j][i]    = new TH2D(Form("h_T_HG_B%d_C%02d",j,i),"; t (min); HG (adc); counts",1000,0,120,4201,-200,4001);
         else
           hist_T_HG[j][i]    = new TH2D(Form("h_T_HG_B%d_C%02d",j,i),"; t (min); HG (adc); counts",1000,0,1000,4201,-200,4001);
@@ -377,7 +383,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         Int_t nChNoNoise = 0;             // number of channels above noise level
         // processing progress info
         if(i>0 && nEntriesTree>100 && i%(nEntriesTree/(20))==0) std::cout << "//processed " << 100*(i)/nEntriesTree << "%"  << std::endl;
-        if(verbosity>0){
+        if(verbosity>1){
           std::cout << "***********************************************************************************************************" << std::endl;
           std::cout << "event " << i << std::endl;
           std::cout << "***********************************************************************************************************" << std::endl;
@@ -385,9 +391,10 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         // temporary mapping of channels
         Int_t signal[2][64][3] = {{{0}}}; // [board][channel][HG, LG, trigg HG]
         // readEvent
-        if (verbosity > 0)std::cout << "------------- Event -------------------------" << std::endl;
-        if (verbosity > 0)std::cout << gTrID << "\t" << gTRtimeStamp << std::endl;
+        if (verbosity > 1)std::cout << "------------- Event -------------------------" << std::endl;
+        if (verbosity > 1)std::cout << gTrID << "\t" << gTRtimeStamp << std::endl;
         for(Int_t ch=0; ch<gMaxChannels && ch < nChmapped ; ch++){   
+          if (mapping[gChannel[ch]][0] == -1 && isTBdata > 0) continue;
           signal[gBoard[ch]][gChannel[ch]][0] = gHG[ch];
           signal[gBoard[ch]][gChannel[ch]][1] = gLG[ch];
           if (gHG[ch] > scaledThr)  // fill potential trigger signals
@@ -399,11 +406,13 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           histLG[gBoard[ch]][gChannel[ch]]->Fill(gLG[ch]); 
           histLGHG[gBoard[ch]][gChannel[ch]]->Fill(gLG[ch], gHG[ch]); 
           histHGLG[gBoard[ch]][gChannel[ch]]->Fill(gHG[ch], gLG[ch]); 
-          if (verbosity > 0)std::cout << "--> board: "<< gBoard[ch] << "\t ch:"<< gChannel[ch] << "\t LG:" << gLG[ch] << "\t HG:" << gHG[ch] << std::endl;
+          if (verbosity > 1)std::cout << "--> board: "<< gBoard[ch] << "\t ch:"<< gChannel[ch] << "\t LG:" << gLG[ch] << "\t HG:" << gHG[ch] << std::endl;
+          
           if (gHG[ch] > adcThreshold){
             nChNoNoise++;
-            if (verbosity > 0) std::cout << "not noise" << std::endl;
+            if (verbosity > 1) std::cout << "not noise" << std::endl;
             if (isTBdata > 0){
+              if (mapping[gChannel[ch]][0] == -1) continue;
               hist3DMap->Fill(mapping[gChannel[ch]][0],mapping[gChannel[ch]][3],mapping[gChannel[ch]][2]);
               hist2DMap->Fill(mapping[gChannel[ch]][1],mapping[gChannel[ch]][0]);
               hist1DMap->Fill(mapping[gChannel[ch]][1]);
@@ -420,6 +429,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         if (isTBdata == 1  || isTBdata == 2){
         // only for first CAEN board!!!!!
           for (Int_t chCAEN = 0; chCAEN < 64; chCAEN++){            
+            if (mapping[chCAEN][0] == -1 ) continue;
             Int_t chBoard = mapping[chCAEN][1];
             Int_t nNeigh  = 0;
             Int_t* neighborCh = new Int_t[5];
@@ -445,7 +455,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
               triggNoise  = kTRUE;
             
             // Fill triggered histograms
-            if (verbosity > 0) std::cout << "channel board " << chCAEN << "\t" << chBoard << "\t" << chCAENFront << "\t" << chCAENBack << ""<< std::endl; 
+            if (verbosity > 1) std::cout << "channel board " << chCAEN << "\t" << chBoard << "\t" << chCAENFront << "\t" << chCAENBack << ""<< std::endl; 
             if (trigg){
               if(mapping[chCAEN][0] == 0) histNTrig->Fill(chBoard);
               histHGTrig[0][chCAEN]->Fill(signal[0][chCAEN][0]); 
@@ -461,7 +471,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
             }
           }
         }
-        if (verbosity > 0) std::cout << "Channels above noise: "<< nChNoNoise << std::endl;        
+        if (verbosity > 1) std::cout << "Channels above noise: "<< nChNoNoise << std::endl;        
     }
     
     //**********************************************************************
@@ -583,12 +593,18 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         sigma[3][j][i] = -1;
 
         Int_t chMap     = j*64 + i;
+        if (mapping[chMap][0] == -1 && isTBdata > 0){
+          fitGausHG_BG[j][i] = nullptr;
+          fitGausLG_BG[j][i] = nullptr;
+          fitHGLGCorr[j][i] = nullptr;
+          fitLGHGCorr[j][i] = nullptr;
+          continue;
+        }
         Int_t chBoard   = mapping[chMap][1];
         Int_t layer     = mapping[chMap][0];
         Int_t channelBin1D = hist1DNoiseSigma_HG->FindBin(layer*10+chBoard);          
           
         if (verbosity > 0)std::cout << j << "\t" << i << "\t" << chMap << "\t L: " << layer  << "\t C:" <<  chBoard << "\t bin ID "<< channelBin1D << std::endl;
-        
         // ********************************************************
         // map raw and trigger histos from CAEN numbering to 
         // physical layers & channels
@@ -753,6 +769,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
                                     histLGTriggNoise_mapped[l], fitGausLG_BG_mapped[l], 0, 275, 1.2, l,
                                     Form("%s/Noise_LG_Layer%02d.pdf" ,outputDirPlots.Data(), l), currentRunInfo);
       }
+      
       if (isTBdata < 2){
         PlotDiffTriggersFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
                                   histHG_mapped[l], histHGTrig_mapped[l], histHGTriggNoise_mapped[l], fitGausHG_BG_mapped[l], 
@@ -774,7 +791,11 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
                               histHGTriggNoise_mapped, lActive, 0, gMaxLayers,
                               0, 350, -10, 425, 3, Form("%s/HG_Noise_AllLayers.pdf", outputDirPlots.Data()), currentRunInfo, "pe");
     }
-
+    for (Int_t c = 1; c < 9; c++){      
+      if (isTBdata == 2 && c > 1) continue; 
+      PlotChannelOverlaySameReadoutChannel( canvas1DDiffTrigg, histHG_mapped, lActive, 0, gMaxLayers, 
+                                            -100,4000, 1./5, Form("%s/HG", outputDirPlots.Data()), c, currentRunInfo,0.04,"hist");    
+    }
     
     
     // ********************************************************
@@ -882,9 +903,8 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         hist_T_NSCombHG[j]= new TH2D(Form("h_T_NS_CombHG_B%d",j),"; t (min); comb HG equivalent (adc)",1000,0,120,10000,0,1e6);
       else 
         hist_T_NSCombHG[j]= new TH2D(Form("h_T_NS_CombHG_B%d",j),"; t (min); comb HG equivalent (adc)",10000,0,1000,10000,0,1e6);
-      
-      
     }
+    
     for (Int_t l = 0; l < gMaxLayers; l++){
       for (Int_t c = 0; c < 9; c++){
         histNSLG_mapped[l][c]             = nullptr;
@@ -965,7 +985,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         Int_t nChNoNoise = 0;
         // processing progress info
         if(i>0 && nEntriesTree>100 && i%(nEntriesTree/(20))==0) std::cout << "//processed " << 100*(i)/nEntriesTree << "%"  << std::endl;
-        if(verbosity>0){
+        if(verbosity>1){
           std::cout << "***********************************************************************************************************" << std::endl;
           std::cout << "event " << i << std::endl;
           std::cout << "***********************************************************************************************************" << std::endl;
@@ -974,19 +994,24 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         Int_t signalNS[2][64][4] = {{{0}}};       // [board][channel][HG, LG, trigg HG,comb HG&LG]
         Double_t summed[2] = {0};                 // total channel sum
         // readEvent
-        if (verbosity > 0)std::cout << "------------- Event -------------------------" << std::endl;
-        if (verbosity > 0)std::cout << gTrID << "\t" << gTRtimeStamp << std::endl;
+        if (verbosity > 1)std::cout << "------------- Event -------------------------" << std::endl;
+        if (verbosity > 1)std::cout << gTrID << "\t" << gTRtimeStamp << std::endl;
         if (i == startEvent) tstapMin = gTRtimeStamp;
         tstapMax = gTRtimeStamp;
         Double_t tCurr= (tstapMax-tstapMin)/1e6/60; // elapsed time in min
         
         for(Int_t ch=0; ch<gMaxChannels && ch < nChmapped; ch++){
+          if (mapping[gChannel[ch]][0] == -1 && isTBdata > 0){
+            continue;
+          }
           Double_t meanNHG = 0;
           if (mean[0][gBoard[ch]][gChannel[ch]] != -1)
             meanNHG = mean[0][gBoard[ch]][gChannel[ch]];
+          if (meanNHG > 70 || meanNHG < 30) meanNHG = 50;   // resetting to nominal
           Double_t meanNLG = 0;
           if (mean[2][gBoard[ch]][gChannel[ch]] != -1)
             meanNLG = mean[2][gBoard[ch]][gChannel[ch]];
+          if (meanNLG > 70 || meanNLG < 30) meanNLG = 50;   // resetting to nominal
           
           signalNS[gBoard[ch]][gChannel[ch]][0] = gHG[ch]-meanNHG;
           signalNS[gBoard[ch]][gChannel[ch]][1] = gLG[ch]-meanNLG;
@@ -1006,7 +1031,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           histNSHGLG[gBoard[ch]][gChannel[ch]]->Fill(signalNS[gBoard[ch]][gChannel[ch]][0], signalNS[gBoard[ch]][gChannel[ch]][1]); 
           if (signalNS[gBoard[ch]][gChannel[ch]][0] > (adcThreshold-meanNHG)){
             nChNoNoise++;
-            if (verbosity > 0) std::cout << "not noise" << std::endl;
+            if (verbosity > 1) std::cout << "not noise" << std::endl;
             if (isTBdata > 0){
               histNS3DMap->Fill(mapping[gChannel[ch]][0],mapping[gChannel[ch]][3],mapping[gChannel[ch]][2]);
               histNS2DMap->Fill(mapping[gChannel[ch]][1],mapping[gChannel[ch]][0]);
@@ -1026,7 +1051,8 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         // *****************************************************************
         if (isTBdata == 1 || isTBdata == 2){
         // only for first CAEN board!!!!!
-          for (Int_t chCAEN = 0; chCAEN < 64; chCAEN++){            
+          for (Int_t chCAEN = 0; chCAEN < 64; chCAEN++){         
+            if (mapping[chCAEN][0] == -1 ) continue;
             Int_t chBoard = mapping[chCAEN][1];
             Int_t nNeigh  = 0;
             Int_t* neighborCh = new Int_t[5];
@@ -1052,7 +1078,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
               triggNoise  = kTRUE;
             
             // Fill triggered histograms
-            if (verbosity > 0) std::cout << "channel board " << chCAEN << "\t" << chBoard << "\t" << chCAENFront << "\t" << chCAENBack << ""<< std::endl; 
+            if (verbosity > 1) std::cout << "channel board " << chCAEN << "\t" << chBoard << "\t" << chCAENFront << "\t" << chCAENBack << ""<< std::endl; 
             if (trigg){
               histNSHGTrig[0][chCAEN]->Fill(signalNS[0][chCAEN][0]); 
               histNSCombHGTrig[0][chCAEN]->Fill(signalNS[0][chCAEN][3]); 
@@ -1069,9 +1095,9 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
             }
           }
         }
-        if (verbosity > 0)std::cout << "Channels above noise: "<< nChNoNoise << std::endl;        
+        if (verbosity > 1)std::cout << "Channels above noise: "<< nChNoNoise << std::endl;        
     }
-    std::cout << "Total events processed:" << nEventsProcessed << std::endl;
+    std::cout << "Total events processed 2nd round:" << nEventsProcessed << std::endl;
 
     
     // ********************************************************************************************************
@@ -1081,10 +1107,14 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     for (Int_t j = 0; j < gMaxBoard; j++){
       for (Int_t i = 0; i < gMaxChannels; i++){
         Int_t chMap     = j*64 + i;
+        if (mapping[chMap][0] == -1 && isTBdata > 0) continue;
         Int_t chBoard   = mapping[chMap][1];
         Int_t layer     = mapping[chMap][0];
-        if (verbosity > 0)std::cout << j << "\t" << i << "\t" << chMap << "\t L: " << layer  << "\t C:" <<  chBoard << std::endl;
+//         if (verbosity > 0)
+          std::cout << j << "\t" << i << "\t" << chMap << "\t L: " << layer  << "\t C:" <<  chBoard << std::endl;
         
+          
+          
         histNSHG_mapped[layer][chBoard] = (TH1D*)histNSHG[j][i]->Clone(Form("h_NS_HG_mapped_L%d_C%02d",layer,chBoard));
         histNSCombHG_mapped[layer][chBoard] = (TH1D*)histNSCombHG[j][i]->Clone(Form("h_NS_CombHG_mapped_L%d_C%02d",layer,chBoard));
         histNSLG_mapped[layer][chBoard] = (TH1D*)histNSLG[j][i]->Clone(Form("h_NS_LG_mapped_L%d_C%02d",layer,chBoard));
@@ -1143,6 +1173,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           fitLandauG_NSHGTrig_mapped[layer][chBoard]  = langaufit(histNSHGTrig_mappedReb[layer][chBoard],fr,sv,pllo,plhi,fp,fpe,&chisqr[layer][chBoard],&ndf[layer][chBoard], verbosity);
           fitLandauG_NSHGTrig_mapped[layer][chBoard]->SetName(Form("f_LandauG_NSHG_L%d_C%02d",layer,chBoard));
           fitLandauG_NSHGTrig[j][i]                   = (TF1*)fitLandauG_NSHGTrig_mapped[layer][chBoard]->Clone(Form("f_LandauG_NSHG_B%d_C%02d",j,i));
+          
           mpL[layer][chBoard]           = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(1);
           mpLErr[layer][chBoard]        = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParError(1);
           sigmaG[layer][chBoard]        = fitLandauG_NSHGTrig_mapped[layer][chBoard]->GetParameter(3);
@@ -1246,7 +1277,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
       labelTrigg->Draw();
 
     canvas2DCorr->SaveAs(Form("%s/NTriggNoise_2D.pdf", outputDirPlots.Data()));
-
+ 
     TH2D* hist2DNSTriggEffi = (TH2D*)hist2DNSTrigg->Clone("hist2DNSTrigg_effi");
     hist2DNSTriggEffi->Reset();
     hist2DNSTriggEffi->GetZaxis()->UnZoom();
@@ -1258,6 +1289,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     }
     canvas2DCorr->cd();
     canvas2DCorr->SetLogz(0);
+
     DefaultCancasSettings( canvas2DCorr, 0.08, 0.13, 0.02, 0.08);  
       SetStyleHistoTH2ForGraphs( hist2DNSTriggEffi, hist2DNSTriggEffi->GetXaxis()->GetTitle(), hist2DNSTriggEffi->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 0.9);  
       hist2DNSTriggEffi->GetZaxis()->SetTitle("#varepsilon (%)");
@@ -1278,7 +1310,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DNoiseSigma_LG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/LG_Noise_Sigma.pdf", outputDirPlots.Data()), currentRunInfo);
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DLGHG_slope, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/LGHG_Slope.pdf", outputDirPlots.Data()), currentRunInfo);
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DLGHG_offset, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/LGHG_Offset.pdf", outputDirPlots.Data()), currentRunInfo, kTRUE);
-    
+
     for (Int_t l = 0; l < gMaxLayers; l++){
       if (!lActive[l]) continue; 
       if (isTBdata == 0){
@@ -1304,14 +1336,13 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
         
       }
     }
-    
+
     // ********************************************************************************************************
     // Overlay noise in same layer
     // ********************************************************************************************************
     for (Int_t l = 0; l < gMaxLayers; l++){
       if (!lActive[l]) continue;      
       for (Int_t c = 1; c < 9; c++){
-        
         PlotMIPSingle (canvas1DNoise, histNSHGTrig_mapped[l][c],fitLandauG_NSHGTrig_mapped[l][c], chisqr[l][c], ndf[l][c], maxLandG[l][c], fwhmLandG[l][c],
                         l, c, Form("%s/HG_TriggMipWithFit", outputDirPlotsDet.Data()), currentRunInfo, 0.04);
       }
@@ -1352,7 +1383,6 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
                                     -100, 40000, 1./100, Form("%s/CombHGNS", outputDirPlots.Data()), l, currentRunInfo, 0.04,"hist");
       }
     }
-    
     // ********************************************************************************************************
     // Overlay noise for same readout channel
     // ********************************************************************************************************
@@ -1383,7 +1413,6 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
                               histNSHGTrig_mappedReb, lActive, 0, gMaxLayers,
                               200, 2200, -10, 2200, 1.5, Form("%s/HGNS_Trigg_AllLayers.pdf", outputDirPlots.Data()), currentRunInfo, "hist");
     }
-
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DMPV_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_MPV.pdf", outputDirPlots.Data()), currentRunInfo);
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DMPVErr_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_MPVErr.pdf", outputDirPlots.Data()), currentRunInfo);
     PlotSimpleMultiLayer2D( canvas2DCorr, hist2DMax_HG, maxActiveLayer, maxActiveRBCh, textSizeRel, Form("%s/HGTrigg_Max.pdf", outputDirPlots.Data()), currentRunInfo);
@@ -1410,7 +1439,6 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
 
     TObjString* stringRunInfo = new TObjString;
     stringRunInfo->SetString(GetStringFromRunInfo(currentRunInfo,4));
-    
     // ********************************************************************************************************
     // write output to single file
     // ********************************************************************************************************
@@ -1437,7 +1465,7 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           if(histHGTrig[j][i])histHGTrig[j][i]->Write();
           if(histHGNoise[j][i])histHGNoise[j][i]->Write();
           if(histHGTriggNoise[j][i])histHGTriggNoise[j][i]->Write();
-          if (fitGausHG_BG[j][i]) fitGausHG_BG[j][i]->Write();
+          if(fitGausHG_BG[j][i]) fitGausHG_BG[j][i]->Write();
         }
         if (histLG[j][i])histLG[j][i]->Write();
         if (isTBdata){
@@ -1446,7 +1474,6 @@ void makeSimplePlotsFromJanusTree( TString fileName     = "",
           if(histLGTriggNoise[j][i])histLGTriggNoise[j][i]->Write();
           if (fitGausLG_BG[j][i]) fitGausLG_BG[j][i]->Write();          
         }
-    
         // noise subtracted
         fileOutput->cd("NoiseSubtracted");
         if(histNSHG[j][i])histNSHG[j][i]->Write();

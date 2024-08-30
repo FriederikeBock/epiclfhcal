@@ -37,6 +37,10 @@ elif [ $1 == "electron" ]; then
   for i in 3 20 21 22 23 24 150 152 153 ; do
     root -b -x -q -l makeSimplePlotsFromJanusTree.C\+\(\"/media/fbock/FrediExt4TB/LFHCAL_TB/202309_SPSH4/electrons100GeV_positionScan/Run$i\_list.root\"\,\"ProcessedData/ElectronEnergyScan\"\,$i\,0\,0\,0\,1\,\"configs/mappingTBSetup_SPS1stdays_extended.txt\"\,kFALSE\)
   done
+elif [ $1 == "ORNLstack" ]; then
+  for i in 525 ; do
+    root -b -x -q -l makeSimplePlotsFromJanusTree.C\+\(\"TestingORNLLocal/SingleTileCosmicsStack/Run$i\_list.root\"\,\"ProcessedData/ORNLSingleStackCosmics\"\,$i\,0\,0\,1\,2\,\"configs/mappingORNLTestSetup_SingleTIle_240617.txt\"\,kTRUE\,\"configs/ORNL_RunNumbers_May2024.txt\"\)
+  done
 
   
 elif [ $1 == "compVov" ]; then
@@ -50,5 +54,5 @@ elif [ $1 == "compElec" ]; then
   root -b -x -q -l 'CompareDifferentRuns.C+("configs/allElectron.txt","CompareElec/",0,1,"configs/mappingTBSetup_SPS1stdays_extended.txt","configs/SPS_RunNumbers.txt")'
   root -b -x -q -l 'CompareDifferentRuns.C+("configs/electrons100GeV.txt","CompareElec100GeV/",0,1,"configs/mappingTBSetup_SPS1stdays_extended.txt","configs/SPS_RunNumbers.txt")'
 else 
-  root -b -x -q -l makeSimplePlotsFromJanusTree.C\+\(\"202309_SPSH4/pionsEnergyScan/Run$1\_list.root\"\,\"ProcessedData/PionEnergyScan\"\,$1\,0\,0\,0\,1\,\"configs/mappingTBSetup_SPS1stdays_extended.txt\"\,kFALSE\)
+  root -b -x -q -l makeSimplePlotsFromJanusTree.C\+\(\"202309_SPSH4/pionsEnergyScan/Run$1\_list.root\"\,\"ProcessedData/PionEnergyScan\"\,$1\,0\,0\,0\,1\,\"configs/mappingORNLTestSetup_SingleTIle_240617.txt\"\,kFALSE\)
 fi

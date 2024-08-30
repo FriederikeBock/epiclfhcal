@@ -92,6 +92,10 @@
   //__________________________________________________________________________________________________________
   Double_t FindLargestBin1DHist(TH1* hist, Double_t minX = -10000, Double_t maxX = -10000 ){
     Double_t largestContent     = 0;
+    if (!hist){
+        std::cout << "histogram pointer was empty, skipping!" << std::endl;
+        return 0.;
+    }
     Int_t minBin = 1;
     Int_t maxBin = hist->GetNbinsX()+1;
     if (minX != -10000) minBin = hist->GetXaxis()->FindBin(minX);
@@ -342,9 +346,11 @@
       Int_t maxCount = 0;
       TLegend* legend = GetAndSetLegend2( 0.58, 0.93-4*textSizeRel, 0.95, 0.93-textSizeRel,textSizeRel, 4, Form("Layer %d, channel:",sl), 42,0.2);
       for (Int_t c = minC; c < maxC; c++){
+        if (!histos[c]) continue;
         if (maxCount < FindLargestBin1DHist(histos[c],minPX, maxPX)) maxCount = FindLargestBin1DHist(histos[c],minPX, maxPX);
       }
       for (Int_t c = minC; c < maxC; c++){
+        if (!histos[c]) continue;
         SetStyleHistoTH1ForGraphs( histos[c], histos[c]->GetXaxis()->GetTitle(), histos[c]->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 0.9);  
         SetMarkerDefaults( histos[c], markerReadBoard[c-1], 0.8, colorReadBoard[c-1],colorReadBoard[c-1]);
         if (plotStyle.Contains("hist")) histos[c]->SetLineWidth(3);
@@ -376,9 +382,11 @@
       TLegend* legend = GetAndSetLegend2( 0.58, 0.93-4*textSizeRel, 0.95, 0.93-textSizeRel,textSizeRel, 4, Form("Layer %d, channel:",sl), 42,0.2);
       TLegend* legendFits = GetAndSetLegend2( 0.58, 0.93-7*textSizeRel, 0.95, 0.93-4*textSizeRel,textSizeRel, 4, "Noise means", 42,0.2);
       for (Int_t c = minC; c < maxC; c++){
+        if (!histos[c]) continue;
         if (maxCount < FindLargestBin1DHist(histos[c],minPX, maxPX)) maxCount = FindLargestBin1DHist(histos[c],minPX, maxPX);
       }
       for (Int_t c = minC; c < maxC; c++){
+        if (!histos[c]) continue;
         SetStyleHistoTH1ForGraphs( histos[c], histos[c]->GetXaxis()->GetTitle(), histos[c]->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 0.9);  
         SetMarkerDefaults( histos[c], markerReadBoard[c-1], 0.8, colorReadBoard[c-1],colorReadBoard[c-1]);
         if (plotStyle.Contains("hist")) histos[c]->SetLineWidth(3);
@@ -417,10 +425,12 @@
       TLegend* legend = GetAndSetLegend2( 0.58, 0.93-4*textSizeRel, 0.95, 0.93-textSizeRel,textSizeRel, 4, Form("Read-out channel %d, layer:",sc), 42,0.2);
       for (Int_t l = minL; l < maxL; l++){
         if (!bLayer[l]) continue;
+        if (!histos[l][sc]) continue;
         if (maxCount < FindLargestBin1DHist(histos[l][sc],minPX, maxPX)) maxCount = FindLargestBin1DHist(histos[l][sc],minPX, maxPX);
       }
       for (Int_t l = minL; l < maxL; l++){
         if (!bLayer[l]) continue;
+        if (!histos[l][sc]) continue;
         SetStyleHistoTH1ForGraphs( histos[l][sc], histos[l][sc]->GetXaxis()->GetTitle(), histos[l][sc]->GetYaxis()->GetTitle(), 0.85*textSizeRel, textSizeRel, 0.85*textSizeRel, textSizeRel,0.9, 0.9);  
         SetMarkerDefaults( histos[l][sc], markerLayer[l], 0.8, colorLayer[l],colorLayer[l]);
         if (plotStyle.Contains("hist")) histos[l][sc]->SetLineWidth(3);
@@ -502,6 +512,7 @@
                                   
     Double_t maxY = 0;
     for (Int_t p = 0; p < 8; p++){
+      if (!histsAll[p+1]) continue;
       if (maxY < FindLargestBin1DHist(histsAll[p+1], xPMin , xPMax)) maxY = FindLargestBin1DHist(histsAll[p+1], xPMin , xPMax);
     }
     
@@ -510,6 +521,7 @@
       pads[p]->Draw();
       pads[p]->cd();
       pads[p]->SetLogy();
+      if (!histsAll[p+1]) continue;
       SetStyleHistoTH1ForGraphs( histsAll[p+1], histsAll[p+1]->GetXaxis()->GetTitle(), histsAll[p+1]->GetYaxis()->GetTitle(), 0.85*textSizePixel, textSizePixel, 0.85*textSizePixel, textSizePixel,0.9, 1.1, 510, 510, 43, 63);  
       SetMarkerDefaults(histsAll[p+1], 20, 1, kBlue+1, kBlue+1, kFALSE);
       histsAll[p+1]->GetXaxis()->SetRangeUser(xPMin,xPMax);
