@@ -113,6 +113,7 @@ Int_t ReturnColumnBoard(Int_t ch){
     if (ch == 2 || ch == 7) return 1;
     if (ch == 3 || ch == 6) return 2;
     if (ch == 4 || ch == 5) return 3;
+    return -1;
 }
 
 
