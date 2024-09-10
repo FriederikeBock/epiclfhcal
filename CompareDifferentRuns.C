@@ -106,7 +106,6 @@ void CompareDifferentRuns( TString configFileName     = "",
     // ********************************************************************************************************    
     // read folder and name from file
     // ********************************************************************************************************
-
     std::vector<Int_t> runnumbers;
     std::vector<TString> fileNames;
     ifstream in;
