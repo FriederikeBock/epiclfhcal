@@ -59,19 +59,41 @@ struct unitInfo{
 } ;
 
 struct channelInfo{
-    channelInfo(): chRU(0), rUnit(0), layer(0), layerLabel(""), chAssembly(0), rowAssembly(0), colAssembly(0), posX(0.), posY(0.), posZ(0.){}
+    channelInfo(): chRU(0), rUnit(0), ruID(0), nrAssembly(0), chAssembly(0), modNr(0), layer(0), rowAssembly(0), colAssembly(0), chID(0), posX(0.), posY(0.), posZ(0.){}
     int chRU;
     int rUnit;
-    int layer;
-    TString layerLabel;
+    int ruID;
+    int nrAssembly;
     int chAssembly;
+    int modNr;
+    int layer;  
     int rowAssembly;
     int colAssembly;
+    int chID;
     float posX;
     float posY;
     float posZ;
 };
 
+
+void PrintChannelInfo(channelInfo tempC){
+  cout  << "RU: " <<tempC.rUnit << "\t"
+        << "RU channel: "<< tempC.chRU  << "\t"
+        << "RU ID: "<< tempC.ruID  << "\t"
+        << "module Nr: "<< tempC.layer  << "\t"
+        << "Row in assembly: "<< tempC.rowAssembly  << "\t"
+        << "Col in assembly: "<< tempC.colAssembly  << "\t"
+        << "Layer Nr: "<< tempC.layer  << "\t"
+        << "Channel ID"<< tempC.chID  << "\t"
+        << "Assembly Nr.: "<< tempC.nrAssembly  << "\t"
+        << "Ch in assembly: "<< tempC.chAssembly  << "\t"
+        << "X: " << tempC.posX  << "cm \t"
+        << "Y: " << tempC.posY  << "cm \t"
+        << "Z: " << tempC.posZ  << "cm \t"
+        << endl;
+   return;                                
+}
+          
 //__________________________________________________________________________________________________________
 //__________________________________________________________________________________________________________
 //__________________________________________________________________________________________________________
@@ -115,10 +137,58 @@ Int_t ReturnColumnBoard(Int_t ch){
     if (ch == 4 || ch == 5) return 3;
     return -1;
 }
+float ReturnPosXInLayer(Int_t ch){
+  switch(ch){
+    case 1: 
+    case 8: 
+      return -7.5; // in cm
+      break;
+    case 2: 
+    case 7: 
+      return -2.5; // in cm
+      break;
+    case 3: 
+    case 6: 
+      return 2.5; // in cm
+      break;
+    case 4: 
+    case 5: 
+      return 7.5; // in cm
+      break;
+    default: 
+      return -10000; // SOMETHING went wrong
+      break;
+  }
+}
+float ReturnPosYInLayer(Int_t ch){
+  switch(ch){
+    case 1: 
+    case 2: 
+    case 3: 
+    case 4: 
+      return 2.5; // in cm
+      break;
+    case 5: 
+    case 6: 
+    case 7: 
+    case 8: 
+      return -2.5; // in cm
+      break;
+    default:
+      return -10000; // SOMETHING went wrong
+      break;    
+  }
+}
+float ReturnPosZAbs(Int_t layer){
+ return (layer+1)*2.0;
+}
+
+
 
 
 void CreateMapping(   TString filenameUnitMapping,
                       TString filenameLayerMapping,
+                      TString filenameMappingWrite,
                       int debug = 0
                   ){
 
@@ -141,6 +211,7 @@ void CreateMapping(   TString filenameUnitMapping,
         return;
     }
 
+    
     
     for( TString tempLine; tempLine.ReadLine(inUnit, kTRUE); ) {
         // check if line should be considered
@@ -217,13 +288,51 @@ void CreateMapping(   TString filenameUnitMapping,
         layers.push_back(tempLayer);
     }
   
+    std::vector<channelInfo> channels;
+    fstream fileMappingClassic(filenameMappingWrite.Data(), ios::out);
+    // fileMappingClassic.open(filenameMappingWrite, ios::out);
+    fileMappingClassic << "#CAEN board	CAEN Ch	layer	assembly	board channel	row	column\n" ;
+    
+    TFile* outputRootFile       = new TFile("mappingTree.root","RECREATE");
+    TTree* mapping_tree           = new TTree("mapping_tree", "mapping_tree");
+    mapping_tree->SetDirectory(outputRootFile);
+    channelInfo tempChannel;
+    
+    mapping_tree->Branch("channel", &tempChannel, "ch_ru/I:ru/I:ruID/I:nr_ass/I:ch_ass/I:modNr/I:layer/I:row_ass/I:col_ass/I:chID/I:posX/F:posY/F:posZ/F");
+    
     for (int l = 0; l < (int)layers.size();l++){
       for (int chA = 1; chA < 9; chA++){
-            // cout << "\n" << endl;
-            Int_t channel = findChannelInUnit(uChannels, layers.at(l).layerUnit, chA);
-            cout << layers.at(l).rUnit << "\t" << channel << "\t" << layers.at(l).layerNrAbs << "\t" << layers.at(l).layerLabel << "\t" <<  chA << "\t" << ReturnRowBoard(chA) << "\t" << ReturnColumnBoard(chA) << endl;
+          Int_t channel = findChannelInUnit(uChannels, layers.at(l).layerUnit, chA);
+          
+          tempChannel.chRU        = channel;
+          tempChannel.rUnit       = layers.at(l).rUnit;
+          tempChannel.ruID        = Int_t(tempChannel.rUnit<<8)+tempChannel.chRU;   // 8 bit read-out unit number, 8 bit channel readout unit
+          tempChannel.modNr       = 0;
+          tempChannel.layer       = layers.at(l).layerNrAbs;
+          tempChannel.nrAssembly  = (int)(((TString)layers.at(l).layerLabel.ReplaceAll("C","")).Atoi());
+          tempChannel.chAssembly  = chA;
+          tempChannel.rowAssembly = ReturnRowBoard(chA);
+          tempChannel.colAssembly = ReturnColumnBoard(chA);
+                                    // 11 bit module Nr., 1 bit row in assembly, 2 bit column in assembly, 6 bit layer in stack
+          tempChannel.chID        = Int_t(tempChannel.modNr<<9)+Int_t(tempChannel.rowAssembly<<8)+Int_t(tempChannel.colAssembly<<6)+tempChannel.layer;
+          tempChannel.posX        = ReturnPosXInLayer(chA);
+          tempChannel.posY        = ReturnPosYInLayer(chA);
+          tempChannel.posZ        = ReturnPosZAbs(layers.at(l).layerNrAbs);
+          channels.push_back(tempChannel);
+
+          fileMappingClassic << layers.at(l).rUnit << "\t" << channel << "\t" << layers.at(l).layerNrAbs << "\t" << layers.at(l).layerLabel << "\t" <<  chA << "\t" << ReturnRowBoard(chA) << "\t" << ReturnColumnBoard(chA) << "\n";
+          PrintChannelInfo(tempChannel);
+          
+          // printf("%b\t%b\t%b\t%b\t%b\n", tempChannel.modNr, tempChannel.rowAssembly, tempChannel.colAssembly, tempChannel.layer, tempChannel.chID);
+          mapping_tree->Fill();
       }
     }
+
     
+    fileMappingClassic.close();
+    mapping_tree->Print();
+    // mapping_tree->Write();
+    outputRootFile->Write();
+    outputRootFile->Close();
   return;
 }
