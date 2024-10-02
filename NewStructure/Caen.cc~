@@ -1,0 +1,9 @@
+#include "Caen.h"
+
+void Caen::SetADCHigh(int h){
+  HG=h;
+}
+
+void Caen::SetADCLow(int l){
+  LG=l;
+}
