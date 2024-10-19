@@ -114,6 +114,10 @@ double Setup::GetModuleY(int mod=0)const {
   return 0.;
 }
 
+int Setup::GetTotalNbChannels(void) const {
+  return (int) ROunit.size();
+}
+
 double Setup::GetX(int cellID) const{
   int col=GetColumn(cellID);
   return -7.5/*cm*/+col*5./*cm*/ /*+GetModuleX()*/;
