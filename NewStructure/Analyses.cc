@@ -46,7 +46,7 @@ bool Analyses::CheckAndOpenIO(void){
     setup->Initialize(*rswptr);
     std::cout<<"Reading "<<RootInput->GetName()<<std::endl;
     std::cout<<"Setup Info "<<setup->IsInit()<<"  and  "<<setup->GetCellID(0,0)<<std::endl;
-    std::cout<<"Setup add now "<<setup<<std::endl;
+    //std::cout<<"Setup add now "<<setup<<std::endl;
 
     //Retrieve info, existing data?
     TdataIn = (TTree*) RootInput->Get("Data");
@@ -99,7 +99,7 @@ bool Analyses::CheckAndOpenIO(void){
     //if(!calib)
     //calib=Calib::GetInstance();
     //Calib* calib=Calib::GetInstance();
-    std::cout<<"Calib pointer is "<<calibptr<<std::endl;
+    //std::cout<<"Calib pointer is "<<calibptr<<std::endl;
     TcalibOut = new TTree("Calib","Calib");
     TcalibOut->Branch("calib",&calib);
   }
@@ -144,7 +144,7 @@ bool Analyses::CheckAndOpenIO(void){
       std::cout<<"Error retrieving calibration info from the tree"<<std::endl;
       return false;
     }
-    std::cout<<"Did the address changed? "<<&calib<<std::endl;
+    //std::cout<<"Did the address changed? "<<&calib<<std::endl;
   }
   if(!MapInputName.IsNull()){
     MapInput.open(MapInputName.Data(),std::ios::in);
@@ -368,7 +368,7 @@ bool Analyses::CorrectPedestal(void){
   TdataOut->Write();
   TsetupIn->CloneTree()->Write();
   TcalibIn->GetEntry(0);
-  std::cout<<"What is the value? "<<calib.GetPedestalMeanH(0)<<std::endl;
+  //std::cout<<"What is the value? "<<calib.GetPedestalMeanH(0)<<std::endl;
   TcalibOut->Fill();
   TcalibOut->Write();
   RootOutput->Close();
@@ -423,7 +423,7 @@ bool Analyses::GetScaling(void){
     sign->FixParameter(7,calib.GetPedestalSigH(ich));
     result=hspectraHG[ich]->Fit(sign,"SR");
     hspectraHG[ich]->Write();
-    std::cout<<ich<<"\t"<<hspectraLGHG[ich]->GetEntries()<<" "<<result <<std::endl;
+    //std::cout<<ich<<"\t"<<hspectraLGHG[ich]->GetEntries()<<" "<<result <<std::endl;
     if(result!=-1) calib.SetScaleHigh(result->Parameter(1)+7*calib.GetPedestalSigH(ich),ich);
     else calib.SetScaleHigh(0.,ich);
     corr->SetParameter(0,0.);
