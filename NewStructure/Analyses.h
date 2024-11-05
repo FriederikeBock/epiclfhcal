@@ -73,36 +73,34 @@ class Analyses{
   bool Process(void);
 
   //Variable members
-  TString ASCIIinputName;
-  TString RootOutputName;
-  TString RootOutputNameHist;
-  TString RootInputName;
-  TString RootCalibInputName;
-  TString RootPedestalInputName;
-  TString MapInputName;
-  TFile* RootOutput=nullptr;
-  TFile* RootOutputHist=nullptr;
-  TFile* RootInput=nullptr;
-  TFile* RootPedestalInput=nullptr;
-  TFile* RootCalibInput=nullptr;
-  std::fstream ASCIIinput;
-  std::fstream MapInput;
-  bool Convert=false;
-  bool ExtractPedestal=false;
-  bool ExtractScaling=false;
-  bool ApplyPedestalCorrection=false;
-  bool ApplyCalibration=false;
-  bool Overwrite=false;
-  int debug=0;
-  RootSetupWrapper rsw;
-  RootSetupWrapper* rswptr;
-  Setup* setup;
-  Calib calib;
-  Calib* calibptr;
-  Calib* calibextra;
+  TString ASCIIinputName;                 // CAEN ASCII file input name (only needed for converting data)
+  TString RootOutputName;                 // file name of root output with tree
+  TString RootOutputNameHist;             // file name of root output with additional histograms & fits
+  TString RootInputName;                  // file name of input root file 
+  TString RootCalibInputName;             // file name of calibration root file (mip calib)
+  TString RootPedestalInputName;          // file name of pedestal root file (pedestal values)
+  TString MapInputName;                   // file name geometry mapping
+  TFile* RootOutput         =nullptr;     // root file output tree
+  TFile* RootOutputHist     =nullptr;     // root file output histos
+  TFile* RootInput          =nullptr;     // root file input 
+  TFile* RootPedestalInput  =nullptr;     // root file pedestal values
+  TFile* RootCalibInput     =nullptr;     // root file calib values (mip)
+  std::fstream ASCIIinput;                // ASCII file streamer for CAEN data
+  std::fstream MapInput;                  // file streamer for geometry mapping
+  bool Convert                =false;     // Flag for data conversion 
+  bool ExtractPedestal        =false;     // Flag for pedestal extraction
+  bool ExtractScaling         =false;     // Flag for mip scaling extraction
+  bool ApplyPedestalCorrection=false;     // Flag for application of pedestals
+  bool ApplyCalibration       =false;     // Flag for aplication of calibration
+  bool Overwrite              =false;     // Flag to overwrite outputs
+  int debug                   =0;         // debug level 
+  RootSetupWrapper rsw;                   // Wrapper singleton class for setup
+  RootSetupWrapper* rswptr;               // Pointer to wrapper for singleton class for setup
+  Setup* setup;                           // geometry setup
+  Calib calib;                            // calibration object
+  Calib* calibptr;                        // pointer to calib object
   Event event;
   Event* eventptr;
-  Event* eventextra;
   
   TTree* TsetupIn=nullptr;
   TTree* TsetupOut=nullptr;

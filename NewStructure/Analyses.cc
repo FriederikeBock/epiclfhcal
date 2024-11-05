@@ -127,7 +127,6 @@ bool Analyses::CheckAndOpenIO(void){
       std::cout<<"Could not retrieve Calib tree, leaving"<<std::endl;
       return false;
     }
-    //matchingbranch=TcalibIn->SetBranchAddress("calib",&calibextra);
     matchingbranch=TcalibIn->SetBranchAddress("calib",&calibptr);
     if(matchingbranch<0){
       std::cout<<"Error retrieving calibration info from the tree"<<std::endl;
@@ -185,16 +184,29 @@ bool Analyses::Process(void){
   return status;
 }
 
+
+// ****************************************************************************
+// convert original ASCII file from CAEN output to root format
+// ****************************************************************************
 bool Analyses::ConvertASCII2Root(void){
+  //============================================
   //Init first
+  //============================================
+  // initialize setup
   setup->Initialize("../configs/MyMapping.txt");
+  // initialize run number file
   std::map<int,RunInfo> ri=readRunInfosFromFile("./DataTakingDB.csv",0,0);
+  
+  // Clean up file headers
   TObjArray* tok=ASCIIinputName.Tokenize("/");
+  // get file name
   TString file=((TObjString*)tok->At(tok->GetEntries()-1))->String();
   delete tok;
   tok=file.Tokenize("_");
   TString header=((TObjString*)tok->At(0))->String();
   delete tok;
+  
+  // Get run number from file & find necessary run infos
   TString RunString=header(3,header.Sizeof());
   std::map<int,RunInfo>::iterator it=ri.find(RunString.Atoi());
   //std::cout<<RunString.Atoi()<<"\t"<<it->second.species<<std::endl;
@@ -203,13 +215,17 @@ bool Analyses::ConvertASCII2Root(void){
   event.SetBeamName(it->second.species);
   event.SetBeamID(it->second.pdg);
   event.SetBeamEnergy(it->second.energy);
+  
+  //============================================
+  // Start decoding file
+  //============================================
   TString aline;
   TObjArray* tokens;
   std::map<int,std::vector<Caen> > tmpEvent;
   std::map<int,double> tmpTime;
   std::map<int,std::vector<Caen> >::iterator itevent;
   long tempEvtCounter = 0;
-  while(!ASCIIinput.eof()){
+  while(!ASCIIinput.eof()){                                                     // run till end of file is reached and read line by line
     aline.ReadLine(ASCIIinput);
     if(!ASCIIinput.good()) break;
     if(aline[0]=='/')continue;
@@ -242,6 +258,8 @@ bool Analyses::ConvertASCII2Root(void){
     delete tokens;
     aTile.SetCellID(setup->GetCellID(aBoard,achannel));
     itevent=tmpEvent.find(TriggerID);
+    
+    
     if(itevent!=tmpEvent.end()){
       tmpTime[TriggerID]+=Time;
       itevent->second.push_back(aTile);
@@ -274,9 +292,9 @@ bool Analyses::ConvertASCII2Root(void){
         tmpEvent.erase(itevent);
         tmpTime.erase(TriggerID);
       }
-    }
-    else{//This is a new event;
-      tempEvtCounter++;
+    } else {
+      //This is a new event;
+      tempEvtCounter++;                                                                   // in crease event counts for monitoring of progress
       if (tempEvtCounter%5000 == 0 && debug > 0) std::cout << "Converted " <<  tempEvtCounter << " events" << std::endl;
       std::vector<Caen> vCaen;
       vCaen.push_back(aTile);
@@ -301,15 +319,22 @@ bool Analyses::ConvertASCII2Root(void){
       tmpTime[TriggerID]=Time;
       tmpEvent[TriggerID]=vCaen;
     }
-  }
+  } // finished reading in file
+  // 
   if (debug > 0) std::cout << "Converted a total of " <<  tempEvtCounter << " events" << std::endl;
   
+  //============================================
+  // Fill & write all trees to output file 
+  //============================================
   RootOutput->cd();
+  // setup 
   RootSetupWrapper rswtmp=RootSetupWrapper(setup);
   rsw=rswtmp;
   TsetupOut->Fill();
+  // calib
   TcalibOut->Fill();
   TcalibOut->Write();
+  // event data
   TdataOut->Fill();
   TsetupOut->Write();
   TdataOut->Write();
