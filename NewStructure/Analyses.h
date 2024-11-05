@@ -66,6 +66,7 @@ class Analyses{
   inline void SetRootInput(TString name)         {RootInputName=name;};
   inline void SetRootPedestalInput(TString name) {RootPedestalInputName=name;};
   inline void SetRootOutput(TString name)        {RootOutputName =name;};
+  inline void SetRootOutputHists(TString name)   {RootOutputNameHist =name;};
   
   //General methods
   bool CheckAndOpenIO(void);
@@ -74,6 +75,7 @@ class Analyses{
   //Variable members
   TString ASCIIinputName;
   TString RootOutputName;
+  TString RootOutputNameHist;
   TString RootInputName;
   TString RootCalibInputName;
   TString RootPedestalInputName;

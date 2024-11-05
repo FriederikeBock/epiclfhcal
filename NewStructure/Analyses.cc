@@ -81,20 +81,17 @@ bool Analyses::CheckAndOpenIO(void){
   }  
   
   //Setup Output files
-  if(!RootOutputName.IsNull()){
-    TString tempNameOut = RootOutputName.ReplaceAll(".root","_Hists.root");
+  if(!RootOutputName.IsNull()){    
+    if (!Convert){
+      TString temp = RootOutputName;
+      temp         = temp.ReplaceAll(".root","_Hists.root");
+      SetRootOutputHists(temp);
+      std::cout << "creating additional histo file: " << RootOutputNameHist.Data() << " tree in : "<< RootOutputName.Data() << std::endl;
+    }
     if(Overwrite){
       RootOutput=new TFile(RootOutputName.Data(),"RECREATE");
-      if (!Convert){
-        std::cout << "creating additional histo file: " << tempNameOut.Data()<< std::endl;
-        RootOutputHist=new TFile(tempNameOut.Data(),"RECREATE");
-      }
     } else{
       RootOutput = new TFile(RootOutputName.Data(),"CREATE");
-      if (!Convert){
-         std::cout << "creating additional histo file: " << tempNameOut.Data()<< std::endl;
-         RootOutputHist = new TFile(tempNameOut.Data(),"CREATE");
-      }
     }
     if(RootOutput->IsZombie()){
       std::cout<<"Error opening '"<<RootOutput<<"'no reachable path? Exist without force mode to overwrite?..."<<std::endl;
@@ -335,18 +332,24 @@ bool Analyses::GetPedestal(void){
   TF1** pedLG               = new TF1*[setup->GetTotalNbChannels()];
   TH2D* hspectraHGvsCellID  = new TH2D( "hspectraHG_vsCellID","ADC spectrum High Gain vs CellID ",
                                         setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5, 4000,0,4000);
+  hspectraHGvsCellID->SetDirectory(0);
   TH2D* hspectraLGvsCellID  = new TH2D( "hspectraLG_vsCellID","ADC spectrum Low Gain vs CellID ",
                                         setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5, 4000,0,4000);
+  hspectraLGvsCellID->SetDirectory(0);
   TH1D* hMeanPedHGvsCellID  = new TH1D( "hMeanPedHG_vsCellID","mean Ped High Gain vs CellID ",
                                         setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5);
+  hMeanPedHGvsCellID->SetDirectory(0);
   TH1D* hMeanPedLGvsCellID  = new TH1D( "hMeanPedLG_vsCellID","mean Ped Low Gain vs CellID ",
                                         setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5);
+  hMeanPedLGvsCellID->SetDirectory(0);
   for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
     hspectraHG[ich]=new TH1D(Form("hspectraHGCellID%d",ich),Form("ADC spectrum High Gain CellID %d",ich),4000,0,4000);
+    hspectraHG[ich]->SetDirectory(0);
     hspectraLG[ich]=new TH1D(Form("hspectraLGCellID%d",ich),Form("ADC spectrum Low  Gain CellID %d",ich),4000,0,4000);
+    hspectraLG[ich]->SetDirectory(0);
   }
   
-  std::cout << "Have " << 64 << " layers/module" << std::endl; 
+  RootOutput->cd();
   // Event loop to fill histograms & output tree
   int evts=TdataIn->GetEntries();
   for(int i=0; i<evts; i++){
@@ -368,8 +371,6 @@ bool Analyses::GetPedestal(void){
   // write setup tree (copy of raw data)
   TsetupIn->CloneTree()->Write();
   
-  
-  RootOutputHist->cd();
   // fit pedestal   
   TFitResultPtr result;
   for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
@@ -388,8 +389,8 @@ bool Analyses::GetPedestal(void){
     double maxHGFit = result->Parameter(1)+2*result->Parameter(2);
     if (debug > 1) std::cout << minHGFit << "\t" << maxHGFit << std::endl;
     result=hspectraHG[ich]->Fit(pedHG[ich],"QRMNE0S","",minHGFit, maxHGFit);  // limit to 2sigma range of previous fit
-    hMeanPedHGvsCellID->SetBinContent(ich, result->Parameter(1));
-    hMeanPedHGvsCellID->SetBinError(ich, result->Parameter(2));
+    hMeanPedHGvsCellID->SetBinContent(hMeanPedHGvsCellID->FindBin(ich), result->Parameter(1));
+    hMeanPedHGvsCellID->SetBinError(hMeanPedHGvsCellID->FindBin(ich), result->Parameter(2));
     
     // write fitted values to calib object
     calib.SetPedestalMeanH(result->Parameter(1),ich);
@@ -411,15 +412,22 @@ bool Analyses::GetPedestal(void){
     // write fitted values to calib object
     calib.SetPedestalMeanL(result->Parameter(1),ich);
     calib.SetPedestalSigL(result->Parameter(2),ich);
-    hMeanPedLGvsCellID->SetBinContent(ich, result->Parameter(1));
-    hMeanPedLGvsCellID->SetBinError(ich, result->Parameter(2));
-
-    // write Histo and fit to output
-    // hspectraLG[ich]->Write();
+    hMeanPedLGvsCellID->SetBinContent(hMeanPedLGvsCellID->FindBin(ich), result->Parameter(1));
+    hMeanPedLGvsCellID->SetBinError(hMeanPedLGvsCellID->FindBin(ich), result->Parameter(2));
   }  
   TcalibOut->Fill();
   TcalibOut->Write();
-
+  RootOutput->Write();
+  RootOutput->Close();
+  
+  std::cout << "Additional Output with histos being created: " << RootOutputNameHist.Data() << std::endl;
+  if(Overwrite){
+    std::cout << "recreating file with hists" << std::endl;
+    RootOutputHist = new TFile(RootOutputNameHist.Data(),"RECREATE");
+  } else{
+    std::cout << "newly creating file with hists" << std::endl;
+    RootOutputHist = new TFile(RootOutputNameHist.Data(),"CREATE");
+  }
   // entering histoOutput file
   RootOutputHist->cd();
   for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
@@ -436,8 +444,9 @@ bool Analyses::GetPedestal(void){
   
   // fill calib tree & write it
   // close open root files
+  RootOutputHist->Write();
   RootOutputHist->Close();
-  RootOutput->Close();
+
   RootInput->Close();
   return true;
 }
