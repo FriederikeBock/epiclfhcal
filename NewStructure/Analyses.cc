@@ -17,7 +17,6 @@ bool Analyses::CheckAndOpenIO(void){
     }
   }
 
-  
   //Need to check first input to get the setup...I do not think it is necessary
   if(!RootInputName.IsNull()){
     //File exist?
@@ -64,14 +63,14 @@ bool Analyses::CheckAndOpenIO(void){
     if(!ApplyPedestalCorrection && ExtractScaling){
       TcalibIn = (TTree*) RootInput->Get("Calib");
       if(!TcalibIn){
-	std::cout<<"Could not retrieve Calib tree, leaving"<<std::endl;
-	return false;
+        std::cout<<"Could not retrieve Calib tree, leaving"<<std::endl;
+        return false;
       }
       //calib=Calib::GetInstance();
       matchingbranch=TcalibIn->SetBranchAddress("calib",&calibptr);
       if(matchingbranch<0){
-	std::cout<<"Error retrieving calibration info from the tree"<<std::endl;
-	return false;
+        std::cout<<"Error retrieving calibration info from the tree"<<std::endl;
+        return false;
       }
     }
     //All good
@@ -79,12 +78,24 @@ bool Analyses::CheckAndOpenIO(void){
   else if(!Convert){
     std::cout<<"Explicit Input option mandatory except for convertion ASCII -> ROOT"<<std::endl;
     return false;
-  }
+  }  
   
   //Setup Output files
   if(!RootOutputName.IsNull()){
-    if(Overwrite) RootOutput=new TFile(RootOutputName.Data(),"RECREATE");
-    else RootOutput = new TFile(RootOutputName.Data(),"CREATE");
+    TString tempNameOut = RootOutputName.ReplaceAll(".root","_Hists.root");
+    if(Overwrite){
+      RootOutput=new TFile(RootOutputName.Data(),"RECREATE");
+      if (!Convert){
+        std::cout << "creating additional histo file: " << tempNameOut.Data()<< std::endl;
+        RootOutputHist=new TFile(tempNameOut.Data(),"RECREATE");
+      }
+    } else{
+      RootOutput = new TFile(RootOutputName.Data(),"CREATE");
+      if (!Convert){
+         std::cout << "creating additional histo file: " << tempNameOut.Data()<< std::endl;
+         RootOutputHist = new TFile(tempNameOut.Data(),"CREATE");
+      }
+    }
     if(RootOutput->IsZombie()){
       std::cout<<"Error opening '"<<RootOutput<<"'no reachable path? Exist without force mode to overwrite?..."<<std::endl;
       return false;
@@ -200,6 +211,7 @@ bool Analyses::ConvertASCII2Root(void){
   std::map<int,std::vector<Caen> > tmpEvent;
   std::map<int,double> tmpTime;
   std::map<int,std::vector<Caen> >::iterator itevent;
+  long tempEvtCounter = 0;
   while(!ASCIIinput.eof()){
     aline.ReadLine(ASCIIinput);
     if(!ASCIIinput.good()) break;
@@ -238,59 +250,63 @@ bool Analyses::ConvertASCII2Root(void){
       itevent->second.push_back(aTile);
       for(int ich=1; ich<NHits; ich++){
           aline.ReadLine(ASCIIinput);
-	  tokens=aline.Tokenize(" ");
-	  tokens->SetOwner(true);
-	  Nfields=tokens->GetEntries();
-	  if(Nfields!=4){
-	    std::cout<<"Expecting 4 fields but read "<<Nfields<<std::endl;
-	    return -1;
-	  }
-	  achannel=((TObjString*)tokens->At(1))->String().Atoi();
-	  aTile.SetE(((TObjString*)tokens->At(3))->String().Atoi());//To Test
-	  aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
-	  aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
-	  aTile.SetCellID(setup->GetCellID(aBoard,achannel));
-	  itevent->second.push_back(aTile);
-	  tokens->Clear();
-	  delete tokens;
+          tokens=aline.Tokenize(" ");
+          tokens->SetOwner(true);
+          Nfields=tokens->GetEntries();
+          if(Nfields!=4){
+            std::cout<<"Expecting 4 fields but read "<<Nfields<<std::endl;
+            return -1;
+          }
+          achannel=((TObjString*)tokens->At(1))->String().Atoi();
+          aTile.SetE(((TObjString*)tokens->At(3))->String().Atoi());//To Test
+          aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
+          aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
+          aTile.SetCellID(setup->GetCellID(aBoard,achannel));
+          itevent->second.push_back(aTile);
+          tokens->Clear();
+          delete tokens;
       }
       if((int)itevent->second.size()==setup->GetTotalNbChannels()/*8*64*/){
-	//Fill the tree the event is complete and erase from the map
-	event.SetTimeStamp(tmpTime[TriggerID]/8);
-	event.SetEventID(itevent->first);
-	for(std::vector<Caen>::iterator itv=itevent->second.begin(); itv!=itevent->second.end(); ++itv){
-	  event.AddTile(new Caen(*itv));
-	}
-	TdataOut->Fill();
-	tmpEvent.erase(itevent);
-	tmpTime.erase(TriggerID);
+        //Fill the tree the event is complete and erase from the map
+        event.SetTimeStamp(tmpTime[TriggerID]/8);
+        event.SetEventID(itevent->first);
+        for(std::vector<Caen>::iterator itv=itevent->second.begin(); itv!=itevent->second.end(); ++itv){
+          event.AddTile(new Caen(*itv));
+        }
+        TdataOut->Fill();
+        tmpEvent.erase(itevent);
+        tmpTime.erase(TriggerID);
       }
     }
     else{//This is a new event;
+      tempEvtCounter++;
+      if (tempEvtCounter%5000 == 0 && debug > 0) std::cout << "Converted " <<  tempEvtCounter << " events" << std::endl;
       std::vector<Caen> vCaen;
       vCaen.push_back(aTile);
       for(int ich=1; ich<NHits; ich++){
-          aline.ReadLine(ASCIIinput);
-	  tokens=aline.Tokenize(" ");
-	  tokens->SetOwner(true);
-	  Nfields=tokens->GetEntries();
-	  if(Nfields!=4){
-	    std::cout<<"Expecting 4 fields but read "<<Nfields<<std::endl;
-	    return -1;
-	  }
-	  achannel=((TObjString*)tokens->At(1))->String().Atoi();
-	  aTile.SetE(((TObjString*)tokens->At(3))->String().Atoi());//To Test
-	  aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
-	  aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
-	  aTile.SetCellID(setup->GetCellID(aBoard,achannel));
-	  vCaen.push_back(aTile);
-	  tokens->Clear();
-	  delete tokens;
+        aline.ReadLine(ASCIIinput);
+        tokens=aline.Tokenize(" ");
+        tokens->SetOwner(true);
+        Nfields=tokens->GetEntries();
+        if(Nfields!=4){
+          std::cout<<"Expecting 4 fields but read "<<Nfields<<std::endl;
+          return -1;
+        }
+        achannel=((TObjString*)tokens->At(1))->String().Atoi();
+        aTile.SetE(((TObjString*)tokens->At(3))->String().Atoi());//To Test
+        aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
+        aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
+        aTile.SetCellID(setup->GetCellID(aBoard,achannel));
+        vCaen.push_back(aTile);
+        tokens->Clear();
+        delete tokens;
       }
       tmpTime[TriggerID]=Time;
       tmpEvent[TriggerID]=vCaen;
     }
   }
+  if (debug > 0) std::cout << "Converted a total of " <<  tempEvtCounter << " events" << std::endl;
+  
   RootOutput->cd();
   RootSetupWrapper rswtmp=RootSetupWrapper(setup);
   rsw=rswtmp;
@@ -305,52 +321,122 @@ bool Analyses::ConvertASCII2Root(void){
   return true;
 }
 
+// ****************************************************************************
+// extract pedestral from dedicated data run, no other data in run 
+// ****************************************************************************
 bool Analyses::GetPedestal(void){
   std::cout<<"GetPedestal"<<std::endl;
-  TH1D** hspectraHG = new TH1D*[setup->GetTotalNbChannels()];
-  TH1D** hspectraLG = new TH1D*[setup->GetTotalNbChannels()];
+  
+  // create HG and LG histo's per channel
+  TH1D** hspectraHG         = new TH1D*[setup->GetTotalNbChannels()];
+  TH1D** hspectraLG         = new TH1D*[setup->GetTotalNbChannels()];
+  
+  TF1** pedHG               = new TF1*[setup->GetTotalNbChannels()];
+  TF1** pedLG               = new TF1*[setup->GetTotalNbChannels()];
+  TH2D* hspectraHGvsCellID  = new TH2D( "hspectraHG_vsCellID","ADC spectrum High Gain vs CellID ",
+                                        setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5, 4000,0,4000);
+  TH2D* hspectraLGvsCellID  = new TH2D( "hspectraLG_vsCellID","ADC spectrum Low Gain vs CellID ",
+                                        setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5, 4000,0,4000);
+  TH1D* hMeanPedHGvsCellID  = new TH1D( "hMeanPedHG_vsCellID","mean Ped High Gain vs CellID ",
+                                        setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5);
+  TH1D* hMeanPedLGvsCellID  = new TH1D( "hMeanPedLG_vsCellID","mean Ped Low Gain vs CellID ",
+                                        setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5);
   for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
     hspectraHG[ich]=new TH1D(Form("hspectraHGCellID%d",ich),Form("ADC spectrum High Gain CellID %d",ich),4000,0,4000);
     hspectraLG[ich]=new TH1D(Form("hspectraLGCellID%d",ich),Form("ADC spectrum Low  Gain CellID %d",ich),4000,0,4000);
   }
+  
+  std::cout << "Have " << 64 << " layers/module" << std::endl; 
+  // Event loop to fill histograms & output tree
   int evts=TdataIn->GetEntries();
   for(int i=0; i<evts; i++){
     TdataIn->GetEntry(i);
+    if (i%5000 == 0&& i > 0 && debug > 0) std::cout << "Reading " <<  i << "/" << evts << " events"<< std::endl;
     for(int j=0; j<event.GetNTiles(); j++){
       Caen* aTile=(Caen*)event.GetTile(j);
+      if (i == 0 && debug > 2) std::cout << ((TString)setup->DecodeCellID(aTile->GetCellID())).Data() << std::endl;
       hspectraHG[aTile->GetCellID()]->Fill(aTile->GetADCHigh());
       hspectraLG[aTile->GetCellID()]->Fill(aTile->GetADCLow());
+      hspectraHGvsCellID->Fill(aTile->GetCellID(), aTile->GetADCHigh());
+      hspectraLGvsCellID->Fill(aTile->GetCellID(), aTile->GetADCLow());
     }
     RootOutput->cd();
     TdataOut->Fill();
   }
+  // write output tree (copy of raw data)
   TdataOut->Write();
+  // write setup tree (copy of raw data)
   TsetupIn->CloneTree()->Write();
-  TF1* ped=new TF1("ped","gaus",0,400);
-  ped->SetNpx(400);
+  
+  
+  RootOutputHist->cd();
+  // fit pedestal   
   TFitResultPtr result;
-  ped->SetParLimits(1,0,200);
-  ped->SetParLimits(2,0,100);
   for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
-    ped->SetParLimits(0,0,hspectraHG[ich]->GetEntries());
-    ped->SetParameter(0,hspectraHG[ich]->GetEntries()/5);
-    ped->SetParameter(1,15);
-    ped->SetParameter(2,10);
-    result=hspectraHG[ich]->Fit(ped,"SR");
-    hspectraHG[ich]->Write();
+    // estimate HG pedestal per channel
+    if (debug > 1) std::cout << "fitting channel: " << ich << std::endl;
+    pedHG[ich] = new TF1(Form("fpedHGCellID%d",ich),"gaus",0,400);
+    pedHG[ich]->SetNpx(400);
+    pedHG[ich]->SetParLimits(1,0,hspectraHG[ich]->GetMean()+100);     // might need to make these values settable
+    pedHG[ich]->SetParLimits(2,0,100);     // might need to make these values settable    
+    pedHG[ich]->SetParLimits(0,0,hspectraHG[ich]->GetEntries());
+    pedHG[ich]->SetParameter(0,hspectraHG[ich]->GetEntries()/5);
+    pedHG[ich]->SetParameter(1,hspectraHG[ich]->GetMean());
+    pedHG[ich]->SetParameter(2,10);
+    result=hspectraHG[ich]->Fit(pedHG[ich],"QRMNE0S");      // initial fit
+    double minHGFit = result->Parameter(1)-2*result->Parameter(2);
+    double maxHGFit = result->Parameter(1)+2*result->Parameter(2);
+    if (debug > 1) std::cout << minHGFit << "\t" << maxHGFit << std::endl;
+    result=hspectraHG[ich]->Fit(pedHG[ich],"QRMNE0S","",minHGFit, maxHGFit);  // limit to 2sigma range of previous fit
+    hMeanPedHGvsCellID->SetBinContent(ich, result->Parameter(1));
+    hMeanPedHGvsCellID->SetBinError(ich, result->Parameter(2));
+    
+    // write fitted values to calib object
     calib.SetPedestalMeanH(result->Parameter(1),ich);
     calib.SetPedestalSigH(result->Parameter(2),ich);
-    ped->SetParLimits(0,0,hspectraLG[ich]->GetEntries());
-    ped->SetParameter(0,hspectraLG[ich]->GetEntries()/5);
-    ped->SetParameter(1,15);
-    ped->SetParameter(2,10);
-    result=hspectraLG[ich]->Fit(ped,"SR");
+    // estimate LG pedestal per channel
+    pedLG[ich] = new TF1(Form("fpedLGCellID%d",ich),"gaus",0,400);
+    pedLG[ich]->SetNpx(400);
+    pedLG[ich]->SetParLimits(1,0,hspectraLG[ich]->GetMean()+100);     // might need to make these values settable
+    pedLG[ich]->SetParLimits(2,0,100);     // might need to make these values settable    
+    pedLG[ich]->SetParLimits(0,0,hspectraLG[ich]->GetEntries());
+    pedLG[ich]->SetParameter(0,hspectraLG[ich]->GetEntries()/5);
+    pedLG[ich]->SetParameter(1,hspectraLG[ich]->GetMean());
+    pedLG[ich]->SetParameter(2,10);
+    result=hspectraLG[ich]->Fit(pedLG[ich],"QRMNE0S"); // initial fit
+    double minLGFit = result->Parameter(1)-2*result->Parameter(2);
+    double maxLGFit = result->Parameter(1)+2*result->Parameter(2);
+    if (debug > 1) std::cout << minLGFit << "\t" << maxLGFit << "\t" << hspectraLG[ich]->GetEntries() << "\t" << hspectraLG[ich]->GetMean()<< std::endl;
+    result=hspectraLG[ich]->Fit(pedLG[ich],"QRMNE0S","", minLGFit, maxLGFit);  // limit to 2sigma
+    // write fitted values to calib object
     calib.SetPedestalMeanL(result->Parameter(1),ich);
     calib.SetPedestalSigL(result->Parameter(2),ich);
-    hspectraLG[ich]->Write();
-  }
+    hMeanPedLGvsCellID->SetBinContent(ich, result->Parameter(1));
+    hMeanPedLGvsCellID->SetBinError(ich, result->Parameter(2));
+
+    // write Histo and fit to output
+    // hspectraLG[ich]->Write();
+  }  
   TcalibOut->Fill();
   TcalibOut->Write();
+
+  // entering histoOutput file
+  RootOutputHist->cd();
+  for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
+    // write Histo and fit to output
+    if(hspectraHG[ich]) hspectraHG[ich]->Write();
+    if(pedHG[ich]) pedHG[ich]->Write();
+    if(hspectraLG[ich]) hspectraLG[ich]->Write();
+    if(pedLG[ich]) pedLG[ich]->Write();
+  }
+  hspectraHGvsCellID->Write();
+  hMeanPedHGvsCellID->Write();
+  hspectraLGvsCellID->Write();
+  hMeanPedLGvsCellID->Write();
+  
+  // fill calib tree & write it
+  // close open root files
+  RootOutputHist->Close();
   RootOutput->Close();
   RootInput->Close();
   return true;
@@ -387,13 +473,16 @@ bool Analyses::GetScaling(void){
   int evts=TdataIn->GetEntries();
   for(int i=0; i<evts; i++){
     TdataIn->GetEntry(i);
+    if (i%5000 == 0 && i > 0 && debug > 0) std::cout << "Reading " <<  i << " events/ " << evts << std::endl;
+    if (i == 0 && debug > 2) std::cout << "decoding cell IDs" << std::endl ;
     for(int j=0; j<event.GetNTiles(); j++){
       Caen* aTile=(Caen*)event.GetTile(j);
+      if (i == 0 && debug > 2) std::cout << ((TString)setup->DecodeCellID(aTile->GetCellID())).Data() << std::endl;
       if(aTile->GetADCHigh()<3900) hspectraHG[aTile->GetCellID()]->Fill(aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID())-7*calib.GetPedestalSigH(aTile->GetCellID()));
       if((aTile->GetADCLow() -calib.GetPedestalMeanL(aTile->GetCellID())-3*calib.GetPedestalSigL(aTile->GetCellID())>0)&&//Above Low gain noise
-	 (aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID())-3*calib.GetPedestalSigH(aTile->GetCellID())>0)&&//Above High gain noise
-	 (aTile->GetADCHigh()<3900))//below saturation
-	hspectraLGHG[aTile->GetCellID()]->Fill(aTile->GetADCLow()-calib.GetPedestalMeanL(aTile->GetCellID()),aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID()));
+        (aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID())-3*calib.GetPedestalSigH(aTile->GetCellID())>0)&&//Above High gain noise
+        (aTile->GetADCHigh()<3900))//below saturation
+        hspectraLGHG[aTile->GetCellID()]->Fill(aTile->GetADCLow()-calib.GetPedestalMeanL(aTile->GetCellID()),aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID()));
     }
     RootOutput->cd();
     TdataOut->Fill();
@@ -449,10 +538,10 @@ bool Analyses::Calibrate(void){
       Caen* aTile=(Caen*)event.GetTile(j);
       double energy=0;
       if(aTile->GetADCHigh()<3800){
-	energy=(aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID()))/calib.GetScaleHigh(aTile->GetCellID());
+        energy=(aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID()))/calib.GetScaleHigh(aTile->GetCellID());
       }
       else{
-	energy=(aTile->GetADCLow()-calib.GetPedestalMeanL(aTile->GetCellID()))/calib.GetScaleLow(aTile->GetCellID());
+        energy=(aTile->GetADCLow()-calib.GetPedestalMeanL(aTile->GetCellID()))/calib.GetScaleLow(aTile->GetCellID());
       }
       aTile->SetE(energy);
     }

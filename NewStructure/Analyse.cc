@@ -35,6 +35,7 @@ void PrintHelp(char* exe){
       std::cout<<"-o vvv   Output file name (mandatory)"<<std::endl;
       std::cout<<"-f       Force to write output if already exist"<<std::endl;
       std::cout<<"-m www   Name of mapping file"<<std::endl;
+      std::cout<<"-d [0-3] switch on debug info with debug level 0 to 3"<<std::endl;
       std::cout<<"-h       this help"<<std::endl<<std::endl;
       std::cout<<"Examples:"<<std::endl;
       std::cout<<exe<<" -c input.txt -o output.root (Convert ASCII to root)"<<std::endl;
@@ -52,7 +53,7 @@ int main(int argc, char* argv[]){
   }
   Analyses AnAnalysis;
   int c;
-  while((c=getopt(argc,argv,"c:psP:C:fo:m:i:h"))!=-1){
+  while((c=getopt(argc,argv,"c:psP:C:fo:m:d:i:h"))!=-1){
     switch(c){
     case 'c':
       std::cout<<"Convert ASCII input '"<<optarg<<"' to root format"<<std::endl;
@@ -78,7 +79,7 @@ int main(int argc, char* argv[]){
       AnAnalysis.IsToApplyCalibration(true);
       break;
     case 'f':
-      std::cout<<"If output already it will be overwritten"<<std::endl;
+      std::cout<<"If output already exists it will be overwritten"<<std::endl;
       AnAnalysis.CanOverWrite(true);
       break;
     case 'o':
@@ -92,6 +93,10 @@ int main(int argc, char* argv[]){
     case 'i':
       std::cout<<"Root input file is: "<<optarg<<std::endl;
       AnAnalysis.SetRootInput(Form("%s",optarg));
+      break;
+    case 'd':
+      std::cout<<"enable debug " << optarg <<std::endl;
+      AnAnalysis.EnableDebug(atoi(optarg));
       break;
     case '?':
       std::cout<<"Option "<<optarg <<" not supported, will be ignored "<<std::endl;

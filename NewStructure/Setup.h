@@ -34,6 +34,7 @@ class Setup{
   int     GetROunit    (int /**/, int /**/, int /**/, int /**/) const;
   int     GetRow       (int /**/) const;
   int     GetTotalNbChannels(void) const;
+  TString DecodeCellID(int /**/) const;
   double  GetX         (int /**/) const;
   double  GetY         (int /**/) const;
   double  GetZ         (int /**/) const;

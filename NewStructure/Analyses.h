@@ -49,6 +49,7 @@ class Analyses{
   inline bool IsToExtractPedestal(void)         const {return ExtractPedestal;};
   inline bool IsToExtractScaling(void)          const {return ExtractScaling;};
 
+  
   //setter methods
   //Overload method for boolean...or is it too dangerous?
   inline void CanOverWrite(bool b)               {Overwrite=b;};
@@ -57,15 +58,15 @@ class Analyses{
   inline void IsToConvert(bool b)                {Convert=b;};
   inline void IsToExtractPedestal(bool b)        {ExtractPedestal=b;};
   inline void IsToExtractScaling(bool b)         {ExtractScaling=b;};
+  inline void EnableDebug(int i)                 {debug=i;};
   
-
   inline void SetASCIIinput(TString name)        {ASCIIinputName=name;};
   inline void SetMapInput(TString name)          {MapInputName=name;};
   inline void SetRootCalibInput(TString name)    {RootCalibInputName=name;};
   inline void SetRootInput(TString name)         {RootInputName=name;};
   inline void SetRootPedestalInput(TString name) {RootPedestalInputName=name;};
   inline void SetRootOutput(TString name)        {RootOutputName =name;};
-
+  
   //General methods
   bool CheckAndOpenIO(void);
   bool Process(void);
@@ -78,6 +79,7 @@ class Analyses{
   TString RootPedestalInputName;
   TString MapInputName;
   TFile* RootOutput=nullptr;
+  TFile* RootOutputHist=nullptr;
   TFile* RootInput=nullptr;
   TFile* RootPedestalInput=nullptr;
   TFile* RootCalibInput=nullptr;
@@ -89,6 +91,7 @@ class Analyses{
   bool ApplyPedestalCorrection=false;
   bool ApplyCalibration=false;
   bool Overwrite=false;
+  int debug=0;
   RootSetupWrapper rsw;
   RootSetupWrapper* rswptr;
   Setup* setup;

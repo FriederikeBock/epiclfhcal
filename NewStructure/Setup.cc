@@ -17,18 +17,19 @@ bool Setup::Initialize(TString file){
     std::cout<<"Leaving uninitialized"<<std::endl;
     return false;
   }
-  int Aboard,Achannel,Alayer,Arolayer,Arow,Acolumn;
+  // maxLayer = 0;
+  int AROunit,AROchannel,Alayer,AROlayer,Arow,Acolumn;
   TString Anassembly;
   int Akey;
   while(!input.eof()){
-    input>>Aboard>>Achannel>>Alayer>>Anassembly>>Arolayer>>Arow>>Acolumn;
+    input>>AROunit>>AROchannel>>Alayer>>Anassembly>>AROlayer>>Arow>>Acolumn;
     if(!input.good())break;
     Akey=(0<<9)+(Arow<<8)+(Acolumn<<6)+(Alayer);
     assemblyID[Akey] = Anassembly;
-    ROunit    [Akey] = Arolayer;
-    ROchannel [Akey] = Achannel;
-    Board     [Akey] = Aboard;
-    CellIDfromRO[std::make_pair(Aboard,Achannel)]=Akey;
+    ROunit    [Akey] = AROunit;
+    ROchannel [Akey] = AROchannel;
+    Board     [Akey] = AROlayer;
+    CellIDfromRO[std::make_pair(AROunit,AROchannel)]=Akey;
   }
   input.close();
   isInit=true;
@@ -41,7 +42,7 @@ bool Setup::Initialize(RootSetupWrapper& rsw){
   assemblyID  =rsw.assemblyID;
   ROunit      =rsw.ROunit;
   ROchannel   =rsw.ROchannel;
-  Board       = rsw.Board;
+  Board       =rsw.Board;
   CellIDfromRO=rsw.CellIDfromRO;
   return isInit;
 }
@@ -131,4 +132,9 @@ double Setup::GetY(int cellID) const{
 double Setup::GetZ(int cellID) const{
   int lay=GetLayer(cellID);
   return lay*2.0/*cm*/;
+}
+
+TString Setup::DecodeCellID(int cellID) const{
+  TString out = Form("cell ID: %d ==> RO unit %d  module %d  layer %d  column %d row %d", cellID, GetROunit(cellID), GetModule(cellID), GetLayer(cellID), GetColumn(cellID), GetRow(cellID));
+  return out;
 }
