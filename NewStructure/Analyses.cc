@@ -429,7 +429,8 @@ bool Analyses::GetPedestal(void){
     RootOutputHist = new TFile(RootOutputNameHist.Data(),"CREATE");
   }
   // entering histoOutput file
-  RootOutputHist->cd();
+  RootOutputHist->mkdir("IndividualCells");
+  RootOutputHist->cd("IndividualCells");
   for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
     // write Histo and fit to output
     if(hspectraHG[ich]) hspectraHG[ich]->Write();
@@ -437,6 +438,7 @@ bool Analyses::GetPedestal(void){
     if(hspectraLG[ich]) hspectraLG[ich]->Write();
     if(pedLG[ich]) pedLG[ich]->Write();
   }
+  RootOutputHist->cd();
   hspectraHGvsCellID->Write();
   hMeanPedHGvsCellID->Write();
   hspectraLGvsCellID->Write();
