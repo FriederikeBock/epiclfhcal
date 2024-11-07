@@ -1,16 +1,16 @@
 Here an example of running the code from ASCII input to calibrated ROOT output format is provided:
 
-0/Compile the code with "make Analyse"
+0/Compile the code with "make Analyse", if you changed something in the base classes majorly first "make clean" then "make Analyse"
 
 1/Convert ASCII to root (step to be done for every single ASCII file):
 
-./Analyse -c PATH_INPUT_FILE/RunXXX_list.txt -o PATH_OUTPUT_FILE/WhateverName.root
+./Analyse -c PATH_INPUT_FILE/RunXXX_list.txt -o PATH_OUTPUT_FILE/WhateverName.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
 
 =>
-./Analyse -c Run375_list.txt -o RawMuonBeamPlus5.root
-./Analyse -c Run376_list.txt -o RawMuonBeamMinus5.root
-./Analyse -c Run377_list.txt -o RawPedestal.root
-./Analyse -c Run379_list.txt -o RawElectron1GeV.root
+./Analyse -c Run375_list.txt -o RawMuonBeamPlus5.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
+./Analyse -c Run376_list.txt -o RawMuonBeamMinus5.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
+./Analyse -c Run377_list.txt -o RawPedestal.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
+./Analyse -c Run379_list.txt -o RawElectron1GeV.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
 
 
 
