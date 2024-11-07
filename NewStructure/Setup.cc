@@ -20,14 +20,14 @@ bool Setup::Initialize(TString file){
   nMaxLayer   = -1;
   nMaxRow     = -1;
   nMaxColumn  = -1;
-  nMaxModule  = 0;
-  int AROunit,AROchannel,Alayer,AROlayer,Arow,Acolumn;
+  nMaxModule  = -1;
+  int AROunit,AROchannel,Alayer,AROlayer,Arow,Acolumn,Amod;
   TString Anassembly;
   int Akey;
   while(!input.eof()){
-    input>>AROunit>>AROchannel>>Alayer>>Anassembly>>AROlayer>>Arow>>Acolumn;
+    input>>AROunit>>AROchannel>>Alayer>>Anassembly>>AROlayer>>Arow>>Acolumn >> Amod;
     if(!input.good())break;
-    Akey=(0<<9)+(Arow<<8)+(Acolumn<<6)+(Alayer);
+    Akey=(Amod<<9)+(Arow<<8)+(Acolumn<<6)+(Alayer);
     assemblyID[Akey] = Anassembly;
     ROunit    [Akey] = AROunit;
     ROchannel [Akey] = AROchannel;
@@ -36,6 +36,7 @@ bool Setup::Initialize(TString file){
     if (nMaxLayer < Alayer)   nMaxLayer   = Alayer;
     if (nMaxRow < Arow)       nMaxRow     = Arow;
     if (nMaxColumn < Acolumn) nMaxColumn  = Acolumn;
+    if (nMaxModule < Amod)    nMaxModule  = Amod;
   }
   input.close();
   isInit=true;

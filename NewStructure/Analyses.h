@@ -62,6 +62,7 @@ class Analyses{
   
   inline void SetASCIIinput(TString name)        {ASCIIinputName=name;};
   inline void SetMapInput(TString name)          {MapInputName=name;};
+  inline void SetRunListInput(TString name)      {RunListInputName=name;};
   inline void SetRootCalibInput(TString name)    {RootCalibInputName=name;};
   inline void SetRootInput(TString name)         {RootInputName=name;};
   inline void SetRootPedestalInput(TString name) {RootPedestalInputName=name;};
@@ -80,6 +81,7 @@ class Analyses{
   TString RootCalibInputName;             // file name of calibration root file (mip calib)
   TString RootPedestalInputName;          // file name of pedestal root file (pedestal values)
   TString MapInputName;                   // file name geometry mapping
+  TString RunListInputName;               // file name run list 
   TFile* RootOutput         =nullptr;     // root file output tree
   TFile* RootOutputHist     =nullptr;     // root file output histos
   TFile* RootInput          =nullptr;     // root file input 

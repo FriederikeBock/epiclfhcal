@@ -193,9 +193,17 @@ bool Analyses::ConvertASCII2Root(void){
   //Init first
   //============================================
   // initialize setup
-  setup->Initialize("../configs/MyMapping.txt");
+  if (MapInputName.CompareTo("")== 0) {
+      std::cerr << "ERROR: No mapping file has been provided, please make sure you do so! Aborting!" << std::endl;
+      return false;
+  }
+  setup->Initialize(MapInputName.Data());
   // initialize run number file
-  std::map<int,RunInfo> ri=readRunInfosFromFile("./DataTakingDB.csv",0,0);
+  if (RunListInputName.CompareTo("")== 0) {
+      std::cerr << "ERROR: No run list file has been provided, please make sure you do so! Aborting!" << std::endl;
+      return false;
+  }
+  std::map<int,RunInfo> ri=readRunInfosFromFile(RunListInputName.Data(),0,0);
   
   // Clean up file headers
   TObjArray* tok=ASCIIinputName.Tokenize("/");

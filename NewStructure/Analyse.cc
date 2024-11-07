@@ -24,25 +24,26 @@ Setup* Setup::instancePtr=nullptr;
 //Calib* Calib::instancePtr=nullptr;
 
 void PrintHelp(char* exe){
-      std::cout<<"Usage:"<<std::endl;
-      std::cout<<exe<<" [-option (arguments)]"<<std::endl;
-      std::cout<<"Options:"<<std::endl;
-      std::cout<<"-c xxx   Convert ASCII input file xxx into root format output"<<std::endl;
-      std::cout<<"-C yyy   Apply calibrations stored in yyy root file to the input uncalibrated file"<<std::endl;
-      std::cout<<"-p       Extract pedestal from input file and store it in output file"<<std::endl;
-      std::cout<<"-P zzz   Correct pedestals stored in zzz root file and applied to input file"<<std::endl;
-      std::cout<<"-i uuu   Input file in root format"<<std::endl;
-      std::cout<<"-o vvv   Output file name (mandatory)"<<std::endl;
-      std::cout<<"-f       Force to write output if already exist"<<std::endl;
-      std::cout<<"-m www   Name of mapping file"<<std::endl;
-      std::cout<<"-d [0-3] switch on debug info with debug level 0 to 3"<<std::endl;
-      std::cout<<"-h       this help"<<std::endl<<std::endl;
-      std::cout<<"Examples:"<<std::endl;
-      std::cout<<exe<<" -c input.txt -o output.root (Convert ASCII to root)"<<std::endl;
-      std::cout<<exe<<" -p (-f) -o OutputWithExtractedPedestal.root -i input.root (-f to overwrite existing output)"<<std::endl;
-      std::cout<<exe<<" -s (-f) -o OutputWithMIPscaling.root -i input.root (-f to overwrite existing output)"<<std::endl;
-      std::cout<<exe<<" -s (-f) -o OutputWithMIPscaling.root -P PedestalInput.root -i RawInput.root (-f to overwrite existing output)"<<std::endl;
-      std::cout<<exe<<" -C Calibration.root (-f) -o CalibratedOutput.root -i Input.root (-f to overwrite existing output)"<<std::endl;
+  std::cout<<"Usage:"<<std::endl;
+  std::cout<<exe<<" [-option (arguments)]"<<std::endl;
+  std::cout<<"Options:"<<std::endl;
+  std::cout<<"-c xxx   Convert ASCII input file xxx into root format output"<<std::endl;
+  std::cout<<"-C yyy   Apply calibrations stored in yyy root file to the input uncalibrated file"<<std::endl;
+  std::cout<<"-p       Extract pedestal from input file and store it in output file"<<std::endl;
+  std::cout<<"-P zzz   Correct pedestals stored in zzz root file and applied to input file"<<std::endl;
+  std::cout<<"-i uuu   Input file in root format"<<std::endl;
+  std::cout<<"-o vvv   Output file name (mandatory)"<<std::endl;
+  std::cout<<"-f       Force to write output if already exist"<<std::endl;
+  std::cout<<"-m www   Name of mapping file  2024 PS TB [../configs/mappingFile_202409_CAEN.txt] "<<std::endl;
+  std::cout<<"-r rrr   Name of run list file  2024 PS TB [../configs/DataTakingDB_202409_CAEN.csv] "<<std::endl;
+  std::cout<<"-d [0-3] switch on debug info with debug level 0 to 3"<<std::endl;
+  std::cout<<"-h       this help"<<std::endl<<std::endl;
+  std::cout<<"Examples:"<<std::endl;
+  std::cout<<exe<<" -c input.txt -o output.root (Convert ASCII to root)"<<std::endl;
+  std::cout<<exe<<" -p (-f) -o OutputWithExtractedPedestal.root -i input.root (-f to overwrite existing output)"<<std::endl;
+  std::cout<<exe<<" -s (-f) -o OutputWithMIPscaling.root -i input.root (-f to overwrite existing output)"<<std::endl;
+  std::cout<<exe<<" -s (-f) -o OutputWithMIPscaling.root -P PedestalInput.root -i RawInput.root (-f to overwrite existing output)"<<std::endl;
+  std::cout<<exe<<" -C Calibration.root (-f) -o CalibratedOutput.root -i Input.root (-f to overwrite existing output)"<<std::endl;
 }
   
 
@@ -53,7 +54,7 @@ int main(int argc, char* argv[]){
   }
   Analyses AnAnalysis;
   int c;
-  while((c=getopt(argc,argv,"c:psP:C:fo:m:d:i:h"))!=-1){
+  while((c=getopt(argc,argv,"c:psP:C:fo:m:d:i:r:h"))!=-1){
     switch(c){
     case 'c':
       std::cout<<"Convert ASCII input '"<<optarg<<"' to root format"<<std::endl;
@@ -89,6 +90,10 @@ int main(int argc, char* argv[]){
     case 'm':
       std::cout<<"Mapping file from: "<<optarg<<std::endl;
       AnAnalysis.SetMapInput(Form("%s",optarg));
+      break;
+    case 'r':
+      std::cout<<"run list file from: "<<optarg<<std::endl;
+      AnAnalysis.SetRunListInput(Form("%s",optarg));
       break;
     case 'i':
       std::cout<<"Root input file is: "<<optarg<<std::endl;
