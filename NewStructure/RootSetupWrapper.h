@@ -24,6 +24,10 @@ class RootSetupWrapper{
   std::map<int, int>     Board;
   //Inverse mapping
   std::map< std::pair<int, int>, int> CellIDfromRO;
+  int nMaxLayer;
+  int nMaxRow;
+  int nMaxColumn;
+  int nMaxModule;
 
   friend class Setup;
   ClassDef(RootSetupWrapper,1)

@@ -34,6 +34,10 @@ class Setup{
   int     GetROunit    (int /**/, int /**/, int /**/, int /**/) const;
   int     GetRow       (int /**/) const;
   int     GetTotalNbChannels(void) const;
+  int     GetNMaxLayer  (void) const;
+  int     GetNMaxRow    (void) const;
+  int     GetNMaxColumn (void) const;
+  int     GetNMaxModule (void) const;
   TString DecodeCellID(int /**/) const;
   double  GetX         (int /**/) const;
   double  GetY         (int /**/) const;
@@ -58,6 +62,11 @@ class Setup{
   std::map<int, int>     Board;
   //Inverse mapping
   std::map< std::pair<int, int>, int> CellIDfromRO;
+  int nMaxLayer;
+  int nMaxRow;
+  int nMaxColumn;
+  int nMaxModule;
+  
   ClassDef(Setup,1)
 };
 

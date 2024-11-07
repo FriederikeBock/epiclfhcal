@@ -376,6 +376,7 @@ bool Analyses::GetPedestal(void){
   
   RootOutput->cd();
   // Event loop to fill histograms & output tree
+  std::cout << "N max layers: " << setup->GetNMaxLayer() << "\t columns: " <<  setup->GetNMaxColumn() << "\t row: " << setup->GetNMaxRow() << "\t module: " <<  setup->GetNMaxModule() << std::endl;  
   int evts=TdataIn->GetEntries();
   for(int i=0; i<evts; i++){
     TdataIn->GetEntry(i);

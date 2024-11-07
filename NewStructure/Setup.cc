@@ -17,7 +17,10 @@ bool Setup::Initialize(TString file){
     std::cout<<"Leaving uninitialized"<<std::endl;
     return false;
   }
-  // maxLayer = 0;
+  nMaxLayer   = -1;
+  nMaxRow     = -1;
+  nMaxColumn  = -1;
+  nMaxModule  = 0;
   int AROunit,AROchannel,Alayer,AROlayer,Arow,Acolumn;
   TString Anassembly;
   int Akey;
@@ -30,6 +33,9 @@ bool Setup::Initialize(TString file){
     ROchannel [Akey] = AROchannel;
     Board     [Akey] = AROlayer;
     CellIDfromRO[std::make_pair(AROunit,AROchannel)]=Akey;
+    if (nMaxLayer < Alayer)   nMaxLayer   = Alayer;
+    if (nMaxRow < Arow)       nMaxRow     = Arow;
+    if (nMaxColumn < Acolumn) nMaxColumn  = Acolumn;
   }
   input.close();
   isInit=true;
@@ -38,12 +44,16 @@ bool Setup::Initialize(TString file){
 
 bool Setup::Initialize(RootSetupWrapper& rsw){
   std::cout<<rsw.isInit<<"\t"<<rsw.assemblyID.size()<<std::endl;
-  isInit      =rsw.isInit;
-  assemblyID  =rsw.assemblyID;
-  ROunit      =rsw.ROunit;
-  ROchannel   =rsw.ROchannel;
-  Board       =rsw.Board;
-  CellIDfromRO=rsw.CellIDfromRO;
+  isInit          =rsw.isInit;
+  assemblyID      =rsw.assemblyID;
+  ROunit          =rsw.ROunit;
+  ROchannel       =rsw.ROchannel;
+  Board           =rsw.Board;
+  CellIDfromRO    =rsw.CellIDfromRO;
+  nMaxLayer       =rsw.nMaxLayer;
+  nMaxRow         =rsw.nMaxRow;
+  nMaxColumn      =rsw.nMaxColumn;
+  nMaxModule      =rsw.nMaxModule;
   return isInit;
 }
 
@@ -137,4 +147,21 @@ double Setup::GetZ(int cellID) const{
 TString Setup::DecodeCellID(int cellID) const{
   TString out = Form("cell ID: %d ==> RO unit %d  module %d  layer %d  column %d row %d", cellID, GetROunit(cellID), GetModule(cellID), GetLayer(cellID), GetColumn(cellID), GetRow(cellID));
   return out;
+}
+
+
+int Setup::GetNMaxLayer() const{
+  return nMaxLayer;
+}
+
+int Setup::GetNMaxRow() const{
+  return nMaxRow;
+}
+
+int Setup::GetNMaxColumn() const{
+  return nMaxColumn;
+}
+
+int Setup::GetNMaxModule() const{
+  return nMaxModule;
 }
