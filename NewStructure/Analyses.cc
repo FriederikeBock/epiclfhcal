@@ -227,7 +227,8 @@ bool Analyses::ConvertASCII2Root(void){
   //============================================
   // Start decoding file
   //============================================
-  TString aline;
+  TString aline         = "";
+  TString versionCAEN   = "";
   TObjArray* tokens;
   std::map<int,std::vector<Caen> > tmpEvent;
   std::map<int,double> tmpTime;
@@ -236,42 +237,96 @@ bool Analyses::ConvertASCII2Root(void){
   while(!ASCIIinput.eof()){                                                     // run till end of file is reached and read line by line
     aline.ReadLine(ASCIIinput);
     if(!ASCIIinput.good()) break;
-    if(aline[0]=='/')continue;
-    tokens=aline.Tokenize(" \t");
-    tokens->SetOwner(true);
-    int Nfields=tokens->GetEntries();
-    if(((TObjString*)tokens->At(0))->String()=="Brd") {
-      tokens->Clear();
-      delete tokens;
+    if(aline[0]=='/'){
+      if (aline.Contains("File Format Version")){
+        tokens      = aline.Tokenize(" ");
+        versionCAEN = ((TObjString*)tokens->At(4))->String();
+        std::cout << "File version: " << ((TObjString*)tokens->At(4))->String() << std::endl;
+        
+        if (!(versionCAEN.CompareTo("3.3") == 0 || versionCAEN.CompareTo("3.1") == 0)){
+          std::cerr << "This version cannot be converted with the current code, please add the corresponding file format to the converter" << std::endl;
+          tokens->Clear();
+          delete tokens;
+          return false;
+        }  
+        
+        tokens->Clear();
+        delete tokens;
+      }
       continue;
     }
-    if(Nfields!=7){
-      std::cout<<"Unexpected number of fields"<<std::endl;
-      std::cout<<"Expected 7, got: "<<Nfields<<", exit"<<std::endl;
-      for(int j=0; j<Nfields;j++) std::cout<<j<<"  "<<((TObjString*)tokens->At(j))->String()<<std::endl;
+    tokens=aline.Tokenize(" \t");
+    tokens->SetOwner(true);
+    
+    if (versionCAEN.CompareTo("3.3") == 0){
+      int Nfields=tokens->GetEntries();
+      if(((TObjString*)tokens->At(0))->String()=="Brd") {
+        tokens->Clear();
+        delete tokens;
+        continue;
+      }
+      if(Nfields!=7){
+        std::cout<<"Unexpected number of fields"<<std::endl;
+        std::cout<<"Expected 7, got: "<<Nfields<<", exit"<<std::endl;
+        for(int j=0; j<Nfields;j++) std::cout<<j<<"  "<<((TObjString*)tokens->At(j))->String()<<std::endl;
+        tokens->Clear();
+        delete tokens;
+        return -1;
+      }
+      int TriggerID=((TObjString*)tokens->At(5))->String().Atoi();
+      int NHits=((TObjString*)tokens->At(6))->String().Atoi();
+      double Time = ((TObjString*)tokens->At(4))->String().Atof();
+      Caen aTile;
+      int aBoard=((TObjString*)tokens->At(0))->String().Atoi();
+      int achannel=((TObjString*)tokens->At(1))->String().Atoi();
+      aTile.SetE(((TObjString*)tokens->At(3))->String().Atoi());//To Test
+      aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
+      aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
       tokens->Clear();
       delete tokens;
-      return -1;
-    }
-    int TriggerID=((TObjString*)tokens->At(5))->String().Atoi();
-    int NHits=((TObjString*)tokens->At(6))->String().Atoi();
-    double Time = ((TObjString*)tokens->At(4))->String().Atof();
-    Caen aTile;
-    int aBoard=((TObjString*)tokens->At(0))->String().Atoi();
-    int achannel=((TObjString*)tokens->At(1))->String().Atoi();
-	  aTile.SetE(((TObjString*)tokens->At(3))->String().Atoi());//To Test
-    aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
-    aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
-    tokens->Clear();
-    delete tokens;
-    aTile.SetCellID(setup->GetCellID(aBoard,achannel));
-    itevent=tmpEvent.find(TriggerID);
-    
-    
-    if(itevent!=tmpEvent.end()){
-      tmpTime[TriggerID]+=Time;
-      itevent->second.push_back(aTile);
-      for(int ich=1; ich<NHits; ich++){
+      aTile.SetCellID(setup->GetCellID(aBoard,achannel));
+      itevent=tmpEvent.find(TriggerID);
+      
+      
+      if(itevent!=tmpEvent.end()){
+        tmpTime[TriggerID]+=Time;
+        itevent->second.push_back(aTile);
+        for(int ich=1; ich<NHits; ich++){
+            aline.ReadLine(ASCIIinput);
+            tokens=aline.Tokenize(" ");
+            tokens->SetOwner(true);
+            Nfields=tokens->GetEntries();
+            if(Nfields!=4){
+              std::cout<<"Expecting 4 fields but read "<<Nfields<<std::endl;
+              return -1;
+            }
+            achannel=((TObjString*)tokens->At(1))->String().Atoi();
+            aTile.SetE(((TObjString*)tokens->At(3))->String().Atoi());//To Test
+            aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
+            aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
+            aTile.SetCellID(setup->GetCellID(aBoard,achannel));
+            itevent->second.push_back(aTile);
+            tokens->Clear();
+            delete tokens;
+        }
+        if((int)itevent->second.size()==setup->GetTotalNbChannels()/*8*64*/){
+          //Fill the tree the event is complete and erase from the map
+          event.SetTimeStamp(tmpTime[TriggerID]/8);
+          event.SetEventID(itevent->first);
+          for(std::vector<Caen>::iterator itv=itevent->second.begin(); itv!=itevent->second.end(); ++itv){
+            event.AddTile(new Caen(*itv));
+          }
+          TdataOut->Fill();
+          tmpEvent.erase(itevent);
+          tmpTime.erase(TriggerID);
+        }
+      } else {
+        //This is a new event;
+        tempEvtCounter++;                                                                   // in crease event counts for monitoring of progress
+        if (tempEvtCounter%5000 == 0 && debug > 0) std::cout << "Converted " <<  tempEvtCounter << " events" << std::endl;
+        std::vector<Caen> vCaen;
+        vCaen.push_back(aTile);
+        for(int ich=1; ich<NHits; ich++){
           aline.ReadLine(ASCIIinput);
           tokens=aline.Tokenize(" ");
           tokens->SetOwner(true);
@@ -285,47 +340,15 @@ bool Analyses::ConvertASCII2Root(void){
           aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
           aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
           aTile.SetCellID(setup->GetCellID(aBoard,achannel));
-          itevent->second.push_back(aTile);
+          vCaen.push_back(aTile);
           tokens->Clear();
           delete tokens;
-      }
-      if((int)itevent->second.size()==setup->GetTotalNbChannels()/*8*64*/){
-        //Fill the tree the event is complete and erase from the map
-        event.SetTimeStamp(tmpTime[TriggerID]/8);
-        event.SetEventID(itevent->first);
-        for(std::vector<Caen>::iterator itv=itevent->second.begin(); itv!=itevent->second.end(); ++itv){
-          event.AddTile(new Caen(*itv));
         }
-        TdataOut->Fill();
-        tmpEvent.erase(itevent);
-        tmpTime.erase(TriggerID);
+        tmpTime[TriggerID]=Time;
+        tmpEvent[TriggerID]=vCaen;
       }
-    } else {
-      //This is a new event;
-      tempEvtCounter++;                                                                   // in crease event counts for monitoring of progress
-      if (tempEvtCounter%5000 == 0 && debug > 0) std::cout << "Converted " <<  tempEvtCounter << " events" << std::endl;
-      std::vector<Caen> vCaen;
-      vCaen.push_back(aTile);
-      for(int ich=1; ich<NHits; ich++){
-        aline.ReadLine(ASCIIinput);
-        tokens=aline.Tokenize(" ");
-        tokens->SetOwner(true);
-        Nfields=tokens->GetEntries();
-        if(Nfields!=4){
-          std::cout<<"Expecting 4 fields but read "<<Nfields<<std::endl;
-          return -1;
-        }
-        achannel=((TObjString*)tokens->At(1))->String().Atoi();
-        aTile.SetE(((TObjString*)tokens->At(3))->String().Atoi());//To Test
-        aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
-        aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
-        aTile.SetCellID(setup->GetCellID(aBoard,achannel));
-        vCaen.push_back(aTile);
-        tokens->Clear();
-        delete tokens;
-      }
-      tmpTime[TriggerID]=Time;
-      tmpEvent[TriggerID]=vCaen;
+    } else if (versionCAEN.CompareTo("3.1") == 0){
+      
     }
   } // finished reading in file
   // 
