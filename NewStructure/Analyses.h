@@ -116,6 +116,7 @@ class Analyses{
 
  private:
   bool ConvertASCII2Root(void);
+  bool ConvertOldRootFile2Root(void);
   bool GetPedestal(void);
   bool CorrectPedestal(void);
   bool GetScaling(void);

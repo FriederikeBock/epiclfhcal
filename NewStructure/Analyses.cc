@@ -6,6 +6,7 @@
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TProfile.h"
+#include "TChain.h"
 
 bool Analyses::CheckAndOpenIO(void){
   int matchingbranch;
@@ -167,7 +168,12 @@ bool Analyses::CheckAndOpenIO(void){
 bool Analyses::Process(void){
   bool status;
   if(Convert){
-    status=ConvertASCII2Root();
+    if (!(GetASCIIinputName().EndsWith(".root"))){
+      status=ConvertASCII2Root();
+    } else {
+      std::cout << "WARNING: This option should only be used for the 2023 SPS test beam for which the CAEN raw data was lost!" << std::endl;
+      status=ConvertOldRootFile2Root();
+    }
   }
   if(ExtractPedestal){
     status=GetPedestal();
@@ -513,6 +519,146 @@ bool Analyses::ConvertASCII2Root(void){
   RootOutput->Close();
   return true;
 }
+
+
+
+// ****************************************************************************
+// convert already processed root file from CAEN output to new root format
+// ****************************************************************************
+bool Analyses::ConvertOldRootFile2Root(void){
+  //============================================
+  //Init first
+  //============================================
+  // initialize setup
+  if (MapInputName.CompareTo("")== 0) {
+      std::cerr << "ERROR: No mapping file has been provided, please make sure you do so! Aborting!" << std::endl;
+      return false;
+  }
+  setup->Initialize(MapInputName.Data(),debug);
+  // initialize run number file
+  if (RunListInputName.CompareTo("")== 0) {
+      std::cerr << "ERROR: No run list file has been provided, please make sure you do so! Aborting!" << std::endl;
+      return false;
+  }
+  std::map<int,RunInfo> ri=readRunInfosFromFile(RunListInputName.Data(),debug,0);
+  
+  // Clean up file headers
+  TObjArray* tok=ASCIIinputName.Tokenize("/");
+  // get file name
+  TString file=((TObjString*)tok->At(tok->GetEntries()-1))->String();
+  delete tok;
+  tok=file.Tokenize("_");
+  TString header=((TObjString*)tok->At(0))->String();
+  delete tok;
+  
+  // Get run number from file & find necessary run infos
+  TString RunString=header(3,header.Sizeof());
+  std::map<int,RunInfo>::iterator it=ri.find(RunString.Atoi());
+  //std::cout<<RunString.Atoi()<<"\t"<<it->second.species<<std::endl;
+  event.SetRunNumber(RunString.Atoi());
+  event.SetROtype(2);
+  event.SetBeamName(it->second.species);
+  event.SetBeamID(it->second.pdg);
+  event.SetBeamEnergy(it->second.energy);
+  
+    // load tree
+  TChain *const tt_event = new TChain("tree");
+  if (ASCIIinputName.EndsWith(".root")) {                     // are we loading a single root tree?
+      std::cout << "loading a single root file" << std::endl;
+      tt_event->AddFile(ASCIIinputName);
+      TFile testFile(ASCIIinputName.Data());
+      if (testFile.IsZombie()){
+        std::cout << Form("The file %s is not a root file or doesn't exit, please fix the file path", ASCIIinputName.Data()) << std::endl;
+        return false;
+      }
+
+  } else {
+      std::cout << "please try again this isn't a root file" << std::endl;
+  } 
+  if(!tt_event){ std::cout << "tree not found... returning!"<< std::endl; return false;}
+
+  // Define tree variables
+  Long64_t gTrID;
+  Double_t gTRtimeStamp;
+  const int gMaxChannels = 64;
+  Long64_t* gBoard          = new Long64_t[gMaxChannels];
+  Long64_t* gChannel        = new Long64_t[gMaxChannels];
+  Long64_t* gLG             = new Long64_t[gMaxChannels];
+  Long64_t* gHG             = new Long64_t[gMaxChannels];
+
+  if (tt_event->GetBranchStatus("t_stamp") ){
+    tt_event->SetBranchAddress("trgid",            &gTrID);
+    tt_event->SetBranchAddress("t_stamp",          &gTRtimeStamp);
+    tt_event->SetBranchAddress("board",            gBoard);
+    tt_event->SetBranchAddress("channel",          gChannel);
+    tt_event->SetBranchAddress("LG",               gLG);
+    tt_event->SetBranchAddress("HG",               gHG);
+  }
+  
+  Long64_t nEntriesTree                 = tt_event->GetEntries();
+  std::cout << "Number of events in tree: " << nEntriesTree << std::endl;
+
+  std::map<int,std::vector<Caen> > tmpEvent;
+  std::map<int,double> tmpTime;
+  for (Long64_t i=0; i<nEntriesTree;i++) {
+    // load current event
+    tt_event->GetEntry(i);  
+    if (i%5000 == 0 && debug > 0) std::cout << "Converted " <<  i << " events" << std::endl;    
+    int TriggerID = gTrID;
+    double Time   = gTRtimeStamp;
+    std::vector<Caen> vCaen;
+    
+    for(Int_t ch=0; ch<gMaxChannels; ch++){   
+      Caen aTile;
+      int aBoard      = gBoard[ch];
+      int achannel    = gChannel[ch];
+      aTile.SetE(gHG[ch]);//To Test
+      aTile.SetADCHigh(gHG[ch]);
+      aTile.SetADCLow (gLG[ch]);
+      aTile.SetCellID(setup->GetCellID(aBoard,achannel));
+      if (aTile.GetCellID() != -1){
+        vCaen.push_back(aTile);
+      } else {
+        if(debug ==10) std::cout << "cell " << aBoard << "\t" << achannel << " wasn't active according to mapping file!" << std::endl;
+      }
+    }
+    
+     if((int)vCaen.size()==setup->GetTotalNbChannels()){
+      //Fill the tree the event is complete and erase from the map
+      event.SetTimeStamp(Time);
+      event.SetEventID(TriggerID);
+      for(std::vector<Caen>::iterator itv=vCaen.begin(); itv!=vCaen.end(); ++itv){
+        event.AddTile(new Caen(*itv));
+      }
+      TdataOut->Fill();
+      vCaen.clear();
+    }
+  } // finished reading the file
+
+  // 
+  if (debug > 0) std::cout << "Converted a total of " <<  nEntriesTree << " events" << std::endl;
+  
+  //============================================
+  // Fill & write all trees to output file 
+  //============================================
+  RootOutput->cd();
+  // setup 
+  RootSetupWrapper rswtmp=RootSetupWrapper(setup);
+  rsw=rswtmp;
+  TsetupOut->Fill();
+  // calib
+  TcalibOut->Fill();
+  TcalibOut->Write();
+  // event data
+  TdataOut->Fill();
+  TsetupOut->Write();
+  TdataOut->Write();
+
+  RootOutput->Close();
+  return true;
+}
+
+
 
 // ****************************************************************************
 // extract pedestral from dedicated data run, no other data in run 
