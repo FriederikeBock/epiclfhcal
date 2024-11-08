@@ -22,6 +22,7 @@ class Event{
   int     GetROtype    (void) const;
   int     GetRunNumber (void) const;
   Tile*   GetTile      (int);
+  Tile*   GetTileFromID(int);
   int     GetTimeStamp (void) const;
 
   
@@ -42,6 +43,7 @@ class Event{
   int                   ROtype;
   int                   RunNumber;
   std::map<int, Tile* > Tiles;
+  std::vector<int>      TileIDs;
   int                   TimeStamp;
   
  protected:

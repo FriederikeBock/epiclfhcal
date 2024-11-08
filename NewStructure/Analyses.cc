@@ -197,13 +197,13 @@ bool Analyses::ConvertASCII2Root(void){
       std::cerr << "ERROR: No mapping file has been provided, please make sure you do so! Aborting!" << std::endl;
       return false;
   }
-  setup->Initialize(MapInputName.Data());
+  setup->Initialize(MapInputName.Data(),debug);
   // initialize run number file
   if (RunListInputName.CompareTo("")== 0) {
       std::cerr << "ERROR: No run list file has been provided, please make sure you do so! Aborting!" << std::endl;
       return false;
   }
-  std::map<int,RunInfo> ri=readRunInfosFromFile(RunListInputName.Data(),0,0);
+  std::map<int,RunInfo> ri=readRunInfosFromFile(RunListInputName.Data(),debug,0);
   
   // Clean up file headers
   TObjArray* tok=ASCIIinputName.Tokenize("/");
@@ -265,6 +265,12 @@ bool Analyses::ConvertASCII2Root(void){
         delete tokens;
         continue;
       }
+      //================================================================================
+      // data format example
+      // Brd  Ch       LG       HG        Tstamp_us        TrgID		NHits
+      // 7  00       51       68     10203578.136            0		64
+      // 7  01       55       75 
+      //================================================================================
       if(Nfields!=7){
         std::cout<<"Unexpected number of fields"<<std::endl;
         std::cout<<"Expected 7, got: "<<Nfields<<", exit"<<std::endl;
@@ -287,10 +293,13 @@ bool Analyses::ConvertASCII2Root(void){
       aTile.SetCellID(setup->GetCellID(aBoard,achannel));
       itevent=tmpEvent.find(TriggerID);
       
-      
       if(itevent!=tmpEvent.end()){
         tmpTime[TriggerID]+=Time;
-        itevent->second.push_back(aTile);
+        if (aTile.GetCellID() != -1){
+          itevent->second.push_back(aTile);
+        } else {
+          if(debug ==10) std::cout << "cell " << aBoard << "\t" << achannel << " wasn't active according to mapping file!" << std::endl;
+        }
         for(int ich=1; ich<NHits; ich++){
             aline.ReadLine(ASCIIinput);
             tokens=aline.Tokenize(" ");
@@ -305,13 +314,17 @@ bool Analyses::ConvertASCII2Root(void){
             aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
             aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
             aTile.SetCellID(setup->GetCellID(aBoard,achannel));
-            itevent->second.push_back(aTile);
+            if (aTile.GetCellID() != -1){
+              itevent->second.push_back(aTile);
+            } else {
+              if(debug ==10) std::cout << "cell " << aBoard << "\t" << achannel << " wasn't active according to mapping file!" << std::endl;
+            }
             tokens->Clear();
             delete tokens;
         }
         if((int)itevent->second.size()==setup->GetTotalNbChannels()/*8*64*/){
           //Fill the tree the event is complete and erase from the map
-          event.SetTimeStamp(tmpTime[TriggerID]/8);
+          event.SetTimeStamp(tmpTime[TriggerID]/setup->GetNMaxROUnit());
           event.SetEventID(itevent->first);
           for(std::vector<Caen>::iterator itv=itevent->second.begin(); itv!=itevent->second.end(); ++itv){
             event.AddTile(new Caen(*itv));
@@ -325,7 +338,11 @@ bool Analyses::ConvertASCII2Root(void){
         tempEvtCounter++;                                                                   // in crease event counts for monitoring of progress
         if (tempEvtCounter%5000 == 0 && debug > 0) std::cout << "Converted " <<  tempEvtCounter << " events" << std::endl;
         std::vector<Caen> vCaen;
-        vCaen.push_back(aTile);
+        if (aTile.GetCellID() != -1){
+          vCaen.push_back(aTile);
+        } else {
+          if(debug ==10) std::cout << "cell " << aBoard << "\t" << achannel << " wasn't active according to mapping file!" << std::endl;
+        }
         for(int ich=1; ich<NHits; ich++){
           aline.ReadLine(ASCIIinput);
           tokens=aline.Tokenize(" ");
@@ -340,7 +357,11 @@ bool Analyses::ConvertASCII2Root(void){
           aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
           aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
           aTile.SetCellID(setup->GetCellID(aBoard,achannel));
-          vCaen.push_back(aTile);
+          if (aTile.GetCellID() != -1){
+            vCaen.push_back(aTile);
+          } else {
+            if(debug ==10) std::cout << "cell " << aBoard << "\t" << achannel << " wasn't active according to mapping file!" << std::endl;
+          }
           tokens->Clear();
           delete tokens;
         }
@@ -348,7 +369,126 @@ bool Analyses::ConvertASCII2Root(void){
         tmpEvent[TriggerID]=vCaen;
       }
     } else if (versionCAEN.CompareTo("3.1") == 0){
+      int Nfields=tokens->GetEntries();
+      if(((TObjString*)tokens->At(0))->String()=="Tstamp_us") {
+        tokens->Clear();
+        delete tokens;
+        continue;
+      }
       
+      //================================================================================
+      // data format example
+      //   Tstamp_us        TrgID   Brd  Ch       LG       HG
+      // 4970514.360            0    01  00       49       46 
+      //                             01  01       49       35 
+      //================================================================================
+      
+      if(Nfields!=6){
+        std::cout<<"Unexpected number of fields"<<std::endl;
+        std::cout<<"Expected 6, got: "<<Nfields<<", exit"<<std::endl;
+        for(int j=0; j<Nfields;j++) std::cout<<j<<"  "<<((TObjString*)tokens->At(j))->String()<<std::endl;
+        tokens->Clear();
+        delete tokens;
+        return -1;
+      }
+      
+      // std::cout << aline.Data() << std::endl;
+      int TriggerID = ((TObjString*)tokens->At(1))->String().Atoi();
+      int NHits     = 64;                                           // temporary fix
+      double Time   = ((TObjString*)tokens->At(0))->String().Atof();
+      Caen aTile;
+      int aBoard    =((TObjString*)tokens->At(2))->String().Atoi();
+      int achannel  =((TObjString*)tokens->At(3))->String().Atoi();
+      aTile.SetE(((TObjString*)tokens->At(5))->String().Atoi());//To Test
+      aTile.SetADCHigh(((TObjString*)tokens->At(5))->String().Atoi());
+      aTile.SetADCLow (((TObjString*)tokens->At(4))->String().Atoi());
+      tokens->Clear();
+      delete tokens;
+      aTile.SetCellID(setup->GetCellID(aBoard,achannel));
+      itevent=tmpEvent.find(TriggerID);
+      
+      if(itevent!=tmpEvent.end()){
+        tmpTime[TriggerID]+=Time;
+        if (aTile.GetCellID() != -1){
+          itevent->second.push_back(aTile);
+        } else {
+          if(debug ==10) std::cout << "cell " << aBoard << "\t" << achannel << " wasn't active according to mapping file!" << std::endl;
+        }
+        for(int ich=1; ich<NHits; ich++){
+            aline.ReadLine(ASCIIinput);
+            // std::cout << aline.Data() << std::endl;
+            tokens=aline.Tokenize(" ");
+            tokens->SetOwner(true);
+            Nfields=tokens->GetEntries();
+            
+            if(Nfields!=4){
+              std::cout<< "Current line :" << aline.Data() << std::endl;
+              std::cout<<"Expecting 4 fields but read "<<Nfields<<std::endl;
+              return -1;
+            }
+            achannel=((TObjString*)tokens->At(1))->String().Atoi();
+            aTile.SetE(((TObjString*)tokens->At(3))->String().Atoi());//To Test
+            aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
+            aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
+            aTile.SetCellID(setup->GetCellID(aBoard,achannel));
+            
+            if (aTile.GetCellID() != -1){
+              itevent->second.push_back(aTile);
+            } else {
+              if(debug ==10) std::cout << "cell " << aBoard << "\t" << achannel << " wasn't active according to mapping file!" << std::endl;
+            }
+            tokens->Clear();
+            delete tokens;
+        }
+        if((int)itevent->second.size()==setup->GetTotalNbChannels()){
+          //Fill the tree the event is complete and erase from the map
+          event.SetTimeStamp(tmpTime[TriggerID]/setup->GetNMaxROUnit());
+          event.SetEventID(itevent->first);
+          for(std::vector<Caen>::iterator itv=itevent->second.begin(); itv!=itevent->second.end(); ++itv){
+            event.AddTile(new Caen(*itv));
+          }
+          TdataOut->Fill();
+          tmpEvent.erase(itevent);
+          tmpTime.erase(TriggerID);
+        }
+      } else {
+        //This is a new event;
+        tempEvtCounter++;                                                                   // in crease event counts for monitoring of progress
+        if (tempEvtCounter%5000 == 0 && debug > 0) std::cout << "Converted " <<  tempEvtCounter << " events" << std::endl;
+        std::vector<Caen> vCaen;
+        
+        if (aTile.GetCellID() != -1){
+          vCaen.push_back(aTile);
+        } else {
+          if(debug ==10) std::cout << "cell " << aBoard << "\t" << achannel << " wasn't active according to mapping file!" << std::endl;
+        }
+        for(int ich=1; ich<NHits; ich++){
+          aline.ReadLine(ASCIIinput);
+          // std::cout << aline.Data() << std::endl;
+          tokens=aline.Tokenize(" ");
+          tokens->SetOwner(true);
+          Nfields=tokens->GetEntries();
+          if(Nfields!=4){
+            std::cout<< "Current line :" << aline.Data() << std::endl;
+            std::cout<<"Expecting 4 fields but read "<<Nfields<<std::endl;
+            return -1;
+          }
+          achannel=((TObjString*)tokens->At(1))->String().Atoi();
+          aTile.SetE(((TObjString*)tokens->At(3))->String().Atoi());//To Test
+          aTile.SetADCHigh(((TObjString*)tokens->At(3))->String().Atoi());
+          aTile.SetADCLow (((TObjString*)tokens->At(2))->String().Atoi());
+          aTile.SetCellID(setup->GetCellID(aBoard,achannel));
+          if (aTile.GetCellID() != -1){
+            vCaen.push_back(aTile);
+          } else {
+            if(debug ==10) std::cout << "cell " << aBoard << "\t" << achannel << " wasn't active according to mapping file!" << std::endl;
+          }
+          tokens->Clear();
+          delete tokens;
+        }
+        tmpTime[TriggerID]=Time;
+        tmpEvent[TriggerID]=vCaen;
+      }      
     }
   } // finished reading in file
   // 
@@ -378,31 +518,36 @@ bool Analyses::ConvertASCII2Root(void){
 // extract pedestral from dedicated data run, no other data in run 
 // ****************************************************************************
 bool Analyses::GetPedestal(void){
-  std::cout<<"GetPedestal"<<std::endl;
+  std::cout<<"GetPedestal for maximium "<< setup->GetMaxCellID() << " cells" <<std::endl;
   
   // create HG and LG histo's per channel
-  TH1D** hspectraHG         = new TH1D*[setup->GetTotalNbChannels()];
-  TH1D** hspectraLG         = new TH1D*[setup->GetTotalNbChannels()];
+  TH1D** hspectraHG         = new TH1D*[setup->GetMaxCellID()+1];
+  TH1D** hspectraLG         = new TH1D*[setup->GetMaxCellID()+1];
   
-  TF1** pedHG               = new TF1*[setup->GetTotalNbChannels()];
-  TF1** pedLG               = new TF1*[setup->GetTotalNbChannels()];
+  TF1** pedHG               = new TF1*[setup->GetMaxCellID()+1];
+  TF1** pedLG               = new TF1*[setup->GetMaxCellID()+1];
   TH2D* hspectraHGvsCellID  = new TH2D( "hspectraHG_vsCellID","ADC spectrum High Gain vs CellID ",
-                                        setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5, 4000,0,4000);
+                                        setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5, 4000,0,4000);
   hspectraHGvsCellID->SetDirectory(0);
   TH2D* hspectraLGvsCellID  = new TH2D( "hspectraLG_vsCellID","ADC spectrum Low Gain vs CellID ",
-                                        setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5, 4000,0,4000);
+                                        setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5, 4000,0,4000);
   hspectraLGvsCellID->SetDirectory(0);
   TH1D* hMeanPedHGvsCellID  = new TH1D( "hMeanPedHG_vsCellID","mean Ped High Gain vs CellID ",
-                                        setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5);
+                                        setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
   hMeanPedHGvsCellID->SetDirectory(0);
   TH1D* hMeanPedLGvsCellID  = new TH1D( "hMeanPedLG_vsCellID","mean Ped Low Gain vs CellID ",
-                                        setup->GetTotalNbChannels(), -0.5, setup->GetTotalNbChannels()-0.5);
+                                        setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
   hMeanPedLGvsCellID->SetDirectory(0);
-  for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
-    hspectraHG[ich]=new TH1D(Form("hspectraHGCellID%d",ich),Form("ADC spectrum High Gain CellID %d",ich),4000,0,4000);
-    hspectraHG[ich]->SetDirectory(0);
-    hspectraLG[ich]=new TH1D(Form("hspectraLGCellID%d",ich),Form("ADC spectrum Low  Gain CellID %d",ich),4000,0,4000);
-    hspectraLG[ich]->SetDirectory(0);
+  for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
+    if (setup->GetROunit(ich) != -999){
+      hspectraHG[ich]=new TH1D(Form("hspectraHGCellID%d",ich),Form("ADC spectrum High Gain CellID %d",ich),4000,0,4000);
+      hspectraHG[ich]->SetDirectory(0);
+      hspectraLG[ich]=new TH1D(Form("hspectraLGCellID%d",ich),Form("ADC spectrum Low  Gain CellID %d",ich),4000,0,4000);
+      hspectraLG[ich]->SetDirectory(0);
+    } else {
+      hspectraHG[ich] = nullptr;
+      hspectraLG[ich] = nullptr;
+    }
   }
   
   RootOutput->cd();
@@ -414,7 +559,9 @@ bool Analyses::GetPedestal(void){
     if (i%5000 == 0&& i > 0 && debug > 0) std::cout << "Reading " <<  i << "/" << evts << " events"<< std::endl;
     for(int j=0; j<event.GetNTiles(); j++){
       Caen* aTile=(Caen*)event.GetTile(j);
-      if (i == 0 && debug > 2) std::cout << ((TString)setup->DecodeCellID(aTile->GetCellID())).Data() << std::endl;
+      if (i == 0 && debug > 2){
+        std::cout << ((TString)setup->DecodeCellID(aTile->GetCellID())).Data() << std::endl;
+      }
       hspectraHG[aTile->GetCellID()]->Fill(aTile->GetADCHigh());
       hspectraLG[aTile->GetCellID()]->Fill(aTile->GetADCLow());
       hspectraHGvsCellID->Fill(aTile->GetCellID(), aTile->GetADCHigh());
@@ -430,8 +577,9 @@ bool Analyses::GetPedestal(void){
   
   // fit pedestal   
   TFitResultPtr result;
-  for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
+  for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
     // estimate HG pedestal per channel
+    if (setup->GetROunit(ich) == -999) continue;
     if (debug > 1) std::cout << "fitting channel: " << ich << std::endl;
     pedHG[ich] = new TF1(Form("fpedHGCellID%d",ich),"gaus",0,400);
     pedHG[ich]->SetNpx(400);
@@ -488,7 +636,8 @@ bool Analyses::GetPedestal(void){
   // entering histoOutput file
   RootOutputHist->mkdir("IndividualCells");
   RootOutputHist->cd("IndividualCells");
-  for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
+  for(int ich=0; ich<setup->GetMaxCellID(); ich++){
+    if (setup->GetROunit(ich) == -999) continue;
     // write Histo and fit to output
     if(hspectraHG[ich]) hspectraHG[ich]->Write();
     if(pedHG[ich]) pedHG[ich]->Write();
@@ -531,11 +680,18 @@ bool Analyses::CorrectPedestal(void){
 }
 bool Analyses::GetScaling(void){
   std::cout<<"GetScaling"<<std::endl;
-  TH1D** hspectraHG   = new TH1D*[setup->GetTotalNbChannels()];
-  TProfile** hspectraLGHG = new TProfile*[setup->GetTotalNbChannels()];
-  for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
-    hspectraHG[ich]  =new TH1D(Form("hMIPspectraHGCellID%d",ich),Form("ADC spectrum High Gain CellID %d",ich),4000,0,4000);
-    hspectraLGHG[ich]=new TProfile(Form("hCoorspectraLGHGCellID%d",ich),Form("ADC Low  Gain/High Gain correlation CellID %d",ich),800,0,800);
+  TH1D** hspectraHG           = new TH1D*[setup->GetMaxCellID()+1];
+  TProfile** hspectraLGHG     = new TProfile*[setup->GetMaxCellID()+1];
+  
+  
+  for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
+    if (setup->GetROunit(ich) != -999){
+      hspectraHG[ich]  = new TH1D(Form("hMIPspectraHGCellID%d",ich),Form("ADC spectrum High Gain CellID %d",ich),4000,0,4000);
+      hspectraLGHG[ich]= new TProfile(Form("hCoorspectraLGHGCellID%d",ich),Form("ADC Low  Gain/High Gain correlation CellID %d",ich),800,0,800);
+    } else {
+      hspectraHG[ich]  = nullptr;
+      hspectraLGHG[ich]  = nullptr;
+    }
   }
   TcalibIn->GetEntry(0);
   int evts=TdataIn->GetEntries();
@@ -569,7 +725,8 @@ bool Analyses::GetScaling(void){
   TFitResultPtr result;
   corr->SetParLimits(0,-50,200);
   corr->SetParLimits(1,0, 50);
-  for(int ich=0; ich<setup->GetTotalNbChannels(); ich++){
+  for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
+    if (setup->GetROunit(ich) == -999) continue;
     sign->SetParameter(0,hspectraHG[ich]->GetMaximum());
     sign->SetParameter(1,hspectraHG[ich]->GetMaximumBin()+15);
     sign->SetParameter(2,50.);
@@ -596,6 +753,8 @@ bool Analyses::GetScaling(void){
   RootInput->Close();      
   return true;
 }
+
+
 bool Analyses::Calibrate(void){
   std::cout<<"Calibrate"<<std::endl;
   TcalibIn->GetEntry(0);

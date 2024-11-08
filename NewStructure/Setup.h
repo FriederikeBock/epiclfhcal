@@ -38,11 +38,13 @@ class Setup{
   int     GetNMaxRow    (void) const;
   int     GetNMaxColumn (void) const;
   int     GetNMaxModule (void) const;
+  int     GetNMaxROUnit (void) const;
+  int     GetMaxCellID (void) const;
   TString DecodeCellID(int /**/) const;
   double  GetX         (int /**/) const;
   double  GetY         (int /**/) const;
   double  GetZ         (int /**/) const;
-  bool    Initialize   (TString);
+  bool    Initialize   (TString, int);
   bool    Initialize   (RootSetupWrapper&);
   bool    IsInit       (void) const;
 
@@ -66,7 +68,8 @@ class Setup{
   int nMaxRow;
   int nMaxColumn;
   int nMaxModule;
-  
+  int nMaxROUnit;
+  int maxCellID;
   ClassDef(Setup,1)
 };
 

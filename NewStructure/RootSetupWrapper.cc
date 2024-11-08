@@ -16,6 +16,8 @@ RootSetupWrapper::RootSetupWrapper(Setup* s){
   nMaxRow     = s->nMaxRow;
   nMaxColumn  = s->nMaxColumn;
   nMaxModule  = s->nMaxModule;
+  nMaxROUnit  = s->nMaxROUnit;
+  maxCellID   = s->maxCellID;
 
 }
 

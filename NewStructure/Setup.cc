@@ -5,7 +5,7 @@
 
 ClassImp(Setup);
 
-bool Setup::Initialize(TString file){
+bool Setup::Initialize(TString file, int debug){
   if(isInit){
     std::cout<<"Already initialized, bailing out without action"<<std::endl;
     return true;
@@ -21,6 +21,8 @@ bool Setup::Initialize(TString file){
   nMaxRow     = -1;
   nMaxColumn  = -1;
   nMaxModule  = -1;
+  nMaxROUnit  = -1;
+  maxCellID   = -1;
   int AROunit,AROchannel,Alayer,AROlayer,Arow,Acolumn,Amod;
   TString Anassembly;
   int Akey;
@@ -37,6 +39,9 @@ bool Setup::Initialize(TString file){
     if (nMaxRow < Arow)       nMaxRow     = Arow;
     if (nMaxColumn < Acolumn) nMaxColumn  = Acolumn;
     if (nMaxModule < Amod)    nMaxModule  = Amod;
+    if (nMaxROUnit < AROunit) nMaxROUnit  = AROunit;
+    if (maxCellID < Akey)     maxCellID   = Akey;
+    if (debug > 1)std::cout << "registered cell: " << DecodeCellID(Akey).Data() << std::endl;
   }
   input.close();
   isInit=true;
@@ -55,6 +60,8 @@ bool Setup::Initialize(RootSetupWrapper& rsw){
   nMaxRow         =rsw.nMaxRow;
   nMaxColumn      =rsw.nMaxColumn;
   nMaxModule      =rsw.nMaxModule;
+  nMaxROUnit      =rsw.nMaxROUnit;
+  maxCellID       =rsw.maxCellID;
   return isInit;
 }
 
@@ -146,7 +153,7 @@ double Setup::GetZ(int cellID) const{
 }
 
 TString Setup::DecodeCellID(int cellID) const{
-  TString out = Form("cell ID: %d ==> RO unit %d  module %d  layer %d  column %d row %d", cellID, GetROunit(cellID), GetModule(cellID), GetLayer(cellID), GetColumn(cellID), GetRow(cellID));
+  TString out = Form("cell ID: %d ==> RO unit %d RO channel %d  module %d  layer %d  column %d row %d", cellID, GetROunit(cellID), GetROchannel(cellID), GetModule(cellID), GetLayer(cellID), GetColumn(cellID), GetRow(cellID));
   return out;
 }
 
@@ -165,4 +172,12 @@ int Setup::GetNMaxColumn() const{
 
 int Setup::GetNMaxModule() const{
   return nMaxModule;
+}
+
+int Setup::GetNMaxROUnit() const{
+  return nMaxROUnit;
+}
+
+int Setup::GetMaxCellID() const{
+  return maxCellID;
 }

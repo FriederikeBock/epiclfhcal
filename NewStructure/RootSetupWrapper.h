@@ -28,7 +28,9 @@ class RootSetupWrapper{
   int nMaxRow;
   int nMaxColumn;
   int nMaxModule;
-
+  int nMaxROUnit;
+  int maxCellID;
+  
   friend class Setup;
   ClassDef(RootSetupWrapper,1)
 };

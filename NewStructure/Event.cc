@@ -65,10 +65,16 @@ void Event::AddTile(Tile* t){
   }
   else{
     Tiles[id]=t;
+    TileIDs.push_back(id);
   }
 }
 
-Tile* Event::GetTile(int id){
+Tile* Event::GetTile(int index){
+  int tempID = TileIDs.at(index);
+  return GetTileFromID(tempID);
+}
+
+Tile* Event::GetTileFromID(int id){
   std::map<int, Tile*>::iterator it=Tiles.find(id);
   if(it!=Tiles.end()) return it->second;
   else return nullptr;
@@ -85,4 +91,5 @@ void Event::ClearTiles(void){
     it->second=NULL;
   }
   Tiles.clear();
+  TileIDs.clear();
 }

@@ -153,15 +153,15 @@ inline std::map<int,RunInfo> readRunInfosFromFile(TString runListFileName, int d
     if (tempLine.BeginsWith("%") || tempLine.BeginsWith("#")){
       continue;
     }
-    if (debug > 0) std::cout << tempLine.Data() << std::endl;
+    if (debug > 1) std::cout << tempLine.Data() << std::endl;
 
     // Separate the string according to tabulators
-    TObjArray *tempArr  = tempLine.Tokenize(";");
+    TObjArray *tempArr  = tempLine.Tokenize(",");
     if(tempArr->GetEntries()<1){
       if (debug > 1) std::cout << "nothing to be done" << std::endl;
       delete tempArr;
       continue;
-    }
+    } 
 
     // Put them to the correct variables    
     RunInfo tempRun;
@@ -174,7 +174,7 @@ inline std::map<int,RunInfo> readRunInfosFromFile(TString runListFileName, int d
     tempRun.lgSet    = ((TString)((TObjString*)tempArr->At(6))->GetString()).Atoi();
     if (specialData == 1) tempRun.assemblyNr = ((TString)((TObjString*)tempArr->At(7))->GetString()).Atoi();
                 
-    if (debug > 0) std::cout << "Run " << tempRun.runNr << "\t species: " << tempRun.species << "\t energy: "  << tempRun.energy << "\t Vop: " << tempRun.vop << std::endl;
+    if (debug > 1) std::cout << "Run " << tempRun.runNr << "\t species: " << tempRun.species << "\t energy: "  << tempRun.energy << "\t Vop: " << tempRun.vop << std::endl;
     runs[tempRun.runNr]=tempRun;
   }
   std::cout << "registered " << runs.size() << std::endl;
