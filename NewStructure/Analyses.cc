@@ -7,6 +7,7 @@
 #include "TH2D.h"
 #include "TProfile.h"
 #include "TChain.h"
+#include "TileSpectra.h"
 
 bool Analyses::CheckAndOpenIO(void){
   int matchingbranch;
@@ -667,11 +668,11 @@ bool Analyses::GetPedestal(void){
   std::cout<<"GetPedestal for maximium "<< setup->GetMaxCellID() << " cells" <<std::endl;
   
   // create HG and LG histo's per channel
-  TH1D** hspectraHG         = new TH1D*[setup->GetMaxCellID()+1];
-  TH1D** hspectraLG         = new TH1D*[setup->GetMaxCellID()+1];
-  
-  TF1** pedHG               = new TF1*[setup->GetMaxCellID()+1];
-  TF1** pedLG               = new TF1*[setup->GetMaxCellID()+1];
+  //TH1D** hspectraHG         = new TH1D*[setup->GetMaxCellID()+1];
+  //TH1D** hspectraLG         = new TH1D*[setup->GetMaxCellID()+1];
+  //
+  //TF1** pedHG               = new TF1*[setup->GetMaxCellID()+1];
+  //TF1** pedLG               = new TF1*[setup->GetMaxCellID()+1];
   TH2D* hspectraHGvsCellID  = new TH2D( "hspectraHG_vsCellID","ADC spectrum High Gain vs CellID ",
                                         setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5, 4000,0,4000);
   hspectraHGvsCellID->SetDirectory(0);
@@ -684,18 +685,19 @@ bool Analyses::GetPedestal(void){
   TH1D* hMeanPedLGvsCellID  = new TH1D( "hMeanPedLG_vsCellID","mean Ped Low Gain vs CellID ",
                                         setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
   hMeanPedLGvsCellID->SetDirectory(0);
-  for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
-    if (setup->GetROunit(ich) != -999){
-      hspectraHG[ich]=new TH1D(Form("hspectraHGCellID%d",ich),Form("ADC spectrum High Gain CellID %d",ich),4000,0,4000);
-      hspectraHG[ich]->SetDirectory(0);
-      hspectraLG[ich]=new TH1D(Form("hspectraLGCellID%d",ich),Form("ADC spectrum Low  Gain CellID %d",ich),4000,0,4000);
-      hspectraLG[ich]->SetDirectory(0);
-    } else {
-      hspectraHG[ich] = nullptr;
-      hspectraLG[ich] = nullptr;
-    }
-  }
-  
+  //for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
+  //  if (setup->GetROunit(ich) != -999){
+  //    hspectraHG[ich]=new TH1D(Form("hspectraHGCellID%d",ich),Form("ADC spectrum High Gain CellID %d",ich),4000,0,4000);
+  //    hspectraHG[ich]->SetDirectory(0);
+  //    hspectraLG[ich]=new TH1D(Form("hspectraLGCellID%d",ich),Form("ADC spectrum Low  Gain CellID %d",ich),4000,0,4000);
+  //    hspectraLG[ich]->SetDirectory(0);
+  //  } else {
+  //    hspectraHG[ich] = nullptr;
+  //    hspectraLG[ich] = nullptr;
+  //  }
+  //}
+  std::map<int,TileSpectra> hSpectra;
+  std::map<int, TileSpectra>::iterator ithSpectra;
   RootOutput->cd();
   // Event loop to fill histograms & output tree
   std::cout << "N max layers: " << setup->GetNMaxLayer() << "\t columns: " <<  setup->GetNMaxColumn() << "\t row: " << setup->GetNMaxRow() << "\t module: " <<  setup->GetNMaxModule() << std::endl;  
@@ -708,8 +710,16 @@ bool Analyses::GetPedestal(void){
       if (i == 0 && debug > 2){
         std::cout << ((TString)setup->DecodeCellID(aTile->GetCellID())).Data() << std::endl;
       }
-      hspectraHG[aTile->GetCellID()]->Fill(aTile->GetADCHigh());
-      hspectraLG[aTile->GetCellID()]->Fill(aTile->GetADCLow());
+      ithSpectra=hSpectra.find(aTile->GetCellID());
+      if(ithSpectra!=hSpectra.end()){
+	ithSpectra->second.Fill(aTile->GetADCLow(),aTile->GetADCHigh());
+      }
+      else{
+	hSpectra[aTile->GetCellID()]=TileSpectra("1stExtraction",aTile->GetCellID(),calib.GetTileCalib(aTile->GetCellID()),debug);
+	hSpectra[aTile->GetCellID()].Fill(aTile->GetADCLow(),aTile->GetADCHigh());
+      }
+      //hspectraHG[aTile->GetCellID()]->Fill(aTile->GetADCHigh());
+      //hspectraLG[aTile->GetCellID()]->Fill(aTile->GetADCLow());
       hspectraHGvsCellID->Fill(aTile->GetCellID(), aTile->GetADCHigh());
       hspectraLGvsCellID->Fill(aTile->GetCellID(), aTile->GetADCLow());
     }
@@ -721,51 +731,60 @@ bool Analyses::GetPedestal(void){
   // write setup tree (copy of raw data)
   TsetupIn->CloneTree()->Write();
   
-  // fit pedestal   
-  TFitResultPtr result;
-  for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
-    // estimate HG pedestal per channel
-    if (setup->GetROunit(ich) == -999) continue;
-    if (debug > 1) std::cout << "fitting channel: " << ich << std::endl;
-    pedHG[ich] = new TF1(Form("fpedHGCellID%d",ich),"gaus",0,400);
-    pedHG[ich]->SetNpx(400);
-    pedHG[ich]->SetParLimits(1,0,hspectraHG[ich]->GetMean()+100);     // might need to make these values settable
-    pedHG[ich]->SetParLimits(2,0,100);     // might need to make these values settable    
-    pedHG[ich]->SetParLimits(0,0,hspectraHG[ich]->GetEntries());
-    pedHG[ich]->SetParameter(0,hspectraHG[ich]->GetEntries()/5);
-    pedHG[ich]->SetParameter(1,hspectraHG[ich]->GetMean());
-    pedHG[ich]->SetParameter(2,10);
-    result=hspectraHG[ich]->Fit(pedHG[ich],"QRMNE0S");      // initial fit
-    double minHGFit = result->Parameter(1)-2*result->Parameter(2);
-    double maxHGFit = result->Parameter(1)+2*result->Parameter(2);
-    if (debug > 1) std::cout << minHGFit << "\t" << maxHGFit << std::endl;
-    result=hspectraHG[ich]->Fit(pedHG[ich],"QRMNE0S","",minHGFit, maxHGFit);  // limit to 2sigma range of previous fit
-    hMeanPedHGvsCellID->SetBinContent(hMeanPedHGvsCellID->FindBin(ich), result->Parameter(1));
-    hMeanPedHGvsCellID->SetBinError(hMeanPedHGvsCellID->FindBin(ich), result->Parameter(2));
-    
-    // write fitted values to calib object
-    calib.SetPedestalMeanH(result->Parameter(1),ich);
-    calib.SetPedestalSigH(result->Parameter(2),ich);
-    // estimate LG pedestal per channel
-    pedLG[ich] = new TF1(Form("fpedLGCellID%d",ich),"gaus",0,400);
-    pedLG[ich]->SetNpx(400);
-    pedLG[ich]->SetParLimits(1,0,hspectraLG[ich]->GetMean()+100);     // might need to make these values settable
-    pedLG[ich]->SetParLimits(2,0,100);     // might need to make these values settable    
-    pedLG[ich]->SetParLimits(0,0,hspectraLG[ich]->GetEntries());
-    pedLG[ich]->SetParameter(0,hspectraLG[ich]->GetEntries()/5);
-    pedLG[ich]->SetParameter(1,hspectraLG[ich]->GetMean());
-    pedLG[ich]->SetParameter(2,10);
-    result=hspectraLG[ich]->Fit(pedLG[ich],"QRMNE0S"); // initial fit
-    double minLGFit = result->Parameter(1)-2*result->Parameter(2);
-    double maxLGFit = result->Parameter(1)+2*result->Parameter(2);
-    if (debug > 1) std::cout << minLGFit << "\t" << maxLGFit << "\t" << hspectraLG[ich]->GetEntries() << "\t" << hspectraLG[ich]->GetMean()<< std::endl;
-    result=hspectraLG[ich]->Fit(pedLG[ich],"QRMNE0S","", minLGFit, maxLGFit);  // limit to 2sigma
-    // write fitted values to calib object
-    calib.SetPedestalMeanL(result->Parameter(1),ich);
-    calib.SetPedestalSigL(result->Parameter(2),ich);
-    hMeanPedLGvsCellID->SetBinContent(hMeanPedLGvsCellID->FindBin(ich), result->Parameter(1));
-    hMeanPedLGvsCellID->SetBinError(hMeanPedLGvsCellID->FindBin(ich), result->Parameter(2));
-  }  
+  // fit pedestal
+  double* parameters=new double[8];
+  bool isGood;
+  for(ithSpectra=hSpectra.begin(); ithSpectra!=hSpectra.end(); ++ithSpectra){
+    isGood=ithSpectra->second.FitNoise(parameters);
+    hMeanPedHGvsCellID->SetBinContent(hMeanPedHGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[0]);
+    hMeanPedHGvsCellID->SetBinError  (hMeanPedHGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[2]);
+    hMeanPedLGvsCellID->SetBinContent(hMeanPedLGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[4]);
+    hMeanPedLGvsCellID->SetBinError  (hMeanPedLGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[6]);
+  }
+  //TFitResultPtr result;
+  //for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
+  //  // estimate HG pedestal per channel
+  //  if (setup->GetROunit(ich) == -999) continue;
+  //  if (debug > 1) std::cout << "fitting channel: " << ich << std::endl;
+  //  pedHG[ich] = new TF1(Form("fpedHGCellID%d",ich),"gaus",0,400);
+  //  pedHG[ich]->SetNpx(400);
+  //  pedHG[ich]->SetParLimits(1,0,hspectraHG[ich]->GetMean()+100);     // might need to make these values settable
+  //  pedHG[ich]->SetParLimits(2,0,100);     // might need to make these values settable    
+  //  pedHG[ich]->SetParLimits(0,0,hspectraHG[ich]->GetEntries());
+  //  pedHG[ich]->SetParameter(0,hspectraHG[ich]->GetEntries()/5);
+  //  pedHG[ich]->SetParameter(1,hspectraHG[ich]->GetMean());
+  //  pedHG[ich]->SetParameter(2,10);
+  //  result=hspectraHG[ich]->Fit(pedHG[ich],"QRMNE0S");      // initial fit
+  //  double minHGFit = result->Parameter(1)-2*result->Parameter(2);
+  //  double maxHGFit = result->Parameter(1)+2*result->Parameter(2);
+  //  if (debug > 1) std::cout << minHGFit << "\t" << maxHGFit << std::endl;
+  //  result=hspectraHG[ich]->Fit(pedHG[ich],"QRMNE0S","",minHGFit, maxHGFit);  // limit to 2sigma range of previous fit
+  //  hMeanPedHGvsCellID->SetBinContent(hMeanPedHGvsCellID->FindBin(ich), result->Parameter(1));
+  //  hMeanPedHGvsCellID->SetBinError(hMeanPedHGvsCellID->FindBin(ich), result->Parameter(2));
+  //  
+  //  // write fitted values to calib object
+  //  calib.SetPedestalMeanH(result->Parameter(1),ich);
+  //  calib.SetPedestalSigH(result->Parameter(2),ich);
+  //  // estimate LG pedestal per channel
+  //  pedLG[ich] = new TF1(Form("fpedLGCellID%d",ich),"gaus",0,400);
+  //  pedLG[ich]->SetNpx(400);
+  //  pedLG[ich]->SetParLimits(1,0,hspectraLG[ich]->GetMean()+100);     // might need to make these values settable
+  //  pedLG[ich]->SetParLimits(2,0,100);     // might need to make these values settable    
+  //  pedLG[ich]->SetParLimits(0,0,hspectraLG[ich]->GetEntries());
+  //  pedLG[ich]->SetParameter(0,hspectraLG[ich]->GetEntries()/5);
+  //  pedLG[ich]->SetParameter(1,hspectraLG[ich]->GetMean());
+  //  pedLG[ich]->SetParameter(2,10);
+  //  result=hspectraLG[ich]->Fit(pedLG[ich],"QRMNE0S"); // initial fit
+  //  double minLGFit = result->Parameter(1)-2*result->Parameter(2);
+  //  double maxLGFit = result->Parameter(1)+2*result->Parameter(2);
+  //  if (debug > 1) std::cout << minLGFit << "\t" << maxLGFit << "\t" << hspectraLG[ich]->GetEntries() << "\t" << hspectraLG[ich]->GetMean()<< std::endl;
+  //  result=hspectraLG[ich]->Fit(pedLG[ich],"QRMNE0S","", minLGFit, maxLGFit);  // limit to 2sigma
+  //  // write fitted values to calib object
+  //  calib.SetPedestalMeanL(result->Parameter(1),ich);
+  //  calib.SetPedestalSigL(result->Parameter(2),ich);
+  //  hMeanPedLGvsCellID->SetBinContent(hMeanPedLGvsCellID->FindBin(ich), result->Parameter(1));
+  //  hMeanPedLGvsCellID->SetBinError(hMeanPedLGvsCellID->FindBin(ich), result->Parameter(2));
+  //}  
   TcalibOut->Fill();
   TcalibOut->Write();
   RootOutput->Write();
@@ -782,13 +801,16 @@ bool Analyses::GetPedestal(void){
   // entering histoOutput file
   RootOutputHist->mkdir("IndividualCells");
   RootOutputHist->cd("IndividualCells");
-  for(int ich=0; ich<setup->GetMaxCellID(); ich++){
-    if (setup->GetROunit(ich) == -999) continue;
-    // write Histo and fit to output
-    if(hspectraHG[ich]) hspectraHG[ich]->Write();
-    if(pedHG[ich]) pedHG[ich]->Write();
-    if(hspectraLG[ich]) hspectraLG[ich]->Write();
-    if(pedLG[ich]) pedLG[ich]->Write();
+  //for(int ich=0; ich<setup->GetMaxCellID(); ich++){
+  //  if (setup->GetROunit(ich) == -999) continue;
+  //  // write Histo and fit to output
+  //  if(hspectraHG[ich]) hspectraHG[ich]->Write();
+  //  if(pedHG[ich]) pedHG[ich]->Write();
+  //  if(hspectraLG[ich]) hspectraLG[ich]->Write();
+  //  if(pedLG[ich]) pedLG[ich]->Write();
+  //}
+  for(ithSpectra=hSpectra.begin(); ithSpectra!=hSpectra.end(); ++ithSpectra){
+    ithSpectra->second.Write();
   }
   RootOutputHist->cd();
   hspectraHGvsCellID->Write();

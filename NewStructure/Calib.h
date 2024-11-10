@@ -5,25 +5,21 @@
 #include <map>
 #include "Setup.h"
 
-//class RootCalibWrapper;
+struct TileCalib{
+  double PedestalMeanH;
+  double PedestalMeanL;
+  double PedestalSigH;
+  double PedestalSigL;
+  double ScaleH;
+  double ScaleL;
+} ;
 
 class Calib{
 
  public:
   Calib() {}
   virtual ~Calib() {}
-  
-  //Deleting copy constructor
-  //Calib(const Calib&)=delete;
-  //Calib& operator=(const Calib&)=delete;
-
-  //static Calib* GetInstance(){
-  //  if(instancePtr==NULL) instancePtr = new Calib();
-  //  return instancePtr;
-  //}
-  
-  //friend class RootCalibWrapper;
-  
+    
   double GetPedestalMeanH (int /**/) const;
   double GetPedestalMeanL (int /**/) const;
   double GetPedestalMeanH (int /**/, int /**/, int /**/, int /**/) const;
@@ -36,7 +32,8 @@ class Calib{
   double GetScaleHigh(int /**/, int /**/, int /**/, int /**/) const;
   double GetScaleLow (int /**/) const;
   double GetScaleLow (int /**/, int /**/, int /**/, int /**/) const;
-  //void   Restore(RootCalibWrapper&);
+  TileCalib* GetTileCalib(int /**/);
+  TileCalib* GetTileCalib(int /**/, int /**/, int /**/, int /**/);
   void   SetPedestalMeanH (double, int);
   void   SetPedestalMeanL (double, int);
   void   SetPedestalMeanH (double, int, int, int, int);
@@ -50,17 +47,15 @@ class Calib{
   void   SetScaleLow (double, int);
   void   SetScaleLow (double, int, int, int, int);
  private:
+   
   
-  //static Calib* instancePtr;
-  
-  
-  std::map<int, double> PedestalMeanH;
-  std::map<int, double> PedestalMeanL;
-  std::map<int, double> PedestalSigH;
-  std::map<int, double> PedestalSigL;
-  std::map<int, double> ScaleH;
-  std::map<int, double> ScaleL;
-  //Setup* setup=Setup::GetInstance();
+  //std::map<int, double> PedestalMeanH;
+  //std::map<int, double> PedestalMeanL;
+  //std::map<int, double> PedestalSigH;
+  //std::map<int, double> PedestalSigL;
+  //std::map<int, double> ScaleH;
+  //std::map<int, double> ScaleL;
+  std::map<int, TileCalib> CaloCalib;
   ClassDef(Calib,1)
 };
 

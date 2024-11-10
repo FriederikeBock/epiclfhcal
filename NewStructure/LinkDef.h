@@ -5,6 +5,8 @@
 #pragma link C++ class Setup+;
 #pragma link C++ class RootSetupWrapper+;
 #pragma link C++ class Calib+;
+#pragma link C++ struct TileCalib+;
+#pragma link C++ class map<int, TileCalib>;
 #pragma link C++ class Event+;
 #pragma link C++ class Tile+;
 #pragma link C++ class vector<Tile>+;
@@ -18,4 +20,5 @@
 #pragma link C++ class vector<Caen>+;
 #pragma link C++ class map<int, Caen>+;
 #pragma link C++ class map<int, Caen*>+;
+#pragma link C++ class TileSpectra+;
 #endif

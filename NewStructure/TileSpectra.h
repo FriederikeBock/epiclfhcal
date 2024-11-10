@@ -1,6 +1,8 @@
 #ifndef TILESPECTRA_H
 #define TILESPECTRA_H
 
+#include "TObject.h"
+#include "TString.h"
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TProfile.h"
@@ -8,45 +10,66 @@
 #include "TPad.h" 
 #include "TCanvas.h"
 #include "TLegend.h"
+#include "Calib.h"
 
-class TileSpectra{
+class TileSpectra: public TObject{
 
 
 
  public:
-  Spectra(){}
-  ~Spectra(){}
+  TileSpectra():TObject(){}
+  TileSpectra(TString name, int id, TileCalib* cal, int deb=0):TObject()
+  {
+    TileName=name;
+    cellID=id;
+    calib=cal;
+    debug=deb;
+    hspectraHG=TH1D(Form("hspectra%sHGCellID%d",name.Data(),id),Form("ADC spectrum High Gain CellID %d",id),4000,0,4000);
+    hspectraLG=TH1D(Form("hspectra%sLGCellID%d",name.Data(),id),Form("ADC spectrum Low  Gain CellID %d",id),4000,0,4000);
+    hspectraLGHG=TProfile(Form("hCoorspectra%sLGHGCellID%d",name.Data(),id),Form("ADC Low  Gain/High Gain correlation CellID %d",id),800,0,800);
+  }
+  ~TileSpectra(){}
 
   bool Fill(double, double);
   bool FitNoise(double*);
   bool FitNoiseWithBG(double*);
   //bool FitAndPlotGainCorr(double*);//Maybe should be two separate functions
 
+  int GetCellID();
   TH1D* GetHG();
   TH1D* GetLG();
   TH1D* GetHGLGcomb();
   TProfile* GetLGHGcorr();
 
-  TF1* GetBackModel();
-  TF1* GetSignalModel();
+  TF1* GetBackModel(int);
+  TF1* GetSignalModel(int);
   TF1* GetCorrModel();
-  
+
+  void Write();
  protected:
-  TF1* Background;
-  TF1* Signal;
-  TF1* HGLGcorr;
-  TH1D* hspectraHG;
-  TH1D* hspectraLG;
-  TH1D* hcombined;
-  TProfile* hspectraLGHG;
+  TString TileName;
+  int cellID;
+  TileCalib* calib;
+  int debug;
+  TF1 BackgroundLG;
+  TF1 BackgroundHG;
+  TF1 SignalLG;
+  TF1 SignalHG;
+  TF1 HGLGcorr;
+  TH1D hspectraHG;
+  TH1D hspectraLG;
+  TH1D hcombined;
+  TProfile hspectraLGHG;
+  static double langaufun(double */*x*/, double */*par*/);
+  static int langaupro(double */*params*/, double &/*maxx*/, double &/*FWHM*/);
 
   ClassDef(TileSpectra,1);
 };
 
-class FitTools {
- public:
-  static double langaufun(double */*x*/, double */*par*/);
-  static int langaupro(double */*params*/, double &/*maxx*/, double &/*FWHM*/);
-};
+//class FitTools {
+// public:
+//  static double langaufun(double */*x*/, double */*par*/);
+//  static int langaupro(double */*params*/, double &/*maxx*/, double &/*FWHM*/);
+//};
 
 #endif

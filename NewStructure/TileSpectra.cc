@@ -1,13 +1,66 @@
 #include "TileSpectra.h"
+#include "TFitResult.h"
+#include "TFitResultPtr.h"
 
 ClassImp(TileSpectra);
 
+int TileSpectra::GetCellID(){
+  return cellID;
+}
 
 bool TileSpectra::Fill(double l, double h){
+  hspectraLG.Fill(l);
+  hspectraHG.Fill(h);
+  hspectraLGHG.Fill(l,h);
   return true;
 }
 
 bool TileSpectra::FitNoise(double* out){
+  TFitResultPtr result;
+  // estimate LG pedestal per channel
+  BackgroundLG=TF1(Form("fped%sLGCellID%d",TileName.Data(),cellID),"gaus",0,400);
+  BackgroundLG.SetNpx(400);
+  BackgroundLG.SetParLimits(1,0,hspectraLG.GetMean()+100);     // might need to make these values settable
+  BackgroundLG.SetParLimits(2,0,100);     // might need to make these values settable    
+  BackgroundLG.SetParLimits(0,0,hspectraLG.GetEntries());
+  BackgroundLG.SetParameter(0,hspectraLG.GetEntries()/5);
+  BackgroundLG.SetParameter(1,hspectraLG.GetMean());
+  BackgroundLG.SetParameter(2,10);
+  result=hspectraLG.Fit(&BackgroundLG,"QRMEN0S"); // initial fit
+  double minLGFit = result->Parameter(1)-2*result->Parameter(2);
+  double maxLGFit = result->Parameter(1)+2*result->Parameter(2);
+  if (debug > 1) std::cout << minLGFit << "\t" << maxLGFit << "\t" << hspectraLG.GetEntries() << "\t" << hspectraLG.GetMean()<< std::endl;
+  result=hspectraLG.Fit(&BackgroundLG,"QRMEN0S","", minLGFit, maxLGFit);  // limit to 2sigma
+
+  calib->PedestalMeanL=result->Parameter(1);//Or maybe we do not want to do it automatically, only if =0?
+  calib->PedestalSigL =result->Parameter(2);//Or maybe we do not want to do it automatically, only if =0?
+  out[0]=result->Parameter(1);
+  out[1]=result->Error(1);
+  out[2]=result->Parameter(2);
+  out[3]=result->Error(2);
+  
+  // estimate HG pedestal per channel
+  BackgroundHG=TF1(Form("fped%sHGCellID%d",TileName.Data(),cellID),"gaus",0,400);
+  BackgroundHG.SetNpx(400);
+  BackgroundHG.SetParLimits(1,0,hspectraHG.GetMean()+100);     // might need to make these values settable
+  BackgroundHG.SetParLimits(2,0,100);     // might need to make these values settable    
+  BackgroundHG.SetParLimits(0,0,hspectraHG.GetEntries());
+  BackgroundHG.SetParameter(0,hspectraHG.GetEntries()/5);
+  BackgroundHG.SetParameter(1,hspectraHG.GetMean());
+  BackgroundHG.SetParameter(2,10);
+  result=hspectraHG.Fit(&BackgroundHG,"QRMEN0S");      // initial fit
+  double minHGFit = result->Parameter(1)-2*result->Parameter(2);
+  double maxHGFit = result->Parameter(1)+2*result->Parameter(2);
+  if (debug > 1) std::cout << minHGFit << "\t" << maxHGFit << std::endl;
+  result=hspectraHG.Fit(&BackgroundHG,"QRMEN0S","",minHGFit, maxHGFit);  // limit to 2sigma range of previous fit
+
+  calib->PedestalMeanH=result->Parameter(1);//Or maybe we do not want to do it automatically, only if =0?
+  calib->PedestalSigH =result->Parameter(2);//Or maybe we do not want to do it automatically, only if =0?
+  out[4]=result->Parameter(1);
+  out[5]=result->Error(1);
+  out[6]=result->Parameter(2);
+  out[7]=result->Error(2);
+  
   return true;
 }
 
@@ -16,36 +69,53 @@ bool TileSpectra::FitNoiseWithBG(double* out){
 }
 
 TH1D* TileSpectra::GetHG(){
-  return hspectraHG;
+  return &hspectraHG;
 }
 
 TH1D* TileSpectra::GetLG(){
-  return hspectraLG;
+  return &hspectraLG;
 }
 
 TH1D* TileSpectra::GetHGLGcomb(){
-  return hcombined;
+  return &hcombined;
 }
 
 TProfile* TileSpectra::GetLGHGcorr(){
-  return hspectraLGHG;
+  return &hspectraLGHG;
 }
 
-TF1* TileSpectra::GetBackModel(){
-  return ;
+TF1* TileSpectra::GetBackModel(int lh){
+  if(lh==0){
+    return &BackgroundLG;
+  }
+  else if (lh==1){
+    return &BackgroundHG;
+  }
+  else return nullptr;
 }
 
-TF1* TileSpectra::GetSignalModel(){
-  return ;
+TF1* TileSpectra::GetSignalModel(int lh){
+    if(lh==0){
+    return &SignalLG;
+  }
+  else if (lh==1){
+    return &SignalHG;
+  }
+  else return nullptr;
 }
 
 TF1* TileSpectra::GetCorrModel(){
-  return ;
+  return &HGLGcorr;
 }
 
+void TileSpectra::Write(){
+  hspectraHG.Write();
+  BackgroundHG.Write();
+  hspectraLG.Write();
+  BackgroundLG.Write();
+}
 
-
-double FitTools::langaufun(double *x, double *par) {
+double TileSpectra::langaufun(double *x, double *par) {
 
   //Fit parameters:
   //par[0]=Width (scale) parameter of Landau density
@@ -100,7 +170,7 @@ double FitTools::langaufun(double *x, double *par) {
 }
 
 
-int FitTools::langaupro(double *params, double &maxx, double &FWHM) {
+int TileSpectra::langaupro(double *params, double &maxx, double &FWHM) {
 
   // Searches for the location (x value) at the maximum of the
   // Landau-Gaussian convolute and its full width at half-maximum.
