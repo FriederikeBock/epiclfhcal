@@ -751,7 +751,7 @@ bool Analyses::GetPedestal(void){
   
   std::map<int,TileSpectra> hSpectra;
   std::map<int, TileSpectra>::iterator ithSpectra;
-<<<<<<< HEAD
+
   std::cout << "Additional Output with histos being created: " << RootOutputNameHist.Data() << std::endl;
   if(Overwrite){
     std::cout << "recreating file with hists" << std::endl;
@@ -763,9 +763,7 @@ bool Analyses::GetPedestal(void){
   // entering histoOutput file
   RootOutputHist->mkdir("IndividualCells");
   RootOutputHist->cd("IndividualCells");
-=======
->>>>>>> 6da4bd7 (included plotting header and created automatic plots)
-  
+
   RootOutput->cd();
   // Event loop to fill histograms & output tree
   std::cout << "N max layers: " << setup->GetNMaxLayer() << "\t columns: " <<  setup->GetNMaxColumn() << "\t row: " << setup->GetNMaxRow() << "\t module: " <<  setup->GetNMaxModule() << std::endl;
@@ -785,20 +783,11 @@ bool Analyses::GetPedestal(void){
       if(ithSpectra!=hSpectra.end()){
         ithSpectra->second.Fill(aTile->GetADCLow(),aTile->GetADCHigh());
       } else {
+        RootOutputHist->cd("IndividualCells");
         hSpectra[aTile->GetCellID()]=TileSpectra("1stExtraction",aTile->GetCellID(),calib.GetTileCalib(aTile->GetCellID()),debug);
         hSpectra[aTile->GetCellID()].Fill(aTile->GetADCLow(),aTile->GetADCHigh());
+        RootOutput->cd();
       }
-<<<<<<< HEAD
-      else{
-	RootOutputHist->cd("IndividualCells");
-	hSpectra[aTile->GetCellID()]=TileSpectra("1stExtraction",aTile->GetCellID(),calib.GetTileCalib(aTile->GetCellID()),debug);
-	hSpectra[aTile->GetCellID()].Fill(aTile->GetADCLow(),aTile->GetADCHigh());
-	RootOutput->cd();
-      }
-      //hspectraHG[aTile->GetCellID()]->Fill(aTile->GetADCHigh());
-      //hspectraLG[aTile->GetCellID()]->Fill(aTile->GetADCLow());
-=======
->>>>>>> 6da4bd7 (included plotting header and created automatic plots)
       hspectraHGvsCellID->Fill(aTile->GetCellID(), aTile->GetADCHigh());
       hspectraLGvsCellID->Fill(aTile->GetCellID(), aTile->GetADCLow());
     }
