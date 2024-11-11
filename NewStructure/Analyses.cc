@@ -60,6 +60,22 @@ bool Analyses::CheckAndOpenIO(void){
       std::cout<<"Error retrieving Event info from the tree"<<std::endl;
       return false;
     }
+    
+    //Do I really want this?
+    TcalibIn = (TTree*) RootInput->Get("Calib");
+    if(!TcalibIn){
+      std::cout<<"Could not retrieve Calib tree, leaving"<<std::endl;
+      //return false;
+    }
+    else {
+      matchingbranch=TcalibIn->SetBranchAddress("calib",&calibptr);
+      if(matchingbranch<0){
+	std::cout<<"Error retrieving calibration info from the tree"<<std::endl;
+	TcalibIn=nullptr;
+      }
+    }
+    //End of do I really want this?
+    
     //We want to retrieve also calibration if do not specify ApplyPedestalCorrection from external file
     //In other words, the pedestal was potentially already done and we have an existing calib object
     if(!ApplyPedestalCorrection && ExtractScaling){
@@ -230,6 +246,13 @@ bool Analyses::ConvertASCII2Root(void){
   event.SetBeamName(it->second.species);
   event.SetBeamID(it->second.pdg);
   event.SetBeamEnergy(it->second.energy);
+  event.SetVop(it->second.vop);
+  event.SetVov(it->second.vop-it->second.vbr);
+  event.SetBeamPosX(it->second.posX);
+  event.SetBeamPosY(it->second.posY);
+  calib.SetRunNumber(RunString.Atoi());
+  calib.SetVop(it->second.vop);
+  calib.SetVov(it->second.vop-it->second.vbr);  
   
   //============================================
   // Start decoding file
@@ -257,6 +280,33 @@ bool Analyses::ConvertASCII2Root(void){
           return false;
         }  
         
+        tokens->Clear();
+        delete tokens;
+      }
+      else if(aline.Contains("Run start time")){
+	tokens    = aline.Tokenize(" ");
+	int year=((TObjString*)tokens->At(8))->String().Atoi();
+	int month;
+	TString Stringmonth=((TObjString*)tokens->At(5))->String();
+	if(Stringmonth=="Jan") month=1;
+	else if(Stringmonth=="Feb") month=2;
+	else if(Stringmonth=="Mar") month=3;
+	else if(Stringmonth=="Apr") month=4;
+	else if(Stringmonth=="May") month=5;
+	else if(Stringmonth=="Jun") month=6;
+	else if(Stringmonth=="Jul") month=7;
+	else if(Stringmonth=="Aug") month=8;
+	else if(Stringmonth=="Sep") month=9;
+	else if(Stringmonth=="Oct") month=10;
+	else if(Stringmonth=="Nov") month=11;
+	else if(Stringmonth=="Dec") month=12;
+	int day=((TObjString*)tokens->At(6))->String().Atoi();
+	int hour=((TString)((TObjString*)tokens->At(7))->String()(0,2)).Atoi();
+	int min=((TString)((TObjString*)tokens->At(7))->String()(3,5)).Atoi();
+	int sec=((TString)((TObjString*)tokens->At(7))->String()(6,8)).Atoi();
+	TTimeStamp t=TTimeStamp(year,month,day,hour,min,sec);
+	event.SetBeginRunTime(t);
+	calib.SetBeginRunTime(t);
         tokens->Clear();
         delete tokens;
       }
@@ -712,7 +762,8 @@ bool Analyses::GetPedestal(void){
   
   RootOutput->cd();
   // Event loop to fill histograms & output tree
-  std::cout << "N max layers: " << setup->GetNMaxLayer() << "\t columns: " <<  setup->GetNMaxColumn() << "\t row: " << setup->GetNMaxRow() << "\t module: " <<  setup->GetNMaxModule() << std::endl;  
+  std::cout << "N max layers: " << setup->GetNMaxLayer() << "\t columns: " <<  setup->GetNMaxColumn() << "\t row: " << setup->GetNMaxRow() << "\t module: " <<  setup->GetNMaxModule() << std::endl;
+  if(TcalibIn) TcalibIn->GetEntry(0);
   int evts=TdataIn->GetEntries();
   for(int i=0; i<evts; i++){
     TdataIn->GetEntry(i);

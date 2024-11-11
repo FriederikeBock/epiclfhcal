@@ -124,14 +124,17 @@ class Analyses{
 };
 
 struct RunInfo{
-  RunInfo(): runNr(0), species(""), pdg(0), energy(0), vop(0), lgSet(0), hgSet(0), assemblyNr(0){}
+  RunInfo(): runNr(0), species(""), pdg(0), energy(0), vop(0), vbr(0), lgSet(0), hgSet(0), posX(0), posY(0), assemblyNr(0){}
   int runNr;
   TString species;
   int pdg;
   float energy;
   float vop;
+  float vbr;
   int lgSet;
   int hgSet;
+  float posX;
+  float posY;
   int assemblyNr;
 } ;
 
@@ -171,11 +174,14 @@ inline std::map<int,RunInfo> readRunInfosFromFile(TString runListFileName, int d
     tempRun.pdg      = ((TString)((TObjString*)tempArr->At(2))->GetString()).Atoi();
     tempRun.energy   = ((TString)((TObjString*)tempArr->At(3))->GetString()).Atof();
     tempRun.vop      = ((TString)((TObjString*)tempArr->At(4))->GetString()).Atof();
-    tempRun.hgSet    = ((TString)((TObjString*)tempArr->At(5))->GetString()).Atoi();
-    tempRun.lgSet    = ((TString)((TObjString*)tempArr->At(6))->GetString()).Atoi();
-    if (specialData == 1) tempRun.assemblyNr = ((TString)((TObjString*)tempArr->At(7))->GetString()).Atoi();
+    tempRun.vbr      = ((TString)((TObjString*)tempArr->At(5))->GetString()).Atof();
+    tempRun.hgSet    = ((TString)((TObjString*)tempArr->At(6))->GetString()).Atoi();
+    tempRun.lgSet    = ((TString)((TObjString*)tempArr->At(7))->GetString()).Atoi();
+    tempRun.posX    = ((TString)((TObjString*)tempArr->At(8))->GetString()).Atoi();
+    tempRun.posY    = ((TString)((TObjString*)tempArr->At(9))->GetString()).Atoi();
+    if (specialData == 1) tempRun.assemblyNr = ((TString)((TObjString*)tempArr->At(10))->GetString()).Atoi();
                 
-    if (debug > 1) std::cout << "Run " << tempRun.runNr << "\t species: " << tempRun.species << "\t energy: "  << tempRun.energy << "\t Vop: " << tempRun.vop << std::endl;
+    if (debug > 1) std::cout << "Run " << tempRun.runNr << "\t species: " << tempRun.species << "\t energy: "  << tempRun.energy << "\t Vop: " << tempRun.vop << "\t Vov: " << tempRun.vop-tempRun.vbr << "\t Xbeam: " << tempRun.posX<< "\t Ybeam: " << tempRun.posY<< std::endl;
     runs[tempRun.runNr]=tempRun;
   }
   std::cout << "registered " << runs.size() << std::endl;

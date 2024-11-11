@@ -93,3 +93,40 @@ void Event::ClearTiles(void){
   Tiles.clear();
   TileIDs.clear();
 }
+
+double Event::GetVov() const{
+  return Vov;
+}
+
+double Event::GetVop()const{
+  return Vop;
+}
+
+double Event::GetBeamPosX(void) {
+  return BeamPosX;
+}
+
+double Event::GetBeamPosY(void){
+  return BeamPosY;
+}
+
+const TTimeStamp* Event::GetBeginRunTime(void) const{
+  return &BeginRun;
+}
+
+void Event::SetVov(double v){
+  Vov=v;
+}
+
+void Event::SetVop(double v){
+  Vop=v;
+}
+void Event::SetBeamPosX(double x){
+  BeamPosX=x;
+}
+void Event::SetBeamPosY(double y){
+  BeamPosY=y;
+}
+void Event::SetBeginRunTime(TTimeStamp t){
+  BeginRun=t;
+}

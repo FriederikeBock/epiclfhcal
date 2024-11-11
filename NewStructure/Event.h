@@ -2,6 +2,7 @@
 #define EVENT_H
 
 #include "TString.h"
+#include "TTimeStamp.h"
 #include <map>
 #include <iostream>
 #include "Caen.h"
@@ -24,7 +25,11 @@ class Event{
   Tile*   GetTile      (int);
   Tile*   GetTileFromID(int);
   int     GetTimeStamp (void) const;
-
+  double  GetVov       (void) const;
+  double  GetVop       (void) const;
+  double    GetBeamPosX(void);
+  double    GetBeamPosY(void);
+  const TTimeStamp* GetBeginRunTime(void) const;
   
   void    SetBeamEnergy(double);
   void    SetBeamID    (int);
@@ -32,6 +37,11 @@ class Event{
   void    SetEventID   (int);
   void    SetROtype    (int);
   void    SetRunNumber (int);
+  void    SetBeginRunTime(TTimeStamp);
+  void    SetVov(double);
+  void    SetVop(double);
+  void    SetBeamPosX(double);
+  void    SetBeamPosY(double);
   void    SetTimeStamp (int);
 
  private:
@@ -42,6 +52,11 @@ class Event{
   int                   EventID;
   int                   ROtype;
   int                   RunNumber;
+  TTimeStamp            BeginRun;
+  double                Vov;
+  double                Vop;
+  double                BeamPosX;
+  double                BeamPosY;
   std::map<int, Tile* > Tiles;
   std::vector<int>      TileIDs;
   int                   TimeStamp;

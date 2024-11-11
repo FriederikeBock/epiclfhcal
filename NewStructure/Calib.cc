@@ -207,3 +207,35 @@ void Calib::SetScaleLow(double s, int row, int col, int lay, int mod=0){
   SetScaleLow(s,key);
   //ScaleL[key]=s;
 }
+
+int Calib::GetRunNumber(void){
+  return RunNumber;
+}
+
+const TTimeStamp* Calib::GetBeginRunTime(void) const{
+  return &BeginRunTime;
+}
+
+double Calib::GetVop(void){
+  return Vop;
+}
+
+double Calib::GetVov(void){
+  return Vov;
+}
+
+void Calib::SetRunNumber(int r){
+  RunNumber=r;
+}
+
+void Calib::SetBeginRunTime(TTimeStamp t){
+  BeginRunTime=t;
+}
+
+void Calib::SetVop(double v){
+  Vop=v;
+}
+
+void Calib::SetVov(double v){
+  Vov=v;
+}

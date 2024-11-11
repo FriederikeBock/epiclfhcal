@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <map>
+#include "TTimeStamp.h"
 #include "Setup.h"
 
 struct TileCalib{
@@ -46,16 +47,24 @@ class Calib{
   void   SetScaleHigh(double, int, int, int, int);
   void   SetScaleLow (double, int);
   void   SetScaleLow (double, int, int, int, int);
+
+  int GetRunNumber(void);
+  const TTimeStamp* GetBeginRunTime(void) const;
+  double GetVov(void);
+  double GetVop(void);
+
+  void SetRunNumber(int);//How to handle pedestal and mip which may come from different runs?
+  void SetBeginRunTime(TTimeStamp);//How to handle pedestal and mip which may come from different runs?
+  void SetVop(double);//This should anyway be the same for ped/mip/data
+  void SetVov(double);//This should anyway be the same for ped/mip/data
+  
  private:
    
-  
-  //std::map<int, double> PedestalMeanH;
-  //std::map<int, double> PedestalMeanL;
-  //std::map<int, double> PedestalSigH;
-  //std::map<int, double> PedestalSigL;
-  //std::map<int, double> ScaleH;
-  //std::map<int, double> ScaleL;
   std::map<int, TileCalib> CaloCalib;
+  int RunNumber;
+  TTimeStamp BeginRunTime;
+  double Vop;
+  double Vov;
   ClassDef(Calib,1)
 };
 
