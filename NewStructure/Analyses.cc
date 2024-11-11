@@ -8,6 +8,7 @@
 #include "TProfile.h"
 #include "TChain.h"
 #include "TileSpectra.h"
+#include "PlottHelper.h"
 
 bool Analyses::CheckAndOpenIO(void){
   int matchingbranch;
@@ -106,15 +107,10 @@ bool Analyses::CheckAndOpenIO(void){
       SetRootOutputHists(temp);
       std::cout << "creating additional histo file: " << RootOutputNameHist.Data() << " tree in : "<< RootOutputName.Data() << std::endl;
     }
-    if(Overwrite){
-      RootOutput=new TFile(RootOutputName.Data(),"RECREATE");
-    } else{
-      RootOutput = new TFile(RootOutputName.Data(),"CREATE");
-    }
-    if(RootOutput->IsZombie()){
-      std::cout<<"Error opening '"<<RootOutput<<"'no reachable path? Exist without force mode to overwrite?..."<<std::endl;
-      return false;
-    }
+    
+    bool sCOF = CreateOutputRootFile();
+    if (!sCOF) return false;
+    
     TsetupOut = new TTree("Setup","Setup");
     setup=Setup::GetInstance();
     //TsetupOut->Branch("setup",&setup);
@@ -717,37 +713,45 @@ bool Analyses::ConvertOldRootFile2Root(void){
 bool Analyses::GetPedestal(void){
   std::cout<<"GetPedestal for maximium "<< setup->GetMaxCellID() << " cells" <<std::endl;
   
+  std::map<int,RunInfo> ri=readRunInfosFromFile(RunListInputName.Data(),debug,0);
+  
+  int maxChannelPerLayer = (setup->GetNMaxColumn()+1)*(setup->GetNMaxRow()+1);
+  
   // create HG and LG histo's per channel
-  //TH1D** hspectraHG         = new TH1D*[setup->GetMaxCellID()+1];
-  //TH1D** hspectraLG         = new TH1D*[setup->GetMaxCellID()+1];
-  //
-  //TF1** pedHG               = new TF1*[setup->GetMaxCellID()+1];
-  //TF1** pedLG               = new TF1*[setup->GetMaxCellID()+1];
-  TH2D* hspectraHGvsCellID  = new TH2D( "hspectraHG_vsCellID","ADC spectrum High Gain vs CellID ",
+  TH2D* hspectraHGvsCellID  = new TH2D( "hspectraHG_vsCellID","ADC spectrum High Gain vs CellID; cell ID; ADC_{HG} (arb. units) ",
                                         setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5, 4000,0,4000);
   hspectraHGvsCellID->SetDirectory(0);
-  TH2D* hspectraLGvsCellID  = new TH2D( "hspectraLG_vsCellID","ADC spectrum Low Gain vs CellID ",
+  TH2D* hspectraLGvsCellID  = new TH2D( "hspectraLG_vsCellID","ADC spectrum Low Gain vs CellID; cell ID; ADC_{LG} (arb. units)  ",
                                         setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5, 4000,0,4000);
   hspectraLGvsCellID->SetDirectory(0);
-  TH1D* hMeanPedHGvsCellID  = new TH1D( "hMeanPedHG_vsCellID","mean Ped High Gain vs CellID ",
+  TH1D* hMeanPedHGvsCellID  = new TH1D( "hMeanPedHG_vsCellID","mean Ped High Gain vs CellID ; cell ID; #mu_{noise, HG} (arb. units) ",
                                         setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
   hMeanPedHGvsCellID->SetDirectory(0);
-  TH1D* hMeanPedLGvsCellID  = new TH1D( "hMeanPedLG_vsCellID","mean Ped Low Gain vs CellID ",
+  
+  TH2D* hspectraHGMeanVsLayer  = new TH2D( "hspectraHGMeanVsLayer","Mean Ped High Gain vs CellID; layer; brd channel; #mu_{Ped HG} (arb. units) ",
+                                        setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  hspectraHGMeanVsLayer->SetDirectory(0);
+  TH2D* hspectraHGSigmaVsLayer  = new TH2D( "hspectraHGSigmaVsLayer","Mean Ped High Gain vs CellID; layer; brd channel; #sigma_{Ped HG} (arb. units) ",
+                                        setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  hspectraHGSigmaVsLayer->SetDirectory(0);
+  
+  
+  
+  TH1D* hMeanPedLGvsCellID  = new TH1D( "hMeanPedLG_vsCellID","mean Ped Low Gain vs CellID ; cell ID; #mu_{noise, LG} (arb. units) ",
                                         setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
   hMeanPedLGvsCellID->SetDirectory(0);
-  //for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
-  //  if (setup->GetROunit(ich) != -999){
-  //    hspectraHG[ich]=new TH1D(Form("hspectraHGCellID%d",ich),Form("ADC spectrum High Gain CellID %d",ich),4000,0,4000);
-  //    hspectraHG[ich]->SetDirectory(0);
-  //    hspectraLG[ich]=new TH1D(Form("hspectraLGCellID%d",ich),Form("ADC spectrum Low  Gain CellID %d",ich),4000,0,4000);
-  //    hspectraLG[ich]->SetDirectory(0);
-  //  } else {
-  //    hspectraHG[ich] = nullptr;
-  //    hspectraLG[ich] = nullptr;
-  //  }
-  //}
+  TH2D* hspectraLGMeanVsLayer  = new TH2D( "hspectraLGMeanVsLayer","Mean Ped Low Gain vs CellID; layer; brd channel; #mu_{PED LG} (arb. units) ",
+                                        setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  hspectraLGMeanVsLayer->SetDirectory(0);
+  TH2D* hspectraLGSigmaVsLayer  = new TH2D( "hspectraLGSigmaVsLayer","Mean Ped Low Gain vs CellID; layer; brd channel; #sigma_{Ped LG} (arb. units)",
+                                        setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  hspectraLGSigmaVsLayer->SetDirectory(0);
+  
+  
+  
   std::map<int,TileSpectra> hSpectra;
   std::map<int, TileSpectra>::iterator ithSpectra;
+<<<<<<< HEAD
   std::cout << "Additional Output with histos being created: " << RootOutputNameHist.Data() << std::endl;
   if(Overwrite){
     std::cout << "recreating file with hists" << std::endl;
@@ -759,14 +763,18 @@ bool Analyses::GetPedestal(void){
   // entering histoOutput file
   RootOutputHist->mkdir("IndividualCells");
   RootOutputHist->cd("IndividualCells");
+=======
+>>>>>>> 6da4bd7 (included plotting header and created automatic plots)
   
   RootOutput->cd();
   // Event loop to fill histograms & output tree
   std::cout << "N max layers: " << setup->GetNMaxLayer() << "\t columns: " <<  setup->GetNMaxColumn() << "\t row: " << setup->GetNMaxRow() << "\t module: " <<  setup->GetNMaxModule() << std::endl;
   if(TcalibIn) TcalibIn->GetEntry(0);
   int evts=TdataIn->GetEntries();
+  int runNr = -1;
   for(int i=0; i<evts; i++){
     TdataIn->GetEntry(i);
+    if (i == 0)runNr = event.GetRunNumber();
     if (i%5000 == 0&& i > 0 && debug > 0) std::cout << "Reading " <<  i << "/" << evts << " events"<< std::endl;
     for(int j=0; j<event.GetNTiles(); j++){
       Caen* aTile=(Caen*)event.GetTile(j);
@@ -775,8 +783,12 @@ bool Analyses::GetPedestal(void){
       }
       ithSpectra=hSpectra.find(aTile->GetCellID());
       if(ithSpectra!=hSpectra.end()){
-	ithSpectra->second.Fill(aTile->GetADCLow(),aTile->GetADCHigh());
+        ithSpectra->second.Fill(aTile->GetADCLow(),aTile->GetADCHigh());
+      } else {
+        hSpectra[aTile->GetCellID()]=TileSpectra("1stExtraction",aTile->GetCellID(),calib.GetTileCalib(aTile->GetCellID()),debug);
+        hSpectra[aTile->GetCellID()].Fill(aTile->GetADCLow(),aTile->GetADCHigh());
       }
+<<<<<<< HEAD
       else{
 	RootOutputHist->cd("IndividualCells");
 	hSpectra[aTile->GetCellID()]=TileSpectra("1stExtraction",aTile->GetCellID(),calib.GetTileCalib(aTile->GetCellID()),debug);
@@ -785,16 +797,14 @@ bool Analyses::GetPedestal(void){
       }
       //hspectraHG[aTile->GetCellID()]->Fill(aTile->GetADCHigh());
       //hspectraLG[aTile->GetCellID()]->Fill(aTile->GetADCLow());
+=======
+>>>>>>> 6da4bd7 (included plotting header and created automatic plots)
       hspectraHGvsCellID->Fill(aTile->GetCellID(), aTile->GetADCHigh());
       hspectraLGvsCellID->Fill(aTile->GetCellID(), aTile->GetADCLow());
     }
     RootOutput->cd();
     TdataOut->Fill();
   }
-  // write output tree (copy of raw data)
-  TdataOut->Write();
-  // write setup tree (copy of raw data)
-  TsetupIn->CloneTree()->Write();
   
   // fit pedestal
   double* parameters=new double[8];
@@ -805,51 +815,26 @@ bool Analyses::GetPedestal(void){
     hMeanPedHGvsCellID->SetBinError  (hMeanPedHGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[2]);
     hMeanPedLGvsCellID->SetBinContent(hMeanPedLGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[4]);
     hMeanPedLGvsCellID->SetBinError  (hMeanPedLGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[6]);
+    
+    int layer     = setup->GetLayer(ithSpectra->second.GetCellID());
+    int chInLayer = setup->GetChannelInLayer(ithSpectra->second.GetCellID());
+  
+    hspectraHGMeanVsLayer->SetBinContent(hspectraHGMeanVsLayer->FindBin(layer,chInLayer), parameters[0]);
+    hspectraHGMeanVsLayer->SetBinError(hspectraHGMeanVsLayer->FindBin(layer,chInLayer), parameters[1]);
+    hspectraHGSigmaVsLayer->SetBinContent(hspectraHGSigmaVsLayer->FindBin(layer,chInLayer), parameters[2]);
+    hspectraHGSigmaVsLayer->SetBinError(hspectraHGSigmaVsLayer->FindBin(layer,chInLayer), parameters[3]);
+    hspectraLGMeanVsLayer->SetBinContent(hspectraLGMeanVsLayer->FindBin(layer,chInLayer), parameters[0]);
+    hspectraLGMeanVsLayer->SetBinError(hspectraLGMeanVsLayer->FindBin(layer,chInLayer), parameters[1]);
+    hspectraLGSigmaVsLayer->SetBinContent(hspectraLGSigmaVsLayer->FindBin(layer,chInLayer), parameters[2]);
+    hspectraLGSigmaVsLayer->SetBinError(hspectraLGSigmaVsLayer->FindBin(layer,chInLayer), parameters[3]);
   }
-  //TFitResultPtr result;
-  //for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
-  //  // estimate HG pedestal per channel
-  //  if (setup->GetROunit(ich) == -999) continue;
-  //  if (debug > 1) std::cout << "fitting channel: " << ich << std::endl;
-  //  pedHG[ich] = new TF1(Form("fpedHGCellID%d",ich),"gaus",0,400);
-  //  pedHG[ich]->SetNpx(400);
-  //  pedHG[ich]->SetParLimits(1,0,hspectraHG[ich]->GetMean()+100);     // might need to make these values settable
-  //  pedHG[ich]->SetParLimits(2,0,100);     // might need to make these values settable    
-  //  pedHG[ich]->SetParLimits(0,0,hspectraHG[ich]->GetEntries());
-  //  pedHG[ich]->SetParameter(0,hspectraHG[ich]->GetEntries()/5);
-  //  pedHG[ich]->SetParameter(1,hspectraHG[ich]->GetMean());
-  //  pedHG[ich]->SetParameter(2,10);
-  //  result=hspectraHG[ich]->Fit(pedHG[ich],"QRMNE0S");      // initial fit
-  //  double minHGFit = result->Parameter(1)-2*result->Parameter(2);
-  //  double maxHGFit = result->Parameter(1)+2*result->Parameter(2);
-  //  if (debug > 1) std::cout << minHGFit << "\t" << maxHGFit << std::endl;
-  //  result=hspectraHG[ich]->Fit(pedHG[ich],"QRMNE0S","",minHGFit, maxHGFit);  // limit to 2sigma range of previous fit
-  //  hMeanPedHGvsCellID->SetBinContent(hMeanPedHGvsCellID->FindBin(ich), result->Parameter(1));
-  //  hMeanPedHGvsCellID->SetBinError(hMeanPedHGvsCellID->FindBin(ich), result->Parameter(2));
-  //  
-  //  // write fitted values to calib object
-  //  calib.SetPedestalMeanH(result->Parameter(1),ich);
-  //  calib.SetPedestalSigH(result->Parameter(2),ich);
-  //  // estimate LG pedestal per channel
-  //  pedLG[ich] = new TF1(Form("fpedLGCellID%d",ich),"gaus",0,400);
-  //  pedLG[ich]->SetNpx(400);
-  //  pedLG[ich]->SetParLimits(1,0,hspectraLG[ich]->GetMean()+100);     // might need to make these values settable
-  //  pedLG[ich]->SetParLimits(2,0,100);     // might need to make these values settable    
-  //  pedLG[ich]->SetParLimits(0,0,hspectraLG[ich]->GetEntries());
-  //  pedLG[ich]->SetParameter(0,hspectraLG[ich]->GetEntries()/5);
-  //  pedLG[ich]->SetParameter(1,hspectraLG[ich]->GetMean());
-  //  pedLG[ich]->SetParameter(2,10);
-  //  result=hspectraLG[ich]->Fit(pedLG[ich],"QRMNE0S"); // initial fit
-  //  double minLGFit = result->Parameter(1)-2*result->Parameter(2);
-  //  double maxLGFit = result->Parameter(1)+2*result->Parameter(2);
-  //  if (debug > 1) std::cout << minLGFit << "\t" << maxLGFit << "\t" << hspectraLG[ich]->GetEntries() << "\t" << hspectraLG[ich]->GetMean()<< std::endl;
-  //  result=hspectraLG[ich]->Fit(pedLG[ich],"QRMNE0S","", minLGFit, maxLGFit);  // limit to 2sigma
-  //  // write fitted values to calib object
-  //  calib.SetPedestalMeanL(result->Parameter(1),ich);
-  //  calib.SetPedestalSigL(result->Parameter(2),ich);
-  //  hMeanPedLGvsCellID->SetBinContent(hMeanPedLGvsCellID->FindBin(ich), result->Parameter(1));
-  //  hMeanPedLGvsCellID->SetBinError(hMeanPedLGvsCellID->FindBin(ich), result->Parameter(2));
-  //}  
+  
+  RootOutput->cd();
+  // write output tree (copy of raw data)
+  TdataOut->Write();
+  // write setup tree (copy of raw data)
+  TsetupIn->CloneTree()->Write();
+  
   TcalibOut->Fill();
   TcalibOut->Write();
   RootOutput->Write();
@@ -859,14 +844,6 @@ bool Analyses::GetPedestal(void){
   //RootOutputHist->cd();
   //RootOutputHist->mkdir("IndividualCells");
   RootOutputHist->cd("IndividualCells");
-  //for(int ich=0; ich<setup->GetMaxCellID(); ich++){
-  //  if (setup->GetROunit(ich) == -999) continue;
-  //  // write Histo and fit to output
-  //  if(hspectraHG[ich]) hspectraHG[ich]->Write();
-  //  if(pedHG[ich]) pedHG[ich]->Write();
-  //  if(hspectraLG[ich]) hspectraLG[ich]->Write();
-  //  if(pedLG[ich]) pedLG[ich]->Write();
-  //}
   for(ithSpectra=hSpectra.begin(); ithSpectra!=hSpectra.end(); ++ithSpectra){
     ithSpectra->second.Write();
   }
@@ -882,6 +859,37 @@ bool Analyses::GetPedestal(void){
   RootOutputHist->Close();
 
   RootInput->Close();
+  
+  
+  // Get run info object
+  std::map<int,RunInfo>::iterator it=ri.find(runNr);
+  
+  // create directory for plot output
+  TString outputDirPlots = GetPlotOutputDir();
+  gSystem->Exec("mkdir -p "+outputDirPlots);
+  
+  //**********************************************************************
+  // Create canvases for channel overview plotting
+  //**********************************************************************
+  Double_t textSizeRel = 0.035;
+  StyleSettingsBasics("pdf");
+  SetPlotStyle();
+  
+  TCanvas* canvas2DCorr = new TCanvas("canvasCorrPlots","",0,0,1450,1200);  // gives the page size
+  DefaultCancasSettings( canvas2DCorr, 0.08, 0.13, 0.02, 0.07);
+  canvas2DCorr->SetLogz();
+  
+  PlotSimple2D( canvas2DCorr, hspectraHGvsCellID, 300, setup->GetMaxCellID()+1, textSizeRel, Form("%s/HG_Noise.pdf", outputDirPlots.Data()), it->second, 5 );
+  PlotSimple2D( canvas2DCorr, hspectraLGvsCellID, 300, setup->GetMaxCellID()+1, textSizeRel, Form("%s/LG_Noise.pdf", outputDirPlots.Data()), it->second, 5);
+
+  canvas2DCorr->SetLogz(0);
+  PlotSimple2D( canvas2DCorr, hspectraHGMeanVsLayer, -10000, -10000, textSizeRel, Form("%s/HG_NoiseMean.pdf", outputDirPlots.Data()), it->second, 5, kFALSE, "colz");
+  PlotSimple2D( canvas2DCorr, hspectraHGSigmaVsLayer,-10000, -10000, textSizeRel, Form("%s/HG_NoiseSigma.pdf", outputDirPlots.Data()), it->second, 5,  kFALSE, "colz");
+
+  canvas2DCorr->SetLogz(0);
+  PlotSimple2D( canvas2DCorr, hspectraLGMeanVsLayer, -10000, -10000, textSizeRel, Form("%s/LG_NoiseMean.pdf", outputDirPlots.Data()), it->second, 5, kFALSE, "colz");
+  PlotSimple2D( canvas2DCorr, hspectraLGSigmaVsLayer, -10000, -10000, textSizeRel, Form("%s/LG_NoiseSigma.pdf", outputDirPlots.Data()), it->second, 5, kFALSE, "colz");
+  
   return true;
 }
 
@@ -1008,5 +1016,19 @@ bool Analyses::Calibrate(void){
   RootOutput->Close();
   RootInput->Close();      
   
+  return true;
+}
+
+
+bool Analyses::CreateOutputRootFile(void){
+  if(Overwrite){
+    RootOutput=new TFile(RootOutputName.Data(),"RECREATE");
+  } else{
+    RootOutput = new TFile(RootOutputName.Data(),"CREATE");
+  }
+  if(RootOutput->IsZombie()){
+    std::cout<<"Error opening '"<<RootOutput<<"'no reachable path? Exist without force mode to overwrite?..."<<std::endl;
+    return false;
+  }
   return true;
 }

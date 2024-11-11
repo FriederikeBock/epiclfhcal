@@ -181,3 +181,10 @@ int Setup::GetNMaxROUnit() const{
 int Setup::GetMaxCellID() const{
   return maxCellID;
 }
+
+int Setup::GetChannelInLayer(int cellID) const{
+  int row     = GetRow(cellID);
+  int column  = GetColumn(cellID);
+  int absChL  = row*(nMaxColumn+1)+column;
+  return absChL;
+}

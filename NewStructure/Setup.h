@@ -24,6 +24,7 @@ class Setup{
   int     GetCellID    (int /**/, int /**/) const;
   int     GetCellID    (int /**/, int /**/, int /**/, int /**/)const;
   int     GetColumn    (int /**/) const;
+  int     GetChannelInLayer(int /**/) const;
   int     GetLayer     (int /**/) const;
   int     GetModule    (int /**/) const;
   double  GetModuleX   (int /**/) const;

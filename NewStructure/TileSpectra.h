@@ -24,6 +24,8 @@ class TileSpectra: public TObject{
     cellID=id;
     calib=cal;
     debug=deb;
+    bpedHG=false;
+    bpedLG=false;
     hspectraHG=TH1D(Form("hspectra%sHGCellID%d",name.Data(),id),Form("ADC spectrum High Gain CellID %d",id),4000,0,4000);
     hspectraHG.SetDirectory(0);
     hspectraLG=TH1D(Form("hspectra%sLGCellID%d",name.Data(),id),Form("ADC spectrum Low  Gain CellID %d",id),4000,0,4000);
@@ -54,6 +56,8 @@ class TileSpectra: public TObject{
   int cellID;
   TileCalib* calib;
   int debug;
+  bool bpedHG;
+  bool bpedLG;
   TF1 BackgroundLG;
   TF1 BackgroundHG;
   TF1 SignalLG;

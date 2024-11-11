@@ -33,6 +33,7 @@ class Analyses{
   inline TString GetRootInputName()         const {return RootInputName;};
   inline TString GetRootPedestalInputName() const {return RootPedestalInputName;};
   inline TString GetRootOutputName()        const {return RootOutputName;};
+  inline TString GetPlotOutputDir()         const {return OutputNameDirPlots;};
   
   inline std::fstream* GetASCIIinput() {return &ASCIIinput;};
   inline std::fstream* GetMapInput()   {return &MapInput;};
@@ -60,6 +61,7 @@ class Analyses{
   inline void IsToExtractScaling(bool b)         {ExtractScaling=b;};
   inline void EnableDebug(int i)                 {debug=i;};
   
+  
   inline void SetASCIIinput(TString name)        {ASCIIinputName=name;};
   inline void SetMapInput(TString name)          {MapInputName=name;};
   inline void SetRunListInput(TString name)      {RunListInputName=name;};
@@ -68,8 +70,12 @@ class Analyses{
   inline void SetRootPedestalInput(TString name) {RootPedestalInputName=name;};
   inline void SetRootOutput(TString name)        {RootOutputName =name;};
   inline void SetRootOutputHists(TString name)   {RootOutputNameHist =name;};
+  inline void SetPlotOutputDir(TString name)     {OutputNameDirPlots =name;};
+  
+  
   
   //General methods
+  bool CreateOutputRootFile(void);
   bool CheckAndOpenIO(void);
   bool Process(void);
 
@@ -77,6 +83,7 @@ class Analyses{
   TString ASCIIinputName;                 // CAEN ASCII file input name (only needed for converting data)
   TString RootOutputName;                 // file name of root output with tree
   TString RootOutputNameHist;             // file name of root output with additional histograms & fits
+  TString OutputNameDirPlots;             // directory name of output for plots
   TString RootInputName;                  // file name of input root file 
   TString RootCalibInputName;             // file name of calibration root file (mip calib)
   TString RootPedestalInputName;          // file name of pedestal root file (pedestal values)
@@ -137,6 +144,8 @@ struct RunInfo{
   float posY;
   int assemblyNr;
 } ;
+
+TString GetStringFromRunInfo(RunInfo, Int_t);
 
 //__________________________________________________________________________________________________________
 //__________________ Read run infos from text file _________________________________________________________

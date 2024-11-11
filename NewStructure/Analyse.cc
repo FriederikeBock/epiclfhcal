@@ -33,6 +33,7 @@ void PrintHelp(char* exe){
   std::cout<<"-P zzz   Correct pedestals stored in zzz root file and applied to input file"<<std::endl;
   std::cout<<"-i uuu   Input file in root format"<<std::endl;
   std::cout<<"-o vvv   Output file name (mandatory)"<<std::endl;
+  std::cout<<"-O kkk   Output directory name for plots (mandatory)"<<std::endl;
   std::cout<<"-f       Force to write output if already exist"<<std::endl;
   std::cout<<"-m www   Name of mapping file  2024 PS TB [../configs/mappingFile_202409_CAEN.txt] "<<std::endl;
   std::cout<<"-r rrr   Name of run list file  2024 PS TB [../configs/DataTakingDB_202409_CAEN.csv] "<<std::endl;
@@ -54,7 +55,7 @@ int main(int argc, char* argv[]){
   }
   Analyses AnAnalysis;
   int c;
-  while((c=getopt(argc,argv,"c:psP:C:fo:m:d:i:r:h"))!=-1){
+  while((c=getopt(argc,argv,"c:psP:C:fo:O:m:d:i:r:h"))!=-1){
     switch(c){
     case 'c':
       std::cout<<"Convert ASCII input '"<<optarg<<"' to root format"<<std::endl;
@@ -86,6 +87,10 @@ int main(int argc, char* argv[]){
     case 'o':
       std::cout<<"Output to be saved in: "<<optarg<<std::endl;
       AnAnalysis.SetRootOutput(Form("%s",optarg));
+      break;
+    case 'O':
+      std::cout<<"Outputdir plots to be saved in: "<<optarg<<std::endl;
+      AnAnalysis.SetPlotOutputDir(Form("%s",optarg));
       break;
     case 'm':
       std::cout<<"Mapping file from: "<<optarg<<std::endl;
