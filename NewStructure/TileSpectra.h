@@ -25,8 +25,11 @@ class TileSpectra: public TObject{
     calib=cal;
     debug=deb;
     hspectraHG=TH1D(Form("hspectra%sHGCellID%d",name.Data(),id),Form("ADC spectrum High Gain CellID %d",id),4000,0,4000);
+    hspectraHG.SetDirectory(0);
     hspectraLG=TH1D(Form("hspectra%sLGCellID%d",name.Data(),id),Form("ADC spectrum Low  Gain CellID %d",id),4000,0,4000);
+    hspectraLG.SetDirectory(0);
     hspectraLGHG=TProfile(Form("hCoorspectra%sLGHGCellID%d",name.Data(),id),Form("ADC Low  Gain/High Gain correlation CellID %d",id),800,0,800);
+    hspectraLGHG.SetDirectory(0);
   }
   ~TileSpectra(){}
 

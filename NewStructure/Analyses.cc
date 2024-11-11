@@ -698,6 +698,18 @@ bool Analyses::GetPedestal(void){
   //}
   std::map<int,TileSpectra> hSpectra;
   std::map<int, TileSpectra>::iterator ithSpectra;
+  std::cout << "Additional Output with histos being created: " << RootOutputNameHist.Data() << std::endl;
+  if(Overwrite){
+    std::cout << "recreating file with hists" << std::endl;
+    RootOutputHist = new TFile(RootOutputNameHist.Data(),"RECREATE");
+  } else{
+    std::cout << "newly creating file with hists" << std::endl;
+    RootOutputHist = new TFile(RootOutputNameHist.Data(),"CREATE");
+  }
+  // entering histoOutput file
+  RootOutputHist->mkdir("IndividualCells");
+  RootOutputHist->cd("IndividualCells");
+  
   RootOutput->cd();
   // Event loop to fill histograms & output tree
   std::cout << "N max layers: " << setup->GetNMaxLayer() << "\t columns: " <<  setup->GetNMaxColumn() << "\t row: " << setup->GetNMaxRow() << "\t module: " <<  setup->GetNMaxModule() << std::endl;  
@@ -715,8 +727,10 @@ bool Analyses::GetPedestal(void){
 	ithSpectra->second.Fill(aTile->GetADCLow(),aTile->GetADCHigh());
       }
       else{
+	RootOutputHist->cd("IndividualCells");
 	hSpectra[aTile->GetCellID()]=TileSpectra("1stExtraction",aTile->GetCellID(),calib.GetTileCalib(aTile->GetCellID()),debug);
 	hSpectra[aTile->GetCellID()].Fill(aTile->GetADCLow(),aTile->GetADCHigh());
+	RootOutput->cd();
       }
       //hspectraHG[aTile->GetCellID()]->Fill(aTile->GetADCHigh());
       //hspectraLG[aTile->GetCellID()]->Fill(aTile->GetADCLow());
@@ -790,16 +804,9 @@ bool Analyses::GetPedestal(void){
   RootOutput->Write();
   RootOutput->Close();
   
-  std::cout << "Additional Output with histos being created: " << RootOutputNameHist.Data() << std::endl;
-  if(Overwrite){
-    std::cout << "recreating file with hists" << std::endl;
-    RootOutputHist = new TFile(RootOutputNameHist.Data(),"RECREATE");
-  } else{
-    std::cout << "newly creating file with hists" << std::endl;
-    RootOutputHist = new TFile(RootOutputNameHist.Data(),"CREATE");
-  }
   // entering histoOutput file
-  RootOutputHist->mkdir("IndividualCells");
+  //RootOutputHist->cd();
+  //RootOutputHist->mkdir("IndividualCells");
   RootOutputHist->cd("IndividualCells");
   //for(int ich=0; ich<setup->GetMaxCellID(); ich++){
   //  if (setup->GetROunit(ich) == -999) continue;
