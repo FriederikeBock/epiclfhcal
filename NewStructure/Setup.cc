@@ -43,6 +43,7 @@ bool Setup::Initialize(TString file, int debug){
     if (nMaxModule < Amod)    nMaxModule  = Amod;
     if (nMaxROUnit < AROunit) nMaxROUnit  = AROunit;
     if (maxCellID < Akey)     maxCellID   = Akey;
+    if (debug > 10)std::cout <<AROunit<< "\t" << AROchannel << "\t"<< Alayer << "\t"<< Anassembly << "\t"<< AROlayer << "\t"<< Arow << "\t"<< Acolumn << "\t"<< Amod << std::endl;
     if (debug > 1)std::cout << "registered cell: " << DecodeCellID(Akey).Data() << std::endl;
   }
   input.close();

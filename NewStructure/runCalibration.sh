@@ -31,7 +31,7 @@ pedScanF1_41V='492'
 pedScanF2_41V='505'
 pedScanG_46V='521'
 
-./Analyse -d 3 -p -i $dataDir/raw_271.root -f -o $dataDir/PedestalCalib_271.root -O ../PlotsCalib/Run271 -r ../configs/DataTakingDB_202409_CAEN.csv
+./Analyse -d 1 -p -i $dataDir/raw_271.root -f -o $dataDir/PedestalCalib_271.root -O ../PlotsCalib/Run271 -r ../configs/DataTakingDB_202409_CAEN.csv
 
 # ./Analyse -c $dataDir/Run$pedScanD1_45V\_list.txt -o $dataDir/raw_$pedScanD1_45V.root -d 1 -f
 # ./Analyse -d 1 -p -i $dataDir/raw_$pedScanD1_45V.root -f -o $dataDir/PedestalCalib_$pedScanD1_45V.root
