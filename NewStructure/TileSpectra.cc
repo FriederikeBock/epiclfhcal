@@ -86,10 +86,10 @@ TProfile* TileSpectra::GetLGHGcorr(){
 }
 
 TF1* TileSpectra::GetBackModel(int lh){
-  if(lh==0){
+  if(lh==0 && bpedLG){
     return &BackgroundLG;
   }
-  else if (lh==1){
+  else if (lh==1 && bpedHG){
     return &BackgroundHG;
   }
   else return nullptr;

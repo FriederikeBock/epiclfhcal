@@ -179,6 +179,10 @@ bool Analyses::CheckAndOpenIO(void){
 }
 
 
+
+
+
+
 bool Analyses::Process(void){
   bool status;
   if(Convert){
@@ -281,29 +285,29 @@ bool Analyses::ConvertASCII2Root(void){
         delete tokens;
       }
       else if(aline.Contains("Run start time")){
-	tokens    = aline.Tokenize(" ");
-	int year=((TObjString*)tokens->At(8))->String().Atoi();
-	int month;
-	TString Stringmonth=((TObjString*)tokens->At(5))->String();
-	if(Stringmonth=="Jan") month=1;
-	else if(Stringmonth=="Feb") month=2;
-	else if(Stringmonth=="Mar") month=3;
-	else if(Stringmonth=="Apr") month=4;
-	else if(Stringmonth=="May") month=5;
-	else if(Stringmonth=="Jun") month=6;
-	else if(Stringmonth=="Jul") month=7;
-	else if(Stringmonth=="Aug") month=8;
-	else if(Stringmonth=="Sep") month=9;
-	else if(Stringmonth=="Oct") month=10;
-	else if(Stringmonth=="Nov") month=11;
-	else if(Stringmonth=="Dec") month=12;
-	int day=((TObjString*)tokens->At(6))->String().Atoi();
-	int hour=((TString)((TObjString*)tokens->At(7))->String()(0,2)).Atoi();
-	int min=((TString)((TObjString*)tokens->At(7))->String()(3,5)).Atoi();
-	int sec=((TString)((TObjString*)tokens->At(7))->String()(6,8)).Atoi();
-	TTimeStamp t=TTimeStamp(year,month,day,hour,min,sec);
-	event.SetBeginRunTime(t);
-	calib.SetBeginRunTime(t);
+        tokens    = aline.Tokenize(" ");
+        int year=((TObjString*)tokens->At(8))->String().Atoi();
+        int month;
+        TString Stringmonth=((TObjString*)tokens->At(5))->String();
+        if(Stringmonth=="Jan") month=1;
+        else if(Stringmonth=="Feb") month=2;
+        else if(Stringmonth=="Mar") month=3;
+        else if(Stringmonth=="Apr") month=4;
+        else if(Stringmonth=="May") month=5;
+        else if(Stringmonth=="Jun") month=6;
+        else if(Stringmonth=="Jul") month=7;
+        else if(Stringmonth=="Aug") month=8;
+        else if(Stringmonth=="Sep") month=9;
+        else if(Stringmonth=="Oct") month=10;
+        else if(Stringmonth=="Nov") month=11;
+        else if(Stringmonth=="Dec") month=12;
+        int day=((TObjString*)tokens->At(6))->String().Atoi();
+        int hour=((TString)((TObjString*)tokens->At(7))->String()(0,2)).Atoi();
+        int min=((TString)((TObjString*)tokens->At(7))->String()(3,5)).Atoi();
+        int sec=((TString)((TObjString*)tokens->At(7))->String()(6,8)).Atoi();
+        TTimeStamp t=TTimeStamp(year,month,day,hour,min,sec);
+        event.SetBeginRunTime(t);
+        calib.SetBeginRunTime(t);
         tokens->Clear();
         delete tokens;
       }
@@ -719,36 +723,30 @@ bool Analyses::GetPedestal(void){
   int maxChannelPerLayer = (setup->GetNMaxColumn()+1)*(setup->GetNMaxRow()+1);
   
   // create HG and LG histo's per channel
-  TH2D* hspectraHGvsCellID  = new TH2D( "hspectraHG_vsCellID","ADC spectrum High Gain vs CellID; cell ID; ADC_{HG} (arb. units) ",
-                                        setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5, 4000,0,4000);
+  TH2D* hspectraHGvsCellID      = new TH2D( "hspectraHG_vsCellID","ADC spectrum High Gain vs CellID; cell ID; ADC_{HG} (arb. units) ",
+                                            setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5, 4000,0,4000);
   hspectraHGvsCellID->SetDirectory(0);
-  TH2D* hspectraLGvsCellID  = new TH2D( "hspectraLG_vsCellID","ADC spectrum Low Gain vs CellID; cell ID; ADC_{LG} (arb. units)  ",
-                                        setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5, 4000,0,4000);
+  TH2D* hspectraLGvsCellID      = new TH2D( "hspectraLG_vsCellID","ADC spectrum Low Gain vs CellID; cell ID; ADC_{LG} (arb. units)  ",
+                                            setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5, 4000,0,4000);
   hspectraLGvsCellID->SetDirectory(0);
-  TH1D* hMeanPedHGvsCellID  = new TH1D( "hMeanPedHG_vsCellID","mean Ped High Gain vs CellID ; cell ID; #mu_{noise, HG} (arb. units) ",
-                                        setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
+  TH1D* hMeanPedHGvsCellID      = new TH1D( "hMeanPedHG_vsCellID","mean Ped High Gain vs CellID ; cell ID; #mu_{noise, HG} (arb. units) ",
+                                            setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
   hMeanPedHGvsCellID->SetDirectory(0);
-  
-  TH2D* hspectraHGMeanVsLayer  = new TH2D( "hspectraHGMeanVsLayer","Mean Ped High Gain vs CellID; layer; brd channel; #mu_{Ped HG} (arb. units) ",
-                                        setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  TH2D* hspectraHGMeanVsLayer   = new TH2D( "hspectraHGMeanVsLayer","Mean Ped High Gain vs CellID; layer; brd channel; #mu_{Ped HG} (arb. units) ",
+                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hspectraHGMeanVsLayer->SetDirectory(0);
   TH2D* hspectraHGSigmaVsLayer  = new TH2D( "hspectraHGSigmaVsLayer","Mean Ped High Gain vs CellID; layer; brd channel; #sigma_{Ped HG} (arb. units) ",
-                                        setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hspectraHGSigmaVsLayer->SetDirectory(0);
-  
-  
-  
-  TH1D* hMeanPedLGvsCellID  = new TH1D( "hMeanPedLG_vsCellID","mean Ped Low Gain vs CellID ; cell ID; #mu_{noise, LG} (arb. units) ",
-                                        setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
+  TH1D* hMeanPedLGvsCellID      = new TH1D( "hMeanPedLG_vsCellID","mean Ped Low Gain vs CellID ; cell ID; #mu_{noise, LG} (arb. units) ",
+                                            setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
   hMeanPedLGvsCellID->SetDirectory(0);
-  TH2D* hspectraLGMeanVsLayer  = new TH2D( "hspectraLGMeanVsLayer","Mean Ped Low Gain vs CellID; layer; brd channel; #mu_{PED LG} (arb. units) ",
-                                        setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  TH2D* hspectraLGMeanVsLayer   = new TH2D( "hspectraLGMeanVsLayer","Mean Ped Low Gain vs CellID; layer; brd channel; #mu_{PED LG} (arb. units) ",
+                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hspectraLGMeanVsLayer->SetDirectory(0);
   TH2D* hspectraLGSigmaVsLayer  = new TH2D( "hspectraLGSigmaVsLayer","Mean Ped Low Gain vs CellID; layer; brd channel; #sigma_{Ped LG} (arb. units)",
-                                        setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hspectraLGSigmaVsLayer->SetDirectory(0);
-  
-  
   
   std::map<int,TileSpectra> hSpectra;
   std::map<int, TileSpectra>::iterator ithSpectra;
@@ -879,6 +877,37 @@ bool Analyses::GetPedestal(void){
   canvas2DCorr->SetLogz(0);
   PlotSimple2D( canvas2DCorr, hspectraLGMeanVsLayer, -10000, -10000, textSizeRel, Form("%s/LG_NoiseMean.pdf", outputDirPlots.Data()), it->second, 5, kFALSE, "colz");
   PlotSimple2D( canvas2DCorr, hspectraLGSigmaVsLayer, -10000, -10000, textSizeRel, Form("%s/LG_NoiseSigma.pdf", outputDirPlots.Data()), it->second, 5, kFALSE, "colz");
+  
+  
+  //***********************************************************************************************************
+  //********************************* 8 Panel overview plot  **************************************************
+  //***********************************************************************************************************
+  //*****************************************************************
+  // Test beam geometry (beam coming from viewer)
+  //==============================================
+  //||    8    ||    7    ||    6    ||    5    ||
+  //==============================================
+  //||    1    ||    2    ||    3    ||    4    ||
+  //==============================================
+  // rebuild pad geom in similar way (numbering -1)
+  //*****************************************************************
+  TCanvas* canvas8Panel;
+  TPad* pad8Panel[8];
+  Double_t topRCornerX[8];
+  Double_t topRCornerY[8];
+  Int_t textSizePixel = 30;
+  Double_t relSize8P[8];
+  CreateCanvasAndPadsFor8PannelTBPlot(canvas8Panel, pad8Panel,  topRCornerX, topRCornerY, relSize8P, textSizePixel);
+
+  for (Int_t l = 0; l < setup->GetNMaxLayer()+1; l++){    
+    PlotNoiseWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                                hSpectra, setup, true, 0, 275, 1.2, l, 0,
+                                Form("%s/Noise_HG_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
+    PlotNoiseWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                                hSpectra, setup, false, 0, 275, 1.2, l, 0,
+                                Form("%s/Noise_LG_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
+  }
+
   
   return true;
 }
@@ -1022,3 +1051,5 @@ bool Analyses::CreateOutputRootFile(void){
   }
   return true;
 }
+
+

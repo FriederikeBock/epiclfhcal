@@ -5,6 +5,8 @@
 #include "TAxis.h"
 #include "TColor.h"
 #include "TCanvas.h"
+#include "TLine.h"
+#include "TBox.h"
 #include "TPad.h"
 #include "TFrame.h"
 #include "TLatex.h"
@@ -14,7 +16,7 @@
 #include "TGaxis.h"
 #include "TSystem.h"
 #include "TStyle.h"
-  
+#include "TileSpectra.h"  
   //__________________________________________________________________________________________________________
   //__________________________________________________________________________________________________________
   //__________________________________________________________________________________________________________
@@ -28,6 +30,57 @@
   }
 
 
+  //__________________________________________________________________________________________________________
+  // find bin with largest content
+  //__________________________________________________________________________________________________________
+  Double_t FindLargestBin1DHist(TH1* hist, Double_t minX = -10000, Double_t maxX = -10000 ){
+    Double_t largestContent     = 0;
+    if (!hist){
+        std::cout << "histogram pointer was empty, skipping!" << std::endl;
+        return 0.;
+    }
+    Int_t minBin = 1;
+    Int_t maxBin = hist->GetNbinsX()+1;
+    if (minX != -10000) minBin = hist->GetXaxis()->FindBin(minX);
+    if (maxX != -10000) maxBin = hist->GetXaxis()->FindBin(maxX)+0.0001;
+    for (Int_t i= minBin; i < maxBin; i++){
+        if (largestContent < hist->GetBinContent(i)){
+            largestContent = hist->GetBinContent(i);
+        }
+    }
+    return largestContent;
+  }
+  //__________________________________________________________________________________________________________
+  // find bin with largest content
+  //__________________________________________________________________________________________________________
+  Double_t FindBinWithLargestBin1DHist(TH1* hist, Double_t minX = -10000, Double_t maxX = -10000 ){
+    Double_t largestContent     = 0;
+    Int_t minBin = 1;
+    Int_t maxBin = hist->GetNbinsX()+1;
+    if (minX != -10000) minBin = hist->GetXaxis()->FindBin(minX);
+    if (maxX != -10000) maxBin = hist->GetXaxis()->FindBin(maxX)+0.0001;
+    Int_t largestBin = minBin;
+    for (Int_t i= minBin; i < maxBin; i++){
+      if (largestContent < hist->GetBinContent(i)){
+        largestContent = hist->GetBinContent(i);
+        largestBin = i;
+      }
+    }
+    return largestContent;
+  }
+
+  //__________________________________________________________________________________________________________
+  // find bin with smallest content
+  //__________________________________________________________________________________________________________
+  Double_t FindSmallestBin1DHist(TH1* hist, Double_t maxStart = 1e6 ){
+    Double_t smallesContent     = maxStart;
+    for (Int_t i= 0; i < hist->GetNbinsX(); i++){
+      if (hist->GetBinContent(i) != 0 && smallesContent > hist->GetBinContent(i)){
+        smallesContent = hist->GetBinContent(i);
+      }
+    }
+    return smallesContent;
+  }
   
   // ---------------------------- Function definiton --------------------------------------------------------------------------------------------
   // StyleSettingsBasics will make some standard settings for gStyle
@@ -592,6 +645,39 @@
       histo->GetYaxis()->SetNdivisions(yNDivisions,kTRUE);
   }
 
+  /* // DrawLines will draw the lines in the histogram for you
+  * startX - starting point of drawing in x
+  * endX - end point of drawing in x
+  * startY -starting point of drawing in y
+  * endY - end point of drawing in y
+  * linew - line width
+  */
+  void DrawLines(Float_t startX, Float_t endX,
+                  Float_t startY, Float_t endY,
+                  Float_t linew, Float_t lineColor = 4, Style_t lineStyle = 1, Float_t opacity = 1.){
+      TLine * l1 = new TLine (startX,startY,endX,endY);
+      l1->SetLineColor(lineColor);
+      l1->SetLineWidth(linew);
+      l1->SetLineStyle(lineStyle);
+      if (opacity != 1.)
+          l1->SetLineColorAlpha(lineColor,opacity);
+
+      l1->Draw("same");
+  }
+
+  //********************************************************************************************************************************
+  //********************************************************************************************************************************
+  //********************************************************************************************************************************
+  TBox* CreateBox(Color_t colorBox, Double_t xStart, Double_t yStart, Double_t xEnd, Double_t yEnd, Style_t fillStyle = 1001 ) {
+      TBox* box = new TBox(xStart ,yStart , xEnd, yEnd);
+      box->SetLineColor(colorBox);
+      box->SetFillColor(colorBox);
+      box->SetFillStyle(fillStyle);
+      return box;
+  }
+  
+  
+  
   //********************************************************************************************************************************
   //********************** Returns default labeling strings  ***********************************************************************
   //********************************************************************************************************************************    
@@ -655,5 +741,266 @@
     canvas2D->SaveAs(nameOutput.Data());
   }
 
+  //__________________________________________________________________________________________________________
+  void ReturnCorrectValuesForCanvasScaling(   Int_t sizeX,
+                                              Int_t sizeY,
+                                              Int_t nCols,
+                                              Int_t nRows,
+                                              Double_t leftMargin,
+                                              Double_t rightMargin,
+                                              Double_t upperMargin,
+                                              Double_t lowerMargin,
+                                              Double_t* arrayBoundariesX,
+                                              Double_t* arrayBoundariesY,
+                                              Double_t* relativeMarginsX,
+                                              Double_t* relativeMarginsY,
+                                              Bool_t verbose = kTRUE){
+      Int_t realsizeX             = sizeX- (Int_t)(sizeX*leftMargin)- (Int_t)(sizeX*rightMargin);
+      Int_t realsizeY             = sizeY- (Int_t)(sizeY*upperMargin)- (Int_t)(sizeY*lowerMargin);
+
+      Int_t nPixelsLeftColumn     = (Int_t)(sizeX*leftMargin);
+      Int_t nPixelsRightColumn    = (Int_t)(sizeX*rightMargin);
+      Int_t nPixelsUpperColumn    = (Int_t)(sizeY*upperMargin);
+      Int_t nPixelsLowerColumn    = (Int_t)(sizeY*lowerMargin);
+
+      Int_t nPixelsSinglePlotX    = (Int_t) (realsizeX/nCols);
+      Int_t nPixelsSinglePlotY    = (Int_t) (realsizeY/nRows);
+      if(verbose){
+          std::cout << realsizeX << "\t" << nPixelsSinglePlotX << std::endl;
+          std::cout << realsizeY << "\t" << nPixelsSinglePlotY << std::endl;
+          std::cout << nPixelsLeftColumn << "\t" << nPixelsRightColumn  << "\t" << nPixelsLowerColumn << "\t" << nPixelsUpperColumn << std::endl;
+      }
+      Int_t pixel = 0;
+      if(verbose)std::cout << "boundaries X" << std::endl;
+      for (Int_t i = 0; i < nCols+1; i++){
+          if (i == 0){
+              arrayBoundariesX[i] = 0.;
+              pixel = pixel+nPixelsLeftColumn+nPixelsSinglePlotX;
+          } else if (i == nCols){
+              arrayBoundariesX[i] = 1.;
+              pixel = pixel+nPixelsRightColumn;
+          } else {
+              arrayBoundariesX[i] = (Double_t)pixel/sizeX;
+              pixel = pixel+nPixelsSinglePlotX;
+          }
+          if(verbose)std::cout << "arrayBoundariesX: " << i << "\t" << arrayBoundariesX[i] << "\t" << pixel<<std::endl;
+      }
+
+      if(verbose)std::cout << "boundaries Y" << std::endl;
+      pixel = sizeY;
+      for (Int_t i = 0; i < nRows+1; i++){
+          if (i == 0){
+              arrayBoundariesY[i] = 1.;
+              pixel = pixel-nPixelsUpperColumn-nPixelsSinglePlotY;
+          } else if (i == nRows){
+              arrayBoundariesY[i] = 0.;
+              pixel = pixel-nPixelsLowerColumn;
+          } else {
+              arrayBoundariesY[i] = (Double_t)pixel/sizeY;
+              pixel = pixel-nPixelsSinglePlotY;
+          }
+          if(verbose)std::cout << i << "\t" << arrayBoundariesY[i] <<"\t" << pixel<<std::endl;
+      }
+
+      relativeMarginsX[0]         = (Double_t)nPixelsLeftColumn/(nPixelsLeftColumn+nPixelsSinglePlotX);
+      relativeMarginsX[1]         = 0;
+      relativeMarginsX[2]         = (Double_t)nPixelsRightColumn/(nPixelsRightColumn+nPixelsSinglePlotX);;
+
+      relativeMarginsY[0]         = (Double_t)nPixelsUpperColumn/(nPixelsUpperColumn+nPixelsSinglePlotY);
+      relativeMarginsY[1]         = 0;
+      relativeMarginsY[2]         = (Double_t)nPixelsLowerColumn/(nPixelsLowerColumn+nPixelsSinglePlotY);;
+
+      return;
+  }
+
+  //__________________________________________________________________________________________________________
+  void ReturnCorrectValuesTextSize(   TPad * pad,
+                                      Double_t &textsizeLabels,
+                                      Double_t &textsizeFac,
+                                      Int_t textSizeLabelsPixel,
+                                      Double_t dummyWUP){
+      if(dummyWUP){}
+
+      textsizeLabels = 0;
+      textsizeFac = 0;
+      if (pad->XtoPixel(pad->GetX2()) < pad->YtoPixel(pad->GetY1())){
+          textsizeLabels = (Double_t)textSizeLabelsPixel/pad->XtoPixel(pad->GetX2()) ;
+          textsizeFac = (Double_t)1./pad->XtoPixel(pad->GetX2()) ;
+      } else {
+          textsizeLabels = (Double_t)textSizeLabelsPixel/pad->YtoPixel(pad->GetY1());
+          textsizeFac = (Double_t)1./pad->YtoPixel(pad->GetY1());
+      }
+      std::cout << textsizeLabels << std::endl;
+      std::cout << textsizeFac << std::endl;
+
+      return;
+
+  }
+
+  //********************************************************************************************************************************
+  //******** CreateCanvasAndPadsFor8PannelTBPlot ***********************************************************************************
+  //********************************************************************************************************************************
+  void CreateCanvasAndPadsFor8PannelTBPlot(TCanvas* &canvas, TPad* pads[8],  Double_t* topRCornerX, Double_t* topRCornerY,  Double_t* relSize8P, Int_t textSizePixel = 30){
+    Double_t arrayBoundsXIndMeasRatio[5];
+    Double_t arrayBoundsYIndMeasRatio[3];
+    Double_t relativeMarginsIndMeasRatioX[3];
+    Double_t relativeMarginsIndMeasRatioY[3];
+    ReturnCorrectValuesForCanvasScaling(2200,1200, 4, 2,0.03, 0.005, 0.005,0.05,arrayBoundsXIndMeasRatio,arrayBoundsYIndMeasRatio,relativeMarginsIndMeasRatioX,relativeMarginsIndMeasRatioY);
+
+    canvas = new TCanvas("canvas8Panel","",0,0,2200,1200);  // gives the page size
+    canvas->cd();
+
+    //*****************************************************************
+    // Test beam geometry (beam coming from viewer)
+    //===========================================================
+    //||    8 (4)    ||    7 (5)   ||    6 (6)   ||    5 (7)   ||  row 1
+    //===========================================================
+    //||    1 (0)    ||    2 (1)   ||    3 (2)   ||    4 (3)   ||  row 0
+    //===========================================================
+    //    col 0     col 1       col 2     col  3
+    // rebuild pad geom in similar way (numbering -1)
+    //*****************************************************************
     
+    pads[0] = new TPad("pad8Panel_0", "", arrayBoundsXIndMeasRatio[0], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
+    pads[1] = new TPad("pad8Panel_1", "", arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
+    pads[2] = new TPad("pad8Panel_2", "", arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
+    pads[3] = new TPad("pad8Panel_3", "", arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[4], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
+    pads[4] = new TPad("pad8Panel_4", "", arrayBoundsXIndMeasRatio[0], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
+    pads[5] = new TPad("pad8Panel_5", "", arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
+    pads[6] = new TPad("pad8Panel_6", "", arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
+    pads[7] = new TPad("pad8Panel_7", "", arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[4], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
+    
+    DefaultPadSettings( pads[4], relativeMarginsIndMeasRatioX[0], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioY[0], relativeMarginsIndMeasRatioY[1]);
+    DefaultPadSettings( pads[5], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioY[0], relativeMarginsIndMeasRatioY[1]);
+    DefaultPadSettings( pads[6], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioY[0], relativeMarginsIndMeasRatioY[1]);
+    DefaultPadSettings( pads[7], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioX[2], relativeMarginsIndMeasRatioY[0], relativeMarginsIndMeasRatioY[1]);
+    DefaultPadSettings( pads[0], relativeMarginsIndMeasRatioX[0], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioY[1], relativeMarginsIndMeasRatioY[2]);
+    DefaultPadSettings( pads[1], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioY[1], relativeMarginsIndMeasRatioY[2]);
+    DefaultPadSettings( pads[2], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioY[1], relativeMarginsIndMeasRatioY[2]);
+    DefaultPadSettings( pads[3], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioX[2], relativeMarginsIndMeasRatioY[1], relativeMarginsIndMeasRatioY[2]);
+    
+    topRCornerX[0]  = 1-relativeMarginsIndMeasRatioX[1];
+    topRCornerY[0]  = 1-relativeMarginsIndMeasRatioY[1];
+    topRCornerX[1]  = 1-relativeMarginsIndMeasRatioX[1];
+    topRCornerY[1]  = 1-relativeMarginsIndMeasRatioY[1];
+    topRCornerX[2]  = 1-relativeMarginsIndMeasRatioX[1];
+    topRCornerY[2]  = 1-relativeMarginsIndMeasRatioY[1];
+    topRCornerX[3]  = 1-relativeMarginsIndMeasRatioX[2];
+    topRCornerY[3]  = 1-relativeMarginsIndMeasRatioY[1];
+    topRCornerX[4]  = 1-relativeMarginsIndMeasRatioX[2];
+    topRCornerY[4]  = 1-relativeMarginsIndMeasRatioY[0];
+    topRCornerX[5]  = 1-relativeMarginsIndMeasRatioX[1];
+    topRCornerY[5]  = 1-relativeMarginsIndMeasRatioY[0];
+    topRCornerX[6]  = 1-relativeMarginsIndMeasRatioX[1];
+    topRCornerY[6]  = 1-relativeMarginsIndMeasRatioY[0];
+    topRCornerX[7]  = 1-relativeMarginsIndMeasRatioX[1];
+    topRCornerY[7]  = 1-relativeMarginsIndMeasRatioY[0];
+    
+    for (Int_t p = 0; p < 8; p++){
+      if (pads[p]->XtoPixel(pads[p]->GetX2()) < pads[p]->YtoPixel(pads[p]->GetY1())){
+        relSize8P[p]  = (Double_t)textSizePixel/pads[p]->XtoPixel(pads[p]->GetX2()) ;
+      } else {
+        relSize8P[p]  = (Double_t)textSizePixel/pads[p]->YtoPixel(pads[p]->GetY1());
+      }
+      std::cout << p << "\t" << topRCornerX[p]<< "\t" << topRCornerY[p] << "\t" << relSize8P[p] << std::endl;
+    }
+    return;
+  }
+  
+  
+  //__________________________________________________________________________________________________________
+  // Plot Noise with Fits for Full layer
+  //__________________________________________________________________________________________________________
+  void PlotNoiseWithFitsFullLayer (TCanvas* canvas8Panel, TPad* pads[8], Double_t* topRCornerX,  Double_t* topRCornerY, Double_t* relSize8P, Int_t textSizePixel, 
+                                  std::map<int,TileSpectra> spectra, Setup* setupT, bool isHG, 
+                                  Double_t xPMin, Double_t xPMax, Double_t scaleYMax, int layer, int mod,  TString nameOutput, RunInfo currRunInfo){
+                                  
+    Double_t maxY = 0;
+    std::map<int, TileSpectra>::iterator ithSpectra;
+    
+    int nRow = setupT->GetNMaxRow()+1;
+    int nCol = setupT->GetNMaxColumn()+1;
+    
+    for (int r = 0; r < nRow; r++){
+      for (int c = 0; c < nCol; c++){
+        int tempCellID = setupT->GetCellID(r,c, layer, mod);
+        ithSpectra=spectra.find(tempCellID);
+        if(ithSpectra==spectra.end()){
+          std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
+          continue;
+        } 
+        TH1D* tempHist = nullptr;
+        if (isHG){
+          tempHist = ithSpectra->second.GetHG();
+        } else {
+          tempHist = ithSpectra->second.GetLG();
+        }
+        if (maxY < FindLargestBin1DHist(tempHist, xPMin , xPMax)) maxY = FindLargestBin1DHist(tempHist, xPMin , xPMax);
+      }  
+    }
+    
+    for (int r = 0; r < nRow; r++){
+      for (int c = 0; c < nCol; c++){
+        canvas8Panel->cd();
+        int tempCellID = setupT->GetCellID(r,c, layer, mod);
+        int p = setupT->GetChannelInLayer(tempCellID);
+        pads[p]->Draw();
+        pads[p]->cd();
+        pads[p]->SetLogy();
+        ithSpectra=spectra.find(tempCellID);
+        if(ithSpectra==spectra.end()){
+          std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
+          continue;
+        } 
+        TH1D* tempHist = nullptr;
+        if (isHG){
+            tempHist = ithSpectra->second.GetHG();
+        } else {
+            tempHist = ithSpectra->second.GetLG();
+        }
+        SetStyleHistoTH1ForGraphs( tempHist, tempHist->GetXaxis()->GetTitle(), tempHist->GetYaxis()->GetTitle(), 0.85*textSizePixel, textSizePixel, 0.85*textSizePixel, textSizePixel,0.9, 1.1, 510, 510, 43, 63);  
+        SetMarkerDefaults(tempHist, 20, 1, kBlue+1, kBlue+1, kFALSE);   
+        tempHist->GetXaxis()->SetRangeUser(xPMin,xPMax);
+        tempHist->GetYaxis()->SetRangeUser(0.7,scaleYMax*maxY);
+        
+        tempHist->Draw("pe");
+        
+        TString label           = Form("row %d col %d", r, c);
+        if (p == 7){
+          label = Form("row %d col %d layer %d", r, c, layer);
+        }
+        TLatex *labelChannel    = new TLatex(topRCornerX[p]-0.04,topRCornerY[p]-1.2*relSize8P[p],label);
+        SetStyleTLatex( labelChannel, 0.85*textSizePixel,4,1,43,kTRUE,31);
+
+        
+        TF1* fit = nullptr;
+        if (isHG){
+          fit = ithSpectra->second.GetBackModel(1);
+        } else {
+          fit = ithSpectra->second.GetBackModel(0);  
+        }
+        if (fit){
+          SetStyleFit(fit , 0, 400, 7, 7, kBlack);
+          fit->Draw("same");
+          TLegend* legend = GetAndSetLegend2( topRCornerX[p]-8*relSize8P[p], topRCornerY[p]-4*0.85*relSize8P[p]-0.4*relSize8P[p], topRCornerX[p]-0.04, topRCornerY[p]-0.6*relSize8P[p],0.85*textSizePixel, 1, label, 43,0.2);
+          legend->AddEntry(fit, "Gauss noise fit", "l");
+          legend->AddEntry((TObject*)0, Form("#mu = %2.2f #pm %2.2f",fit->GetParameter(1), fit->GetParError(1) ) , " ");
+          legend->AddEntry((TObject*)0, Form("#sigma = %2.2f #pm %2.2f",fit->GetParameter(2), fit->GetParError(2) ) , " ");
+          legend->Draw();
+            
+        } else {
+          labelChannel->Draw();  
+        }
+      
+        if (p ==7 ){
+          DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-4*0.85*relSize8P[p]-1.4*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+          DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-4*0.85*relSize8P[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42);
+        }
+      }
+    }
+    canvas8Panel->SaveAs(nameOutput.Data());
+  }
+
+
+  
 #endif
