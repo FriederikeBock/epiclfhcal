@@ -3,6 +3,8 @@
 #include <iostream>
 #include <fstream>
 
+//Setup* Setup::instancePtr = nullptr; // Add for use on Mac OS
+
 ClassImp(Setup);
 
 bool Setup::Initialize(TString file, int debug){
