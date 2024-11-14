@@ -1001,6 +1001,99 @@
     canvas8Panel->SaveAs(nameOutput.Data());
   }
 
+  //__________________________________________________________________________________________________________
+  // Plot Mip with Fits for Full layer
+  //__________________________________________________________________________________________________________
+  void PlotMipWithFitsFullLayer (TCanvas* canvas8Panel, TPad* pads[8], Double_t* topRCornerX,  Double_t* topRCornerY, Double_t* relSize8P, Int_t textSizePixel, 
+                                  std::map<int,TileSpectra> spectra, Setup* setupT, bool isHG, 
+                                  Double_t xPMin, Double_t xPMax, Double_t scaleYMax, int layer, int mod,  TString nameOutput, RunInfo currRunInfo){
+                                  
+    Double_t maxY = 0;
+    std::map<int, TileSpectra>::iterator ithSpectra;
+    
+    int nRow = setupT->GetNMaxRow()+1;
+    int nCol = setupT->GetNMaxColumn()+1;
+    
+    for (int r = 0; r < nRow; r++){
+      for (int c = 0; c < nCol; c++){
+        int tempCellID = setupT->GetCellID(r,c, layer, mod);
+        ithSpectra=spectra.find(tempCellID);
+        if(ithSpectra==spectra.end()){
+          std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
+          continue;
+        } 
+        TH1D* tempHist = nullptr;
+        if (isHG){
+          tempHist = ithSpectra->second.GetHG();
+        } else {
+          tempHist = ithSpectra->second.GetLG();
+        }
+        if (maxY < FindLargestBin1DHist(tempHist, xPMin , xPMax)) maxY = FindLargestBin1DHist(tempHist, xPMin , xPMax);
+      }  
+    }
+    
+    for (int r = 0; r < nRow; r++){
+      for (int c = 0; c < nCol; c++){
+        canvas8Panel->cd();
+        int tempCellID = setupT->GetCellID(r,c, layer, mod);
+        int p = setupT->GetChannelInLayer(tempCellID);
+        pads[p]->Draw();
+        pads[p]->cd();
+        pads[p]->SetLogy();
+        ithSpectra=spectra.find(tempCellID);
+        if(ithSpectra==spectra.end()){
+          std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
+          continue;
+        } 
+        TH1D* tempHist = nullptr;
+        if (isHG){
+            tempHist = ithSpectra->second.GetHG();
+        } else {
+            tempHist = ithSpectra->second.GetLG();
+        }
+        SetStyleHistoTH1ForGraphs( tempHist, tempHist->GetXaxis()->GetTitle(), tempHist->GetYaxis()->GetTitle(), 0.85*textSizePixel, textSizePixel, 0.85*textSizePixel, textSizePixel,0.9, 1.1, 510, 510, 43, 63);  
+        SetMarkerDefaults(tempHist, 20, 1, kBlue+1, kBlue+1, kFALSE);   
+        tempHist->GetXaxis()->SetRangeUser(xPMin,xPMax);
+        tempHist->GetYaxis()->SetRangeUser(0.7,scaleYMax*maxY);
+        
+        tempHist->Draw("pe");
+        
+        TString label           = Form("row %d col %d", r, c);
+        if (p == 7){
+          label = Form("row %d col %d layer %d", r, c, layer);
+        }
+        TLatex *labelChannel    = new TLatex(topRCornerX[p]-0.04,topRCornerY[p]-1.2*relSize8P[p],label);
+        SetStyleTLatex( labelChannel, 0.85*textSizePixel,4,1,43,kTRUE,31);
+
+        
+//         TF1* fit = nullptr;
+//         if (isHG){
+//           fit = ithSpectra->second.GetBackModel(1);
+//         } else {
+//           fit = ithSpectra->second.GetBackModel(0);  
+//         }
+//         if (fit){
+//           SetStyleFit(fit , 0, 400, 7, 7, kBlack);
+//           fit->Draw("same");
+//           TLegend* legend = GetAndSetLegend2( topRCornerX[p]-8*relSize8P[p], topRCornerY[p]-4*0.85*relSize8P[p]-0.4*relSize8P[p], topRCornerX[p]-0.04, topRCornerY[p]-0.6*relSize8P[p],0.85*textSizePixel, 1, label, 43,0.2);
+//           legend->AddEntry(fit, "Gauss noise fit", "l");
+//           legend->AddEntry((TObject*)0, Form("#mu = %2.2f #pm %2.2f",fit->GetParameter(1), fit->GetParError(1) ) , " ");
+//           legend->AddEntry((TObject*)0, Form("#sigma = %2.2f #pm %2.2f",fit->GetParameter(2), fit->GetParError(2) ) , " ");
+//           legend->Draw();
+//             
+//         } else {
+          labelChannel->Draw();  
+        // }
+      
+        if (p ==7 ){
+          DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-4*0.85*relSize8P[p]-1.4*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+          DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-4*0.85*relSize8P[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42);
+        }
+      }
+    }
+    canvas8Panel->SaveAs(nameOutput.Data());
+  }
+
 
   
 #endif

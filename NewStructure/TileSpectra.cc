@@ -15,7 +15,19 @@ bool TileSpectra::Fill(double l, double h){
   return true;
 }
 
-bool TileSpectra::FitNoise(double* out){
+bool TileSpectra::FillSpectra(double l, double h){
+  hspectraLG.Fill(l);
+  hspectraHG.Fill(h);
+  return true;
+}
+
+bool TileSpectra::FillCorr(double l, double h){
+  hspectraLGHG.Fill(l,h);
+  return true;
+}
+
+
+bool TileSpectra::FitNoise(double* out){        //[0] LG mean, [2] LG sigma, [4] HG mean, [6] HG sigma errors uneven numbers
   TFitResultPtr result;
   // estimate LG pedestal per channel
   BackgroundLG=TF1(Form("fped%sLGCellID%d",TileName.Data(),cellID),"gaus",0,400);
@@ -28,10 +40,10 @@ bool TileSpectra::FitNoise(double* out){
   BackgroundLG.SetParameter(2,10);
   result=hspectraLG.Fit(&BackgroundLG,"QRMEN0S"); // initial fit
   double minLGFit = result->Parameter(1)-2*result->Parameter(2);
-  double maxLGFit = result->Parameter(1)+2*result->Parameter(2);
+  double maxLGFit = result->Parameter(1)+1*result->Parameter(2);
   if (debug > 1) std::cout << minLGFit << "\t" << maxLGFit << "\t" << hspectraLG.GetEntries() << "\t" << hspectraLG.GetMean()<< std::endl;
   result=hspectraLG.Fit(&BackgroundLG,"QRMEN0S","", minLGFit, maxLGFit);  // limit to 2sigma
-  bpedHG=true;
+  bpedLG=true;
   calib->PedestalMeanL=result->Parameter(1);//Or maybe we do not want to do it automatically, only if =0?
   calib->PedestalSigL =result->Parameter(2);//Or maybe we do not want to do it automatically, only if =0?
   out[0]=result->Parameter(1);
@@ -50,10 +62,10 @@ bool TileSpectra::FitNoise(double* out){
   BackgroundHG.SetParameter(2,10);
   result=hspectraHG.Fit(&BackgroundHG,"QRMEN0S");      // initial fit
   double minHGFit = result->Parameter(1)-2*result->Parameter(2);
-  double maxHGFit = result->Parameter(1)+2*result->Parameter(2);
+  double maxHGFit = result->Parameter(1)+1*result->Parameter(2);
   if (debug > 1) std::cout << minHGFit << "\t" << maxHGFit << std::endl;
   result=hspectraHG.Fit(&BackgroundHG,"QRMEN0S","",minHGFit, maxHGFit);  // limit to 2sigma range of previous fit
-  bpedLG=true;
+  bpedHG=true;
   
   calib->PedestalMeanH=result->Parameter(1);//Or maybe we do not want to do it automatically, only if =0?
   calib->PedestalSigH =result->Parameter(2);//Or maybe we do not want to do it automatically, only if =0?
@@ -96,10 +108,10 @@ TF1* TileSpectra::GetBackModel(int lh){
 }
 
 TF1* TileSpectra::GetSignalModel(int lh){
-    if(lh==0){
+    if(lh==0 && bmipLG){
     return &SignalLG;
   }
-  else if (lh==1){
+  else if (lh==1 && bmipHG){
     return &SignalHG;
   }
   else return nullptr;
@@ -109,12 +121,17 @@ TF1* TileSpectra::GetCorrModel(){
   return &HGLGcorr;
 }
 
-void TileSpectra::Write(){
-  hspectraHG.Write();
-  if(bpedHG)BackgroundHG.Write();
-  hspectraLG.Write();
-  if(bpedLG)BackgroundLG.Write();
-  hspectraLGHG.Write();
+void TileSpectra::Write( bool wFits = true){
+  hspectraHG.Write(hspectraHG.GetName(), kOverwrite);
+  hspectraLG.Write(hspectraLG.GetName(), kOverwrite);
+  hspectraLGHG.Write(hspectraLGHG.GetName(), kOverwrite);
+  if ( wFits ){
+    if(bpedHG)BackgroundHG.Write(BackgroundHG.GetName(), kOverwrite);
+    if(bmipHG)SignalHG.Write(SignalHG.GetName(), kOverwrite);
+    if(bpedLG)BackgroundLG.Write(BackgroundLG.GetName(), kOverwrite);
+    if(bmipLG)SignalLG.Write(SignalLG.GetName(), kOverwrite);
+    if(bcorrHGLG)HGLGcorr.Write(HGLGcorr.GetName(), kOverwrite);
+  }
 }
 
 double TileSpectra::langaufun(double *x, double *par) {

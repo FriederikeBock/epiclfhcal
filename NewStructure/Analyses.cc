@@ -799,18 +799,18 @@ bool Analyses::GetPedestal(void){
   bool isGood;
   for(ithSpectra=hSpectra.begin(); ithSpectra!=hSpectra.end(); ++ithSpectra){
     isGood=ithSpectra->second.FitNoise(parameters);
-    hMeanPedHGvsCellID->SetBinContent(hMeanPedHGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[0]);
-    hMeanPedHGvsCellID->SetBinError  (hMeanPedHGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[2]);
-    hMeanPedLGvsCellID->SetBinContent(hMeanPedLGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[4]);
-    hMeanPedLGvsCellID->SetBinError  (hMeanPedLGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[6]);
+    hMeanPedHGvsCellID->SetBinContent(hMeanPedHGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[4]);
+    hMeanPedHGvsCellID->SetBinError  (hMeanPedHGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[6]);
+    hMeanPedLGvsCellID->SetBinContent(hMeanPedLGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[0]);
+    hMeanPedLGvsCellID->SetBinError  (hMeanPedLGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[2]);
     
     int layer     = setup->GetLayer(ithSpectra->second.GetCellID());
     int chInLayer = setup->GetChannelInLayer(ithSpectra->second.GetCellID());
   
-    hspectraHGMeanVsLayer->SetBinContent(hspectraHGMeanVsLayer->FindBin(layer,chInLayer), parameters[0]);
-    hspectraHGMeanVsLayer->SetBinError(hspectraHGMeanVsLayer->FindBin(layer,chInLayer), parameters[1]);
-    hspectraHGSigmaVsLayer->SetBinContent(hspectraHGSigmaVsLayer->FindBin(layer,chInLayer), parameters[2]);
-    hspectraHGSigmaVsLayer->SetBinError(hspectraHGSigmaVsLayer->FindBin(layer,chInLayer), parameters[3]);
+    hspectraHGMeanVsLayer->SetBinContent(hspectraHGMeanVsLayer->FindBin(layer,chInLayer), parameters[4]);
+    hspectraHGMeanVsLayer->SetBinError(hspectraHGMeanVsLayer->FindBin(layer,chInLayer), parameters[5]);
+    hspectraHGSigmaVsLayer->SetBinContent(hspectraHGSigmaVsLayer->FindBin(layer,chInLayer), parameters[6]);
+    hspectraHGSigmaVsLayer->SetBinError(hspectraHGSigmaVsLayer->FindBin(layer,chInLayer), parameters[7]);
     hspectraLGMeanVsLayer->SetBinContent(hspectraLGMeanVsLayer->FindBin(layer,chInLayer), parameters[0]);
     hspectraLGMeanVsLayer->SetBinError(hspectraLGMeanVsLayer->FindBin(layer,chInLayer), parameters[1]);
     hspectraLGSigmaVsLayer->SetBinContent(hspectraLGSigmaVsLayer->FindBin(layer,chInLayer), parameters[2]);
@@ -833,7 +833,7 @@ bool Analyses::GetPedestal(void){
   //RootOutputHist->mkdir("IndividualCells");
   RootOutputHist->cd("IndividualCells");
   for(ithSpectra=hSpectra.begin(); ithSpectra!=hSpectra.end(); ++ithSpectra){
-    ithSpectra->second.Write();
+    ithSpectra->second.Write(true);
   }
   RootOutputHist->cd();
   hspectraHGvsCellID->Write();
@@ -883,13 +883,14 @@ bool Analyses::GetPedestal(void){
   //********************************* 8 Panel overview plot  **************************************************
   //***********************************************************************************************************
   //*****************************************************************
-  // Test beam geometry (beam coming from viewer)
-  //==============================================
-  //||    8    ||    7    ||    6    ||    5    ||
-  //==============================================
-  //||    1    ||    2    ||    3    ||    4    ||
-  //==============================================
-  // rebuild pad geom in similar way (numbering -1)
+    // Test beam geometry (beam coming from viewer)
+    //===========================================================
+    //||    8 (4)    ||    7 (5)   ||    6 (6)   ||    5 (7)   ||  row 0
+    //===========================================================
+    //||    1 (0)    ||    2 (1)   ||    3 (2)   ||    4 (3)   ||  row 1
+    //===========================================================
+    //    col 0     col 1       col 2     col  3
+    // rebuild pad geom in similar way (numbering -1)
   //*****************************************************************
   TCanvas* canvas8Panel;
   TPad* pad8Panel[8];
@@ -912,10 +913,14 @@ bool Analyses::GetPedestal(void){
   return true;
 }
 
+// ****************************************************************************
+// extract pedestral from dedicated data run, no other data in run 
+// ****************************************************************************
 bool Analyses::CorrectPedestal(void){
   std::cout<<"Correct Pedestal"<<std::endl;
   int evts=TdataIn->GetEntries();
   for(int i=0; i<evts; i++){
+    if (i%5000 == 0&& i > 0 && debug > 0) std::cout << "Reading " <<  i << "/" << evts << " events"<< std::endl;
     TdataIn->GetEntry(i);
     RootOutput->cd();
     TdataOut->Fill();
@@ -931,79 +936,158 @@ bool Analyses::CorrectPedestal(void){
   RootInput->Close();
   return true;
 }
+
 bool Analyses::GetScaling(void){
   std::cout<<"GetScaling"<<std::endl;
-  TH1D** hspectraHG           = new TH1D*[setup->GetMaxCellID()+1];
-  TProfile** hspectraLGHG     = new TProfile*[setup->GetMaxCellID()+1];
   
+  std::map<int,RunInfo> ri=readRunInfosFromFile(RunListInputName.Data(),debug,0);
   
-  for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
-    if (setup->GetROunit(ich) != -999){
-      hspectraHG[ich]  = new TH1D(Form("hMIPspectraHGCellID%d",ich),Form("ADC spectrum High Gain CellID %d",ich),4000,0,4000);
-      hspectraLGHG[ich]= new TProfile(Form("hCoorspectraLGHGCellID%d",ich),Form("ADC Low  Gain/High Gain correlation CellID %d",ich),800,0,800);
-    } else {
-      hspectraHG[ich]  = nullptr;
-      hspectraLGHG[ich]  = nullptr;
-    }
+  std::map<int,TileSpectra> hSpectra;
+  std::map<int, TileSpectra>::iterator ithSpectra;
+
+  std::cout << "Additional Output with histos being created: " << RootOutputNameHist.Data() << std::endl;
+  if(Overwrite){
+    std::cout << "recreating file with hists" << std::endl;
+    RootOutputHist = new TFile(RootOutputNameHist.Data(),"RECREATE");
+  } else{
+    std::cout << "newly creating file with hists" << std::endl;
+    RootOutputHist = new TFile(RootOutputNameHist.Data(),"CREATE");
   }
+  // entering histoOutput file
+  RootOutputHist->mkdir("IndividualCells");
+  RootOutputHist->cd("IndividualCells");
+
   TcalibIn->GetEntry(0);
   int evts=TdataIn->GetEntries();
+  int runNr = -1;
   for(int i=0; i<evts; i++){
     TdataIn->GetEntry(i);
-    if (i%5000 == 0 && i > 0 && debug > 0) std::cout << "Reading " <<  i << " events/ " << evts << std::endl;
+    if (i == 0)runNr = event.GetRunNumber();
+    if (i%5000 == 0 && i > 0 && debug > 0) std::cout << "Reading " <<  i << " / " << evts << " events" << std::endl;
     if (i == 0 && debug > 2) std::cout << "decoding cell IDs" << std::endl ;
     for(int j=0; j<event.GetNTiles(); j++){
       Caen* aTile=(Caen*)event.GetTile(j);
       if (i == 0 && debug > 2) std::cout << ((TString)setup->DecodeCellID(aTile->GetCellID())).Data() << std::endl;
-      if(aTile->GetADCHigh()<3900) hspectraHG[aTile->GetCellID()]->Fill(aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID())-7*calib.GetPedestalSigH(aTile->GetCellID()));
-      if((aTile->GetADCLow() -calib.GetPedestalMeanL(aTile->GetCellID())-3*calib.GetPedestalSigL(aTile->GetCellID())>0)&&//Above Low gain noise
-        (aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID())-3*calib.GetPedestalSigH(aTile->GetCellID())>0)&&//Above High gain noise
-        (aTile->GetADCHigh()<3900))//below saturation
-        hspectraLGHG[aTile->GetCellID()]->Fill(aTile->GetADCLow()-calib.GetPedestalMeanL(aTile->GetCellID()),aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID()));
+      
+      ithSpectra=hSpectra.find(aTile->GetCellID());
+      double hgCorr = aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID());
+      double lgCorr = aTile->GetADCLow()-calib.GetPedestalMeanL(aTile->GetCellID());
+      
+      if(ithSpectra!=hSpectra.end()){
+        ithSpectra->second.FillSpectra(lgCorr,hgCorr);
+        if (hgCorr > 3*calib.GetPedestalSigH(aTile->GetCellID()) && lgCorr > 3*calib.GetPedestalSigL(aTile->GetCellID()) && hgCorr < 3900 )
+          ithSpectra->second.FillCorr(lgCorr,hgCorr);
+      } else {
+        RootOutputHist->cd("IndividualCells");
+        hSpectra[aTile->GetCellID()]=TileSpectra("mip1st",aTile->GetCellID(),calib.GetTileCalib(aTile->GetCellID()),debug);
+        hSpectra[aTile->GetCellID()].FillSpectra(lgCorr,hgCorr);;
+        if (hgCorr > 3*calib.GetPedestalSigH(aTile->GetCellID()) && lgCorr > 3*calib.GetPedestalSigL(aTile->GetCellID() && hgCorr < 3900) )
+          hSpectra[aTile->GetCellID()].FillCorr(lgCorr,hgCorr);;
+        RootOutput->cd();
+      }
     }
     RootOutput->cd();
     TdataOut->Fill();
   }
-  TdataOut->Write();
-  TsetupIn->CloneTree()->Write();
-  TF1* corr = new TF1("corr","[0]+[1]*x",0,4000);
-  TF1* sign = new TF1("sign","[0]*TMath::Landau(x,[1],[2],false)+[3]*exp(-[4]*x)+[5]*exp(-(x-[6])*(x-[6])/2/[7]/[7])",0,4000);
-  sign->SetParLimits(0,0,1e7);
-  sign->SetParLimits(1,0,600);
-  sign->SetParLimits(2,0,600);
-  sign->SetParLimits(3,0,1e6);
-  sign->SetParLimits(4,0,10);
-  sign->SetParLimits(6,-1000,0);
-  sign->SetParLimits(7,0,500);
-  TFitResultPtr result;
-  corr->SetParLimits(0,-50,200);
-  corr->SetParLimits(1,0, 50);
-  for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
-    if (setup->GetROunit(ich) == -999) continue;
-    sign->SetParameter(0,hspectraHG[ich]->GetMaximum());
-    sign->SetParameter(1,hspectraHG[ich]->GetMaximumBin()+15);
-    sign->SetParameter(2,50.);
-    sign->SetParameter(3,10);
-    sign->SetParameter(4,0.01);
-    sign->SetParameter(5,hspectraHG[ich]->GetMaximum());
-    sign->FixParameter(6,-7*calib.GetPedestalSigH(ich));
-    sign->FixParameter(7,calib.GetPedestalSigH(ich));
-    result=hspectraHG[ich]->Fit(sign,"SR");
-    hspectraHG[ich]->Write();
-    //std::cout<<ich<<"\t"<<hspectraLGHG[ich]->GetEntries()<<" "<<result <<std::endl;
-    if(result!=-1) calib.SetScaleHigh(result->Parameter(1)+7*calib.GetPedestalSigH(ich),ich);
-    else calib.SetScaleHigh(0.,ich);
-    corr->SetParameter(0,0.);
-    corr->SetParameter(1,10.);
-    result=hspectraLGHG[ich]->Fit(corr,"SR");
-    hspectraLGHG[ich]->Write();
-    if(result!=-1)calib.SetScaleLow(calib.GetScaleHigh(ich)/result->Parameter(1),ich);
-    else calib.SetScaleLow(0,ich);
-  }
+  // TdataOut->Write();
+  // TsetupIn->CloneTree()->Write();
+  // TF1* corr = new TF1("corr","[0]+[1]*x",0,4000);
+  // TF1* sign = new TF1("sign","[0]*TMath::Landau(x,[1],[2],false)+[3]*exp(-[4]*x)+[5]*exp(-(x-[6])*(x-[6])/2/[7]/[7])",0,4000);
+  // sign->SetParLimits(0,0,1e7);
+  // sign->SetParLimits(1,0,600);
+  // sign->SetParLimits(2,0,600);
+  // sign->SetParLimits(3,0,1e6);
+  // sign->SetParLimits(4,0,10);
+  // sign->SetParLimits(6,-1000,0);
+  // sign->SetParLimits(7,0,500);
+  // TFitResultPtr result;
+  // corr->SetParLimits(0,-50,200);
+  // corr->SetParLimits(1,0, 50);
+  // for(int ich=0; ich<setup->GetMaxCellID()+1; ich++){
+  //   if (setup->GetROunit(ich) == -999) continue;
+  //   sign->SetParameter(0,hspectraHG[ich]->GetMaximum());
+  //   sign->SetParameter(1,hspectraHG[ich]->GetMaximumBin()+15);
+  //   sign->SetParameter(2,50.);
+  //   sign->SetParameter(3,10);
+  //   sign->SetParameter(4,0.01);
+  //   sign->SetParameter(5,hspectraHG[ich]->GetMaximum());
+  //   sign->FixParameter(6,-7*calib.GetPedestalSigH(ich));
+  //   sign->FixParameter(7,calib.GetPedestalSigH(ich));
+  //   result=hspectraHG[ich]->Fit(sign,"SR");
+  //   hspectraHG[ich]->Write();
+  //   //std::cout<<ich<<"\t"<<hspectraLGHG[ich]->GetEntries()<<" "<<result <<std::endl;
+  //   if(result!=-1) calib.SetScaleHigh(result->Parameter(1)+7*calib.GetPedestalSigH(ich),ich);
+  //   else calib.SetScaleHigh(0.,ich);
+  //   corr->SetParameter(0,0.);
+  //   corr->SetParameter(1,10.);
+  //   result=hspectraLGHG[ich]->Fit(corr,"SR");
+  //   hspectraLGHG[ich]->Write();
+  //   if(result!=-1)calib.SetScaleLow(calib.GetScaleHigh(ich)/result->Parameter(1),ich);
+  //   else calib.SetScaleLow(0,ich);
+  // }
   TcalibOut->Fill();
   TcalibOut->Write();
   RootOutput->Close();
-  RootInput->Close();      
+
+
+  RootOutputHist->cd("IndividualCells");
+  for(ithSpectra=hSpectra.begin(); ithSpectra!=hSpectra.end(); ++ithSpectra){
+    ithSpectra->second.Write(false);
+  }
+  RootOutputHist->cd();
+  
+  // fill calib tree & write it
+  // close open root files
+  RootOutputHist->Write();
+  RootOutputHist->Close();
+
+  RootInput->Close();
+
+  // Get run info object
+  std::map<int,RunInfo>::iterator it=ri.find(runNr);
+  
+  // create directory for plot output
+  TString outputDirPlots = GetPlotOutputDir();
+  gSystem->Exec("mkdir -p "+outputDirPlots);
+  
+  //**********************************************************************
+  // Create canvases for channel overview plotting
+  //**********************************************************************
+  Double_t textSizeRel = 0.035;
+  StyleSettingsBasics("pdf");
+  SetPlotStyle();
+  
+  //***********************************************************************************************************
+  //********************************* 8 Panel overview plot  **************************************************
+  //***********************************************************************************************************
+  //*****************************************************************
+    // Test beam geometry (beam coming from viewer)
+    //===========================================================
+    //||    8 (4)    ||    7 (5)   ||    6 (6)   ||    5 (7)   ||  row 0
+    //===========================================================
+    //||    1 (0)    ||    2 (1)   ||    3 (2)   ||    4 (3)   ||  row 1
+    //===========================================================
+    //    col 0     col 1       col 2     col  3
+    // rebuild pad geom in similar way (numbering -1)
+  //*****************************************************************
+  TCanvas* canvas8Panel;
+  TPad* pad8Panel[8];
+  Double_t topRCornerX[8];
+  Double_t topRCornerY[8];
+  Int_t textSizePixel = 30;
+  Double_t relSize8P[8];
+  CreateCanvasAndPadsFor8PannelTBPlot(canvas8Panel, pad8Panel,  topRCornerX, topRCornerY, relSize8P, textSizePixel);
+
+  for (Int_t l = 0; l < setup->GetNMaxLayer()+1; l++){    
+    PlotMipWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                              hSpectra, setup, true, -100, 3905, 1.2, l, 0,
+                              Form("%s/MIP_HG_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
+    PlotMipWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                              hSpectra, setup, false, -100, 3905, 1.2, l, 0,
+                              Form("%s/MIP_LG_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
+  }
+
+  
   return true;
 }
 
