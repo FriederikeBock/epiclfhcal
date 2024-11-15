@@ -89,7 +89,7 @@ bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, bool impE
   TString funcName = Form("fmip%sHGCellID%d",TileName.Data(),cellID);
   
   
-  double fitrange[2]      = {100, 2000};
+  double fitrange[2]      = {50, 2000};
   double intArea    = hspectraHG.Integral(hspectraHG.FindBin(fitrange[0]),hspectraHG.FindBin(fitrange[1]));
   double intNoise   = hspectraHG.Integral(hspectraHG.FindBin(-2*calib->PedestalSigH),hspectraHG.FindBin(+2*calib->PedestalSigH));
   
@@ -98,7 +98,7 @@ bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, bool impE
     return false;
   }
   double startvalues[4]   = {50, 300, intArea, calib->PedestalSigH};
-  double parlimitslo[4]   = {0.5, 100, 1.0, calib->PedestalSigH*0.1};
+  double parlimitslo[4]   = {0.5, 50, 1.0, calib->PedestalSigH*0.1};
   double parlimitshi[4]   = {500, 1000, intArea*5, calib->PedestalSigH*10};
   
   SignalHG = TF1(funcName.Data(),langaufun,fitrange[0],fitrange[1],4);
@@ -211,6 +211,20 @@ bool TileSpectra::FitMipLG(double* out, double* outErr, int verbosity, bool impE
 }
 
 
+bool TileSpectra::FitLGHGCorr(int verbosity){
+  TString funcName = Form("fcorr%sLGHGCellID%d",TileName.Data(),cellID);
+  HGLGcorr =  TF1(funcName.Data(),"[0]+[1]*x",0,250);
+  HGLGcorr.SetParameter(0,0.);
+  HGLGcorr.SetParameter(1,10.);
+  hspectraLGHG.Fit(&HGLGcorr,"QRLN0"); 
+  bcorrHGLG=true;
+  if (bmipHG){
+    calib->ScaleL = calib->ScaleH/HGLGcorr.GetParameter(1);
+  }
+  return true;
+}
+
+
 
 
 bool TileSpectra::FitNoiseWithBG(double* out){
@@ -244,7 +258,7 @@ TF1* TileSpectra::GetBackModel(int lh){
 }
 
 TF1* TileSpectra::GetSignalModel(int lh){
-    if(lh==0 && bmipLG){
+  if(lh==0 && bmipLG){
     return &SignalLG;
   }
   else if (lh==1 && bmipHG){

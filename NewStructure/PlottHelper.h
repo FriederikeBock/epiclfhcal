@@ -1109,8 +1109,6 @@
               isTrigFit = true;
               maxFit = ithSpectraTrigg->second.GetCalib()->ScaleL;
           }  
-            
-          fit = ithSpectra->second.GetSignalModel(0);  
         }
         if (fit){
           if (isTrigFit)

@@ -1211,6 +1211,9 @@ bool Analyses::GetScaling(void){
   TH2D* hspectraLGGSigmaVsLayer2nd = new TH2D( "hspectraLGGSigmaVsLayer_2nd","Sigma Gauss High Gain; layer; brd channel; #sigma_{G,LG, 2^{nd}} (arb. units) ",
                                             setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hspectraLGGSigmaVsLayer2nd->SetDirectory(0);
+  TH2D* hLGHGCorrVsLayer2nd = new TH2D( "hLGHGCorrVsLayer2nd","LG-HG corr; layer; brd channel; a_{LG-HG} (arb. units) ",
+                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  hLGHGCorrVsLayer2nd->SetDirectory(0);
 
   currCells = 0;
   for(ithSpectra=hSpectraTrigg.begin(); ithSpectra!=hSpectraTrigg.end(); ++ithSpectra){
@@ -1239,11 +1242,11 @@ bool Analyses::GetScaling(void){
       hspectraHGGSigmaVsLayer2nd->SetBinContent(bin2D, parameters[3]);
       hspectraHGGSigmaVsLayer2nd->SetBinError(bin2D, parErrAndRes[3]);
     }
-    isGood=ithSpectra->second.FitMipLG(parameters, parErrAndRes, debug, false);
     for (int p = 0; p < 6; p++){
       parameters[p]   = 0;
       parErrAndRes[p] = 0;
     }
+    isGood=ithSpectra->second.FitMipLG(parameters, parErrAndRes, debug, false);
     if (isGood){
       hspectraLGMaxVsLayer2nd->SetBinContent(bin2D, parameters[4]);
       hspectraLGFWHMVsLayer2nd->SetBinContent(bin2D, parameters[5]);
@@ -1254,6 +1257,9 @@ bool Analyses::GetScaling(void){
       hspectraLGGSigmaVsLayer2nd->SetBinContent(bin2D, parameters[3]);
       hspectraLGGSigmaVsLayer2nd->SetBinError(bin2D, parErrAndRes[3]);
     }
+    isGood=ithSpectra->second.FitLGHGCorr(debug);
+    hLGHGCorrVsLayer2nd->SetBinContent(bin2D,ithSpectra->second.GetCorrModel()->GetParameter(1));
+    hLGHGCorrVsLayer2nd->SetBinError(bin2D,ithSpectra->second.GetCorrModel()->GetParError(1));
   }
   
   RootOutput->cd();
@@ -1293,6 +1299,7 @@ bool Analyses::GetScaling(void){
     hspectraLGLMPVVsLayer2nd->Write();
     hspectraLGLSigmaVsLayer2nd->Write();
     hspectraLGGSigmaVsLayer2nd->Write();
+    hLGHGCorrVsLayer2nd->Write();
     
   // fill calib tree & write it
   // close open root files
@@ -1343,6 +1350,7 @@ bool Analyses::GetScaling(void){
   PlotSimple2D( canvas2DCorr, hspectraLGLSigmaVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/LG_LandSigMip_2nd.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
   PlotSimple2D( canvas2DCorr, hspectraLGGSigmaVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/LG_GaussSigMip_2nd.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
 
+  PlotSimple2D( canvas2DCorr, hLGHGCorrVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/LG_HG_Corr_2nd.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
   
   //***********************************************************************************************************
   //********************************* 8 Panel overview plot  **************************************************

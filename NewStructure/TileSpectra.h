@@ -42,8 +42,8 @@ class TileSpectra: public TObject{
   bool FitNoise(double*);
   bool FitMipHG(double*, double*, int, bool );
   bool FitMipLG(double*, double*, int, bool );
+  bool FitLGHGCorr(int);
   bool FitNoiseWithBG(double*);
-  //bool FitAndPlotGainCorr(double*);//Maybe should be two separate functions
 
   int GetCellID();
   TH1D* GetHG();
