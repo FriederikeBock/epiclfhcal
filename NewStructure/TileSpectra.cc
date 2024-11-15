@@ -12,6 +12,7 @@ bool TileSpectra::Fill(double l, double h){
   hspectraLG.Fill(l);
   hspectraHG.Fill(h);
   hspectraLGHG.Fill(l,h);
+  hspectraHGLG.Fill(h,l);
   return true;
 }
 
@@ -23,6 +24,7 @@ bool TileSpectra::FillSpectra(double l, double h){
 
 bool TileSpectra::FillCorr(double l, double h){
   hspectraLGHG.Fill(l,h);
+  hspectraHGLG.Fill(h,l);
   return true;
 }
 
@@ -156,7 +158,7 @@ bool TileSpectra::FitMipLG(double* out, double* outErr, int verbosity, bool impE
   TString funcName = Form("fmip%sLGCellID%d",TileName.Data(),cellID);
   
   
-  double fitrange[2]      = {10, 500};
+  double fitrange[2]      = {0, 500};
   double intArea    = hspectraLG.Integral(hspectraLG.FindBin(fitrange[0]),hspectraLG.FindBin(fitrange[1]));
   double intNoise   = hspectraLG.Integral(hspectraLG.FindBin(-2*calib->PedestalSigL),hspectraLG.FindBin(+2*calib->PedestalSigL));
   
@@ -164,8 +166,8 @@ bool TileSpectra::FitMipLG(double* out, double* outErr, int verbosity, bool impE
     if (verbosity > 0) std::cout << "Skipped LG cell " << cellID << " S/B too small!" << std::endl;
     return false;
   }
-  double startvalues[4]   = {calib->PedestalSigL, 100, intArea, calib->PedestalSigL};
-  double parlimitslo[4]   = {0.5, 10, 1.0, calib->PedestalSigL*0.1};
+  double startvalues[4]   = {calib->PedestalSigL, 20, intArea, calib->PedestalSigL};
+  double parlimitslo[4]   = {0.5, 0, 1.0, calib->PedestalSigL*0.1};
   double parlimitshi[4]   = {calib->PedestalSigL*10, 600, intArea*5, calib->PedestalSigL*10};
   
   SignalLG = TF1(funcName.Data(),langaufun,fitrange[0],fitrange[1],4);
@@ -211,21 +213,26 @@ bool TileSpectra::FitMipLG(double* out, double* outErr, int verbosity, bool impE
 }
 
 
-bool TileSpectra::FitLGHGCorr(int verbosity){
+bool TileSpectra::FitCorr(int verbosity){
   TString funcName = Form("fcorr%sLGHGCellID%d",TileName.Data(),cellID);
-  HGLGcorr =  TF1(funcName.Data(),"[0]+[1]*x",0,250);
+  LGHGcorr =  TF1(funcName.Data(),"pol1",20,250);
+  LGHGcorr.SetParameter(0,0.);
+  LGHGcorr.SetParameter(1,10.);
+  LGHGcorr.SetParLimits(1,0,100.);
+  hspectraLGHG.Fit(&LGHGcorr,"QRLN0"); 
+  bcorrLGHG=true;
+  calib->LGHGCorr = LGHGcorr.GetParameter(1);
+  
+  funcName = Form("fcorr%sHGLGCellID%d",TileName.Data(),cellID);
+  HGLGcorr =  TF1(funcName.Data(),"pol1",40,4000);
   HGLGcorr.SetParameter(0,0.);
   HGLGcorr.SetParameter(1,10.);
+  HGLGcorr.SetParLimits(1,0,100.);
   hspectraLGHG.Fit(&HGLGcorr,"QRLN0"); 
   bcorrHGLG=true;
-  if (bmipHG){
-    calib->ScaleL = calib->ScaleH/HGLGcorr.GetParameter(1);
-  }
+  calib->HGLGCorr = HGLGcorr.GetParameter(1);
   return true;
 }
-
-
-
 
 bool TileSpectra::FitNoiseWithBG(double* out){
   return true;
@@ -245,6 +252,9 @@ TH1D* TileSpectra::GetHGLGcomb(){
 
 TProfile* TileSpectra::GetLGHGcorr(){
   return &hspectraLGHG;
+}
+TProfile* TileSpectra::GetHGLGcorr(){
+  return &hspectraHGLG;
 }
 
 TF1* TileSpectra::GetBackModel(int lh){
@@ -271,19 +281,27 @@ TileCalib* TileSpectra::GetCalib(){
   return calib;
 }
 
-TF1* TileSpectra::GetCorrModel(){
-  return &HGLGcorr;
+TF1* TileSpectra::GetCorrModel( int lh ){
+  if(lh==0 && bcorrLGHG){
+    return &LGHGcorr;
+  }
+  else if (lh==1 && bcorrHGLG){
+    return &HGLGcorr;
+  }
+  else return nullptr;
 }
 
 void TileSpectra::Write( bool wFits = true){
   hspectraHG.Write(hspectraHG.GetName(), kOverwrite);
   hspectraLG.Write(hspectraLG.GetName(), kOverwrite);
   hspectraLGHG.Write(hspectraLGHG.GetName(), kOverwrite);
+  hspectraHGLG.Write(hspectraHGLG.GetName(), kOverwrite);
   if ( wFits ){
     if(bpedHG)BackgroundHG.Write(BackgroundHG.GetName(), kOverwrite);
     if(bmipHG)SignalHG.Write(SignalHG.GetName(), kOverwrite);
     if(bpedLG)BackgroundLG.Write(BackgroundLG.GetName(), kOverwrite);
     if(bmipLG)SignalLG.Write(SignalLG.GetName(), kOverwrite);
+    if(bcorrLGHG)LGHGcorr.Write(LGHGcorr.GetName(), kOverwrite);
     if(bcorrHGLG)HGLGcorr.Write(HGLGcorr.GetName(), kOverwrite);
   }
 }

@@ -76,7 +76,32 @@ double Calib::GetAverageScaleHigh()const{
   }
   return avSc/CaloCalib.size();
 }
+double Calib::GetAverageScaleLow()const{
+  double avSc = 0;
+  std::map<int, TileCalib>::const_iterator it;
+  for(it=CaloCalib.begin(); it!=CaloCalib.end(); ++it){
+    avSc += it->second.ScaleL;
+  }
+  return avSc/CaloCalib.size();
+}
 
+double Calib::GetAverageLGHGCorr()const{
+  double avSc = 0;
+  std::map<int, TileCalib>::const_iterator it;
+  for(it=CaloCalib.begin(); it!=CaloCalib.end(); ++it){
+    avSc += it->second.LGHGCorr;
+  }
+  return avSc/CaloCalib.size();
+}
+
+double Calib::GetAverageHGLGCorr()const{
+  double avSc = 0;
+  std::map<int, TileCalib>::const_iterator it;
+  for(it=CaloCalib.begin(); it!=CaloCalib.end(); ++it){
+    avSc += it->second.HGLGCorr;
+  }
+  return avSc/CaloCalib.size();
+}
 
 double Calib::GetScaleWidthHigh(int cellID)const {
   //std::map<int, double>::const_iterator it=ScaleH.find(cellID);
@@ -115,6 +140,30 @@ double Calib::GetScaleWidthLow(int row, int col, int lay, int mod=0)const{
   Setup* setup = Setup::GetInstance();
   int key=setup->GetCellID(row, col, lay, mod);
   return GetScaleWidthLow(key);
+}
+
+double Calib::GetScaleLGHGCorr(int cellID) const {
+  std::map<int, TileCalib>::const_iterator it= CaloCalib.find(cellID);
+  if(it!=CaloCalib.end()) return it->second.LGHGCorr;
+  else return -1.;
+}
+
+double Calib::GetScaleLGHGCorr(int row, int col, int lay, int mod=0)const{
+  Setup* setup = Setup::GetInstance();
+  int key=setup->GetCellID(row, col, lay, mod);
+  return GetScaleLGHGCorr(key);
+}
+
+double Calib::GetScaleHGLGCorr(int cellID) const {
+  std::map<int, TileCalib>::const_iterator it= CaloCalib.find(cellID);
+  if(it!=CaloCalib.end()) return it->second.HGLGCorr;
+  else return -1.;
+}
+
+double Calib::GetScaleHGLGCorr(int row, int col, int lay, int mod=0)const{
+  Setup* setup = Setup::GetInstance();
+  int key=setup->GetCellID(row, col, lay, mod);
+  return GetScaleHGLGCorr(key);
 }
 
 TileCalib* Calib::GetTileCalib(int cellID){
@@ -223,6 +272,26 @@ void Calib::SetScaleHigh(double s, int row, int col, int lay, int mod=0){
   //ScaleH[key]=s;
 }
 
+void Calib::SetScaleWidthHigh(double s, int cellID){
+  std::map<int, TileCalib>::iterator it= CaloCalib.find(cellID);
+  if(it!=CaloCalib.end()){
+    TileCalib acal;
+    acal.ScaleWidthH=s;
+    CaloCalib[cellID]=acal;
+  }
+  else it->second.ScaleH=s;
+  //ScaleH[cellID]=s;
+}
+
+void Calib::SetScaleWidthHigh(double s, int row, int col, int lay, int mod=0){
+  Setup* setup = Setup::GetInstance();
+  int key=setup->GetCellID(row,col,lay,mod);
+  SetScaleWidthHigh(s,key);
+  //ScaleH[key]=s;
+}
+
+
+
 void Calib::SetScaleLow(double s, int cellID){
   std::map<int, TileCalib>::iterator it= CaloCalib.find(cellID);
   if(it!=CaloCalib.end()){
@@ -239,6 +308,60 @@ void Calib::SetScaleLow(double s, int row, int col, int lay, int mod=0){
   int key=setup->GetCellID(row,col,lay,mod);
   SetScaleLow(s,key);
   //ScaleL[key]=s;
+}
+
+void Calib::SetScaleWidthLow(double s, int cellID){
+  std::map<int, TileCalib>::iterator it= CaloCalib.find(cellID);
+  if(it!=CaloCalib.end()){
+    TileCalib acal;
+    acal.ScaleWidthL=s;
+    CaloCalib[cellID]=acal;
+  }
+  else it->second.ScaleH=s;
+  //ScaleH[cellID]=s;
+}
+
+void Calib::SetScaleWidthLow(double s, int row, int col, int lay, int mod=0){
+  Setup* setup = Setup::GetInstance();
+  int key=setup->GetCellID(row,col,lay,mod);
+  SetScaleWidthLow(s,key);
+  //ScaleH[key]=s;
+}
+
+void Calib::SetScaleLGHGCorr(double s, int cellID){
+  std::map<int, TileCalib>::iterator it= CaloCalib.find(cellID);
+  if(it!=CaloCalib.end()){
+    TileCalib acal;
+    acal.LGHGCorr=s;
+    CaloCalib[cellID]=acal;
+  }
+  else it->second.ScaleH=s;
+  //ScaleH[cellID]=s;
+}
+
+void Calib::SetScaleLGHGCorr(double s, int row, int col, int lay, int mod=0){
+  Setup* setup = Setup::GetInstance();
+  int key=setup->GetCellID(row,col,lay,mod);
+  SetScaleLGHGCorr(s,key);
+  //ScaleH[key]=s;
+}
+
+void Calib::SetScaleHGLGCorr(double s, int cellID){
+  std::map<int, TileCalib>::iterator it= CaloCalib.find(cellID);
+  if(it!=CaloCalib.end()){
+    TileCalib acal;
+    acal.HGLGCorr=s;
+    CaloCalib[cellID]=acal;
+  }
+  else it->second.ScaleH=s;
+  //ScaleH[cellID]=s;
+}
+
+void Calib::SetScaleHGLGCorr(double s, int row, int col, int lay, int mod=0){
+  Setup* setup = Setup::GetInstance();
+  int key=setup->GetCellID(row,col,lay,mod);
+  SetScaleHGLGCorr(s,key);
+  //ScaleH[key]=s;
 }
 
 int Calib::GetRunNumber(void){

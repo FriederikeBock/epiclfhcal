@@ -645,6 +645,43 @@
       histo->GetYaxis()->SetNdivisions(yNDivisions,kTRUE);
   }
 
+
+  //__________________________________________________________________________________________________________
+  void SetStyleTProfile( TH1* histo,
+                         TString XTitle,
+                         TString YTitle,
+                         Size_t xLableSize,
+                         Size_t xTitleSize,
+                         Size_t yLableSize,
+                         Size_t yTitleSize,
+                         Float_t xTitleOffset    = 1,
+                         Float_t yTitleOffset    = 1,
+                         Int_t xNDivisions       = 510,
+                         Int_t yNDivisions       = 510,
+                         Font_t textFontLabel    = 42,
+                         Font_t textFontTitle    = 62
+                        ){
+      histo->SetXTitle(XTitle);
+      histo->SetYTitle(YTitle);
+      histo->SetTitle("");
+
+      histo->GetYaxis()->SetLabelFont(textFontLabel);
+      histo->GetXaxis()->SetLabelFont(textFontLabel);
+      histo->GetYaxis()->SetTitleFont(textFontTitle);
+      histo->GetXaxis()->SetTitleFont(textFontTitle);
+
+      histo->GetXaxis()->SetLabelSize(xLableSize);
+      histo->GetXaxis()->SetTitleSize(xTitleSize);
+      histo->GetXaxis()->SetTitleOffset(xTitleOffset);
+      histo->GetXaxis()->SetNdivisions(xNDivisions,kTRUE);
+
+      histo->GetYaxis()->SetDecimals();
+      histo->GetYaxis()->SetLabelSize(yLableSize);
+      histo->GetYaxis()->SetTitleSize(yTitleSize);
+      histo->GetYaxis()->SetTitleOffset(yTitleOffset);
+      histo->GetYaxis()->SetNdivisions(yNDivisions,kTRUE);
+  }
+  
   /* // DrawLines will draw the lines in the histogram for you
   * startX - starting point of drawing in x
   * endX - end point of drawing in x
@@ -1137,6 +1174,79 @@
     canvas8Panel->SaveAs(nameOutput.Data());
   }
 
+  //__________________________________________________________________________________________________________
+  // Plot Corr with Fits for Full layer
+  //__________________________________________________________________________________________________________
+  void PlotCorrWithFitsFullLayer (TCanvas* canvas8Panel, TPad* pads[8], Double_t* topRCornerX,  Double_t* topRCornerY, Double_t* relSize8P, Int_t textSizePixel, 
+                                  std::map<int,TileSpectra> spectra, Setup* setupT, bool isHG, 
+                                  Double_t xPMin, Double_t xPMax, Double_t scaleYMax, int layer, int mod,  TString nameOutput, RunInfo currRunInfo){
+                                  
+    Double_t maxY = 0;
+    std::map<int, TileSpectra>::iterator ithSpectra;    
+    int nRow = setupT->GetNMaxRow()+1;
+    int nCol = setupT->GetNMaxColumn()+1;
+        
+    for (int r = 0; r < nRow; r++){
+      for (int c = 0; c < nCol; c++){
+        canvas8Panel->cd();
+        int tempCellID = setupT->GetCellID(r,c, layer, mod);
+        int p = setupT->GetChannelInLayer(tempCellID);
+        pads[p]->Draw();
+        pads[p]->cd();
+        ithSpectra=spectra.find(tempCellID);
+        if(ithSpectra==spectra.end()){
+          std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
+          continue;
+        } 
+        TProfile* tempProfile = nullptr;
+        if (isHG){
+            tempProfile = ithSpectra->second.GetHGLGcorr();
+        } else {
+            tempProfile = ithSpectra->second.GetLGHGcorr();
+        }
+        SetStyleTProfile( tempProfile, tempProfile->GetXaxis()->GetTitle(), tempProfile->GetYaxis()->GetTitle(), 0.85*textSizePixel, textSizePixel, 0.85*textSizePixel, textSizePixel,0.9, 1.1, 510, 510, 43, 63);  
+        SetMarkerDefaultsProfile(tempProfile, 20, 1, kBlue+1, kBlue+1);   
+        // tempHist->GeXaxis()->SetRangeUser(xPMin,xPMax);
+        // tempHist->GetYaxis()->SetRangeUser(0.7,scaleYMax*maxY);
+        
+        tempProfile->Draw("pe");
+                
+        TString label           = Form("row %d col %d", r, c);
+        if (p == 7){
+          label = Form("row %d col %d layer %d", r, c, layer);
+        }
+        TLatex *labelChannel    = new TLatex(topRCornerX[p]-0.045,topRCornerY[p]-1.2*relSize8P[p],label);
+        SetStyleTLatex( labelChannel, 0.85*textSizePixel,4,1,43,kTRUE,31);
+
+        
+        TF1* fit            = nullptr;
+        if (isHG){
+          fit = ithSpectra->second.GetCorrModel(1);
+        } else {
+          fit = ithSpectra->second.GetCorrModel(0);
+        }
+        if (fit){
+          Double_t rangeFit[2] = {0,0};
+          fit->GetRange(rangeFit[0], rangeFit[1]);
+          SetStyleFit(fit , rangeFit[0], rangeFit[1], 7, 3, kRed+3);
+          fit->Draw("same");
+          TLegend* legend = GetAndSetLegend2( topRCornerX[p]-10*relSize8P[p], topRCornerY[p]-4*0.85*relSize8P[p]-0.4*relSize8P[p], topRCornerX[p]-0.04, topRCornerY[p]-0.6*relSize8P[p],0.85*textSizePixel, 1, label, 43,0.1);
+          legend->AddEntry(fit, "linear fit, trigg.", "l");
+          legend->AddEntry((TObject*)0, Form("#scale[0.8]{a = %2.2f #pm %2.2f}",fit->GetParameter(0), fit->GetParError(0) ) , " ");
+          legend->AddEntry((TObject*)0, Form("#scale[0.8]{b = %2.2f #pm %2.2f}",fit->GetParameter(1), fit->GetParError(1) ) , " ");
+          legend->Draw();
+        } else {
+          labelChannel->Draw();  
+        }
+      
+        if (p ==7 ){
+          DrawLatex(topRCornerX[p]-0.045, topRCornerY[p]-4*0.85*relSize8P[p]-1.4*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+          DrawLatex(topRCornerX[p]-0.045, topRCornerY[p]-4*0.85*relSize8P[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42);
+        }
+      }
+    }
+    canvas8Panel->SaveAs(nameOutput.Data());
+  }
 
   
 #endif

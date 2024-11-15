@@ -1091,7 +1091,9 @@ bool Analyses::GetScaling(void){
                               4000, -0.5, 4000-0.5);
     hHGTileSum[c]->SetDirectory(0);
   }
-  
+
+  RootOutputHist->mkdir("IndividualCellsTrigg");
+  RootOutputHist->cd("IndividualCellsTrigg");  
   //***********************************************************************************************
   //************************* first pass over tree to extract spectra *****************************
   //***********************************************************************************************  
@@ -1159,7 +1161,7 @@ bool Analyses::GetScaling(void){
           if (hgCorr > 3*calib.GetPedestalSigH(currCellID) && lgCorr > 3*calib.GetPedestalSigL(currCellID) && hgCorr < 3900 )
             ithSpectra->second.FillCorr(lgCorr,hgCorr);
         } else {
-          RootOutputHist->cd("IndividualCells");
+          RootOutputHist->cd("IndividualCellsTrigg");
           hSpectraTrigg[currCellID]=TileSpectra("mipTrigg",currCellID,calib.GetTileCalib(currCellID),debug);
           hSpectraTrigg[currCellID].FillSpectra(lgCorr,hgCorr);;
           if (hgCorr > 3*calib.GetPedestalSigH(currCellID) && lgCorr > 3*calib.GetPedestalSigL(currCellID && hgCorr < 3900) )
@@ -1214,6 +1216,9 @@ bool Analyses::GetScaling(void){
   TH2D* hLGHGCorrVsLayer2nd = new TH2D( "hLGHGCorrVsLayer2nd","LG-HG corr; layer; brd channel; a_{LG-HG} (arb. units) ",
                                             setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hLGHGCorrVsLayer2nd->SetDirectory(0);
+  TH2D* hHGLGCorrVsLayer2nd = new TH2D( "hHGLGCorrVsLayer2nd","HG-LG corr; layer; brd channel; a_{HG-LG} (arb. units) ",
+                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  hHGLGCorrVsLayer2nd->SetDirectory(0);
 
   currCells = 0;
   for(ithSpectra=hSpectraTrigg.begin(); ithSpectra!=hSpectraTrigg.end(); ++ithSpectra){
@@ -1257,9 +1262,11 @@ bool Analyses::GetScaling(void){
       hspectraLGGSigmaVsLayer2nd->SetBinContent(bin2D, parameters[3]);
       hspectraLGGSigmaVsLayer2nd->SetBinError(bin2D, parErrAndRes[3]);
     }
-    isGood=ithSpectra->second.FitLGHGCorr(debug);
-    hLGHGCorrVsLayer2nd->SetBinContent(bin2D,ithSpectra->second.GetCorrModel()->GetParameter(1));
-    hLGHGCorrVsLayer2nd->SetBinError(bin2D,ithSpectra->second.GetCorrModel()->GetParError(1));
+    isGood=ithSpectra->second.FitCorr(debug);
+    hLGHGCorrVsLayer2nd->SetBinContent(bin2D,ithSpectra->second.GetCorrModel(0)->GetParameter(1));
+    hLGHGCorrVsLayer2nd->SetBinError(bin2D,ithSpectra->second.GetCorrModel(0)->GetParError(1));
+    hHGLGCorrVsLayer2nd->SetBinContent(bin2D,ithSpectra->second.GetCorrModel(1)->GetParameter(1));
+    hHGLGCorrVsLayer2nd->SetBinError(bin2D,ithSpectra->second.GetCorrModel(1)->GetParError(1));
   }
   
   RootOutput->cd();
@@ -1272,6 +1279,7 @@ bool Analyses::GetScaling(void){
     for(ithSpectra=hSpectra.begin(); ithSpectra!=hSpectra.end(); ++ithSpectra){
       ithSpectra->second.Write(true);
     }
+  RootOutputHist->cd("IndividualCellsTrigg");
     for(ithSpectra=hSpectraTrigg.begin(); ithSpectra!=hSpectraTrigg.end(); ++ithSpectra){
       ithSpectra->second.Write(true);
     }
@@ -1300,7 +1308,7 @@ bool Analyses::GetScaling(void){
     hspectraLGLSigmaVsLayer2nd->Write();
     hspectraLGGSigmaVsLayer2nd->Write();
     hLGHGCorrVsLayer2nd->Write();
-    
+    hHGLGCorrVsLayer2nd->Write();
   // fill calib tree & write it
   // close open root files
   RootOutputHist->Write();
@@ -1350,8 +1358,8 @@ bool Analyses::GetScaling(void){
   PlotSimple2D( canvas2DCorr, hspectraLGLSigmaVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/LG_LandSigMip_2nd.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
   PlotSimple2D( canvas2DCorr, hspectraLGGSigmaVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/LG_GaussSigMip_2nd.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
 
-  PlotSimple2D( canvas2DCorr, hLGHGCorrVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/LG_HG_Corr_2nd.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
-  
+  PlotSimple2D( canvas2DCorr, hLGHGCorrVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/LG_HG_Corr_2nd.pdf", outputDirPlots.Data()), it->second, 1, kTRUE, "colz");
+  PlotSimple2D( canvas2DCorr, hHGLGCorrVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/HG_LG_Corr_2nd.pdf", outputDirPlots.Data()), it->second, 1, kTRUE, "colz");
   //***********************************************************************************************************
   //********************************* 8 Panel overview plot  **************************************************
   //***********************************************************************************************************
@@ -1380,6 +1388,12 @@ bool Analyses::GetScaling(void){
     PlotMipWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
                               hSpectra, hSpectraTrigg, setup, false, -100, 500, 1.2, l, 0,
                               Form("%s/MIP_LG_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
+    PlotCorrWithFitsFullLayer(canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                              hSpectraTrigg, setup, false, -100, 800, 1.2, l, 0,
+                              Form("%s/LGHG_Corr_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
+    PlotCorrWithFitsFullLayer(canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                              hSpectraTrigg, setup, true, -100, 4000, 1.2, l, 0,
+                              Form("%s/HGLG_Corr_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
   }
 
   

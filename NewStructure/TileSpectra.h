@@ -33,6 +33,8 @@ class TileSpectra: public TObject{
     hspectraLG.SetDirectory(0);
     hspectraLGHG  = TProfile(Form("hCoorspectra%sLGHGCellID%d",name.Data(),id),Form("ADC Low  Gain/High Gain correlation CellID %d; LG ADC (arb. units); HG ADC (arb. units)",id),800,0,800);
     hspectraLGHG.SetDirectory(0);
+    hspectraHGLG  = TProfile(Form("hCoorspectra%sHGLGCellID%d",name.Data(),id),Form("ADC High  Gain/Low Gain correlation CellID %d; HG ADC (arb. units); LG ADC (arb. units)",id),4100,-100,4000);
+    hspectraHGLG.SetDirectory(0);
   }
   ~TileSpectra(){}
 
@@ -42,7 +44,7 @@ class TileSpectra: public TObject{
   bool FitNoise(double*);
   bool FitMipHG(double*, double*, int, bool );
   bool FitMipLG(double*, double*, int, bool );
-  bool FitLGHGCorr(int);
+  bool FitCorr(int);
   bool FitNoiseWithBG(double*);
 
   int GetCellID();
@@ -50,10 +52,11 @@ class TileSpectra: public TObject{
   TH1D* GetLG();
   TH1D* GetHGLGcomb();
   TProfile* GetLGHGcorr();
+  TProfile* GetHGLGcorr();
 
   TF1* GetBackModel(int);
   TF1* GetSignalModel(int);
-  TF1* GetCorrModel();
+  TF1* GetCorrModel(int);
   TileCalib* GetCalib();
   
   
@@ -68,15 +71,18 @@ class TileSpectra: public TObject{
   bool bmipHG;
   bool bmipLG;
   bool bcorrHGLG;
+  bool bcorrLGHG;
   TF1 BackgroundLG;
   TF1 BackgroundHG;
   TF1 SignalLG;
   TF1 SignalHG;
   TF1 HGLGcorr;
+  TF1 LGHGcorr;
   TH1D hspectraHG;
   TH1D hspectraLG;
   TH1D hcombined;
   TProfile hspectraLGHG;
+  TProfile hspectraHGLG;
   static double langaufun(double */*x*/, double */*par*/);
   static int langaupro(double */*params*/, double &/*maxx*/, double &/*FWHM*/);
 

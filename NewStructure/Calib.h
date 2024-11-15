@@ -15,6 +15,8 @@ struct TileCalib{
   double ScaleWidthH;
   double ScaleL;
   double ScaleWidthL;
+  double LGHGCorr;
+  double HGLGCorr;
 } ;
 
 class Calib{
@@ -39,7 +41,14 @@ class Calib{
   double GetScaleLow (int /**/, int /**/, int /**/, int /**/) const;
   double GetScaleWidthLow (int /**/) const;
   double GetScaleWidthLow (int /**/, int /**/, int /**/, int /**/) const;
+  double GetScaleLGHGCorr (int /**/) const;
+  double GetScaleLGHGCorr (int /**/, int /**/, int /**/, int /**/) const;
+  double GetScaleHGLGCorr (int /**/) const;
+  double GetScaleHGLGCorr (int /**/, int /**/, int /**/, int /**/) const;
   double GetAverageScaleHigh() const;
+  double GetAverageScaleLow() const;
+  double GetAverageHGLGCorr() const;
+  double GetAverageLGHGCorr() const;
   TileCalib* GetTileCalib(int /**/);
   TileCalib* GetTileCalib(int /**/, int /**/, int /**/, int /**/);
   void   SetPedestalMeanH (double, int);
@@ -52,8 +61,16 @@ class Calib{
   void   SetPedestalSigL (double, int, int, int, int);
   void   SetScaleHigh(double, int);
   void   SetScaleHigh(double, int, int, int, int);
+  void   SetScaleWidthHigh(double, int);
+  void   SetScaleWidthHigh(double, int, int, int, int);
   void   SetScaleLow (double, int);
   void   SetScaleLow (double, int, int, int, int);
+  void   SetScaleWidthLow (double, int);
+  void   SetScaleWidthLow (double, int, int, int, int);
+  void   SetScaleLGHGCorr (double, int);
+  void   SetScaleLGHGCorr (double, int, int, int, int);
+  void   SetScaleHGLGCorr (double, int);
+  void   SetScaleHGLGCorr (double, int, int, int, int);
 
   int GetRunNumber(void);
   const TTimeStamp* GetBeginRunTime(void) const;
@@ -72,7 +89,7 @@ class Calib{
   TTimeStamp BeginRunTime;
   double Vop;
   double Vov;
-  ClassDef(Calib,2)
+  ClassDef(Calib,3)
 };
 
 
