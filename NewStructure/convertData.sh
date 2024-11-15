@@ -1,11 +1,14 @@
 #! /bin/bash
 
-dataDir=/home/fbock/EIC/Analysis/LFHCalTB2024/CAENdata/MuonRuns
-# runNr=460
-# runNr=250
-# ./Analyse -c $dataDir/Run$runNr\_list.txt -o $dataDir/raw_$runNr.root
+dataDir=""
+if [ $1 = "fbock" ]; then 
+	dataDir=/home/fbock/EIC/Analysis/LFHCalTB2024/CAENdata/MuonRuns
+else
+	echo "Please select a known user name, otherwise I don't know where the data is"
+	exit
+fi
 
-if [ $1 == "single" ]; then 
+if [ $2 == "single" ]; then 
 #   runs='244'
   runs='271'
   for runNr in $runs; do 

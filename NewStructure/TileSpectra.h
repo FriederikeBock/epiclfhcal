@@ -27,11 +27,11 @@ class TileSpectra: public TObject{
     bmipHG        = false;
     bmipLG        = false;
     bcorrHGLG     = false;
-    hspectraHG    = TH1D(Form("hspectra%sHGCellID%d",name.Data(),id),Form("ADC spectrum High Gain CellID %d",id),4200,-200,4000);
+    hspectraHG    = TH1D(Form("hspectra%sHGCellID%d",name.Data(),id),Form("ADC spectrum High Gain CellID %d; HG ADC (arb. units); counts ",id),4200,-200,4000);
     hspectraHG.SetDirectory(0);
-    hspectraLG    = TH1D(Form("hspectra%sLGCellID%d",name.Data(),id),Form("ADC spectrum Low  Gain CellID %d",id),4200,-200,4000);
+    hspectraLG    = TH1D(Form("hspectra%sLGCellID%d",name.Data(),id),Form("ADC spectrum Low  Gain CellID %d; LG ADC (arb. units); counts",id),4200,-200,4000);
     hspectraLG.SetDirectory(0);
-    hspectraLGHG  = TProfile(Form("hCoorspectra%sLGHGCellID%d",name.Data(),id),Form("ADC Low  Gain/High Gain correlation CellID %d",id),900,-100,800);
+    hspectraLGHG  = TProfile(Form("hCoorspectra%sLGHGCellID%d",name.Data(),id),Form("ADC Low  Gain/High Gain correlation CellID %d; LG ADC (arb. units); HG ADC (arb. units)",id),800,0,800);
     hspectraLGHG.SetDirectory(0);
   }
   ~TileSpectra(){}
@@ -40,6 +40,8 @@ class TileSpectra: public TObject{
   bool FillSpectra(double, double);
   bool FillCorr(double, double);
   bool FitNoise(double*);
+  bool FitMipHG(double*, double*, int, bool );
+  bool FitMipLG(double*, double*, int, bool );
   bool FitNoiseWithBG(double*);
   //bool FitAndPlotGainCorr(double*);//Maybe should be two separate functions
 
@@ -52,7 +54,9 @@ class TileSpectra: public TObject{
   TF1* GetBackModel(int);
   TF1* GetSignalModel(int);
   TF1* GetCorrModel();
-
+  TileCalib* GetCalib();
+  
+  
   void Write(bool);
  protected:
   TString TileName;

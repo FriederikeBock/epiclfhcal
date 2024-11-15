@@ -12,7 +12,9 @@ struct TileCalib{
   double PedestalSigH;
   double PedestalSigL;
   double ScaleH;
+  double ScaleWidthH;
   double ScaleL;
+  double ScaleWidthL;
 } ;
 
 class Calib{
@@ -31,8 +33,13 @@ class Calib{
   double GetPedestalSigL (int /**/, int /**/, int /**/, int /**/) const;
   double GetScaleHigh(int /**/) const;
   double GetScaleHigh(int /**/, int /**/, int /**/, int /**/) const;
+  double GetScaleWidthHigh(int /**/) const;
+  double GetScaleWidthHigh(int /**/, int /**/, int /**/, int /**/) const;
   double GetScaleLow (int /**/) const;
   double GetScaleLow (int /**/, int /**/, int /**/, int /**/) const;
+  double GetScaleWidthLow (int /**/) const;
+  double GetScaleWidthLow (int /**/, int /**/, int /**/, int /**/) const;
+  double GetAverageScaleHigh() const;
   TileCalib* GetTileCalib(int /**/);
   TileCalib* GetTileCalib(int /**/, int /**/, int /**/, int /**/);
   void   SetPedestalMeanH (double, int);
@@ -65,7 +72,7 @@ class Calib{
   TTimeStamp BeginRunTime;
   double Vop;
   double Vov;
-  ClassDef(Calib,1)
+  ClassDef(Calib,2)
 };
 
 

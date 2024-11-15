@@ -1,38 +1,21 @@
 #! /bin/bash
-
-dataDir=/home/fbock/EIC/Analysis/LFHCalTB2024/CAENdata/MuonRuns
-
+dataDir=""
+if [ $1 = "fbock" ]; then 
+	dataDir=/home/fbock/EIC/Analysis/LFHCalTB2024/CAENdata/MuonRuns
+else
+	echo "Please select a known user name, otherwise I don't know where the data is"
+	exit
+fi
 
 # pedestal runs 
 pedestalRuns='303 306 308 311 315 271 277 420 454 528 552 553 332 369 377 404 465 476 492 505 521'
 
-if [ $1 = "pedestal" ]; then
+if [ $2 = "pedestal" ]; then
 	for runNr in $pedestalRuns; do
 		./Analyse -d 1 -p -i $dataDir/raw_$runNr.root -f -o $dataDir/PedestalCalib_$runNr.root -O ../PlotsCalib/Run$runNr -r ../configs/DataTakingDB_202409_CAEN.csv
 	done;
 fi
 	
-pedHVScan_44V='303'
-pedHVScan_43V='306'
-pedHVScan_42V='308'
-pedHVScan_41V='311'
-pedHVScan_40V='315'
-
-pedScanA_45V='271 277'
-pedScanD1_45V='420'
-pedScanD2_45V='454'
-pedScanH1_45V='528'
-pedScanH2_45V='552 553'
-pedScanB1_42V='332'
-pedScanB2_42V='369'
-pedScanC1_43_5V='377'
-pedScanC2_43_5V='404'
-pedScanE1_40V='465'
-pedScanE2_40V='476'
-pedScanF1_41V='492'
-pedScanF2_41V='505'
-pedScanG_46V='521'
-
 # ./Analyse -d 1 -p -i $dataDir/raw_271.root -f -o $dataDir/PedestalCalib_271.root -O ../PlotsCalib/Run271 -r ../configs/DataTakingDB_202409_CAEN.csv
 # ./Analyse -c $dataDir/Run$pedScanD1_45V\_list.txt -o $dataDir/raw_$pedScanD1_45V.root -d 1 -f
 # ./Analyse -d 1 -p -i $dataDir/raw_$pedScanD1_45V.root -f -o $dataDir/PedestalCalib_$pedScanD1_45V.root
@@ -41,7 +24,7 @@ pedScanG_46V='521'
 # ./Analyse -c $dataDir/Run$pedHVScan_40V\_list.txt -o $dataDir/raw_$pedHVScan_40V.root -d 1 -f
 # ./Analyse -d 1 -p -i $dataDir/raw_$pedHVScan_40V.root -f -o $dataDir/PedestalCalib_$pedHVScan_40V.root
 
-if [ $1 == "mergemuons" ]; then
+if [ $2 == "mergemuons" ]; then
 	hadd -f $dataDir/raw_muonScanA1_45V.root $dataDir/raw_244.root $dataDir/raw_250.root
 	hadd -f $dataDir/raw_muonScanA2_45V.root $dataDir/raw_283.root $dataDir/raw_282.root
 	hadd -f $dataDir/raw_muonScanD1_45V.root $dataDir/raw_412.root $dataDir/raw_417.root
@@ -62,33 +45,84 @@ fi
 
 # muon runs different scans in groups with separate pedestal
 muonHVScan_44V='305'
+pedHVScan_44V='303'
+
+if [ $2 == "muoncalib" ]; then
+	echo "running muon calib for 44V runs"
+# 	./Analyse -d 1 -f -P $dataDir/PedestalCalib_$pedHVScan_44V.root -i $dataDir/raw_$muonHVScan_44V.root -o $dataDir/rawPed_$muonHVScan_44V.root -O ../PlotsCalibMuon/Run$runNr -r ../configs/DataTakingDB_202409_CAEN.csv
+# 	./Analyse -f -d 1 -s -i $dataDir/rawPed_$muonHVScan_44V.root -o $dataDir/rawPedAndMuon_$muonHVScan_44V.root -O ../PlotsCalibMuon/muonHVScan_44V -r ../configs/DataTakingDB_202409_CAEN.csv
+
+fi
+
 muonHVScan_43V='307'
+pedHVScan_43V='306'
+if [ $2 == "muoncalib" ]; then
+	echo "running muon calib for 43V runs"
+# 	./Analyse -d 1 -f -P $dataDir/PedestalCalib_$pedHVScan_43V.root -i $dataDir/raw_$muonHVScan_43V.root -o $dataDir/rawPed_$muonHVScan_43V.root -O ../PlotsCalibMuon/Run$runNr -r ../configs/DataTakingDB_202409_CAEN.csv
+# 	./Analyse -f -d 1 -s -i $dataDir/rawPed_$muonHVScan_43V.root -o $dataDir/rawPedAndMuon_$muonHVScan_43V.root -O ../PlotsCalibMuon/muonHVScan_43V -r ../configs/DataTakingDB_202409_CAEN.csv
+# 
+fi
 muonHVScan_42V='309'
+pedHVScan_42V='308'
+if [ $2 == "muoncalib" ]; then
+	echo "running muon calib for 42V runs"
+# 	./Analyse -d 1 -f -P $dataDir/PedestalCalib_$pedHVScan_42V.root -i $dataDir/raw_$muonHVScan_42V.root -o $dataDir/rawPed_$muonHVScan_42V.root -O ../PlotsCalibMuon/Run$runNr -r ../configs/DataTakingDB_202409_CAEN.csv
+# 	./Analyse -f -d 1 -s -i $dataDir/rawPed_$muonHVScan_42V.root -o $dataDir/rawPedAndMuon_$muonHVScan_42V.root -O ../PlotsCalibMuon/muonHVScan_42V -r ../configs/DataTakingDB_202409_CAEN.csv
+# 
+fi
+
 muonHVScan_41V='312'
+pedHVScan_41V='311'
+if [ $2 == "muoncalib" ]; then
+	echo "running muon calib for 41V runs"
+# 	./Analyse -d 1 -f -P $dataDir/PedestalCalib_$pedHVScan_41V.root -i $dataDir/raw_$muonHVScan_41V.root -o $dataDir/rawPed_$muonHVScan_41V.root -O ../PlotsCalibMuon/Run$runNr -r ../configs/DataTakingDB_202409_CAEN.csv
+# 	./Analyse -f -d 1 -s -i $dataDir/rawPed_$muonHVScan_41V.root -o $dataDir/rawPedAndMuon_$muonHVScan_41V.root -O ../PlotsCalibMuon/muonHVScan_41V -r ../configs/DataTakingDB_202409_CAEN.csv
+# 
+fi
 muonHVScan_40V='316'
-
+pedHVScan_40V='315'
+if [ $2 == "muoncalib" ]; then
+	echo "running muon calib for 40V runs"
+# 	./Analyse -d 1 -f -P $dataDir/PedestalCalib_$pedHVScan_40V.root -i $dataDir/raw_$muonHVScan_40V.root -o $dataDir/rawPed_$muonHVScan_40V.root -O ../PlotsCalibMuon/Run$runNr -r ../configs/DataTakingDB_202409_CAEN.csv
+	./Analyse -f -d 1 -s -i $dataDir/rawPed_$muonHVScan_40V.root -o $dataDir/rawPedAndMuon_$muonHVScan_40V.root -O ../PlotsCalibMuon/muonHVScan_41V -r ../configs/DataTakingDB_202409_CAEN.csv
+# 
+fi
 muonScanA_45V='244 250 282 283'
-# ./Analyse -d 1 -p -i $dataDir/raw_244.root -f -o $dataDir/PedestalCalib_244.root -O ../PlotsCalib/Run244 -r ../configs/DataTakingDB_202409_CAEN.csv
-
-if [ $1 == "muoncalib" ]; then
+pedScanA_45V='271 277'
+if [ $2 == "muoncalib" ]; then
+	echo "running muon calib for 45V runs, campaing A1"
 # 	./Analyse -d 1 -f -P $dataDir/PedestalCalib_271.root -i $dataDir/raw_muonScanA1_45V.root -o $dataDir/rawPed_muonScanA1_45V.root -O ../PlotsCalibMuon/Run$runNr -r ../configs/DataTakingDB_202409_CAEN.csv
-	./Analyse -f -d 1 -s -i $dataDir/rawPed_muonScanA1_45V.root -o $dataDir/rawPedAndMuon_muonScanA1_45V.root -O ../PlotsCalibMuon/muonScanA1_45V -r ../configs/DataTakingDB_202409_CAEN.csv
-
+# 	./Analyse -f -d 2 -s -i $dataDir/rawPed_muonScanA1_45V.root -o $dataDir/rawPedAndMuon_muonScanA1_45V.root -O ../PlotsCalibMuon/muonScanA1_45V -r ../configs/DataTakingDB_202409_CAEN.csv
+	echo "running muon calib for 45V runs, campaing A2"
+# 	./Analyse -d 1 -f -P $dataDir/PedestalCalib_277.root -i $dataDir/raw_muonScanA2_45V.root -o $dataDir/rawPed_muonScanA2_45V.root -O ../PlotsCalibMuon/Run$runNr -r ../configs/DataTakingDB_202409_CAEN.csv
+# 	./Analyse -f -d 2 -s -i $dataDir/rawPed_muonScanA2_45V.root -o $dataDir/rawPedAndMuon_muonScanA2_45V.root -O ../PlotsCalibMuon/muonScanA2_45V -r ../configs/DataTakingDB_202409_CAEN.csv
 	
 fi
 
-
 muonScanD1_45V='412 417'
+pedScanD1_45V='420'
 muonScanD2_45V='460 456 457'
+pedScanD2_45V='454'
 muonScanH1_45V='526 527'
+pedScanH1_45V='528'
 muonScanH2_45V='554 559'
+pedScanH2_45V='552 553'
 muonScanB1_42V='331 322'
+pedScanB1_42V='332'
 muonScanB2_42V='370 371 374'
+pedScanB2_42V='369'
 muonScanC1_43_5V='376 375'
+pedScanC1_43_5V='377'
 muonScanC2_43_5V='405 510 408'
+pedScanC2_43_5V='404'
 muonScanE1_40V='463 464'
+pedScanE1_40V='465'
 muonScanE2_40V='481 478'
+pedScanE2_40V='476'
 muonScanF1_41V='486 489'
+pedScanF1_41V='492'
 muonScanF2_41V='507 506'
+pedScanF2_41V='505'
 muonScanG_46V='508 510 511 525'
+pedScanG_46V='521'
 

@@ -57,8 +57,6 @@ double Calib::GetPedestalSigL(int row, int col, int lay, int mod=0) const{
 }
 
 double Calib::GetScaleHigh(int cellID)const {
-  //std::map<int, double>::const_iterator it=ScaleH.find(cellID);
-  //if(it!=ScaleH.end()) return it->second;
   std::map<int, TileCalib>::const_iterator it= CaloCalib.find(cellID);
   if(it!=CaloCalib.end()) return it->second.ScaleH;
   else return -1.;
@@ -70,9 +68,32 @@ double Calib::GetScaleHigh(int row, int col, int lay, int mod=0)const{
   return GetScaleHigh(key);
 }
 
+double Calib::GetAverageScaleHigh()const{
+  double avSc = 0;
+  std::map<int, TileCalib>::const_iterator it;
+  for(it=CaloCalib.begin(); it!=CaloCalib.end(); ++it){
+    avSc += it->second.ScaleH;
+  }
+  return avSc/CaloCalib.size();
+}
+
+
+double Calib::GetScaleWidthHigh(int cellID)const {
+  //std::map<int, double>::const_iterator it=ScaleH.find(cellID);
+  //if(it!=ScaleH.end()) return it->second;
+  std::map<int, TileCalib>::const_iterator it= CaloCalib.find(cellID);
+  if(it!=CaloCalib.end()) return it->second.ScaleWidthH;
+  else return -1.;
+}
+
+double Calib::GetScaleWidthHigh(int row, int col, int lay, int mod=0)const{
+  Setup* setup = Setup::GetInstance();
+  int key=setup->GetCellID(row, col,lay,mod);
+  return GetScaleWidthHigh(key);
+}
+
+
 double Calib::GetScaleLow(int cellID) const {
-  //std::map<int, double>::const_iterator it=ScaleL.find(cellID);
-  //if(it!=ScaleL.end()) return it->second;
   std::map<int, TileCalib>::const_iterator it= CaloCalib.find(cellID);
   if(it!=CaloCalib.end()) return it->second.ScaleL;
   else return -1.;
@@ -82,6 +103,18 @@ double Calib::GetScaleLow(int row, int col, int lay, int mod=0)const{
   Setup* setup = Setup::GetInstance();
   int key=setup->GetCellID(row, col, lay, mod);
   return GetScaleLow(key);
+}
+
+double Calib::GetScaleWidthLow(int cellID) const {
+  std::map<int, TileCalib>::const_iterator it= CaloCalib.find(cellID);
+  if(it!=CaloCalib.end()) return it->second.ScaleWidthL;
+  else return -1.;
+}
+
+double Calib::GetScaleWidthLow(int row, int col, int lay, int mod=0)const{
+  Setup* setup = Setup::GetInstance();
+  int key=setup->GetCellID(row, col, lay, mod);
+  return GetScaleWidthLow(key);
 }
 
 TileCalib* Calib::GetTileCalib(int cellID){

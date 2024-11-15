@@ -77,6 +77,142 @@ bool TileSpectra::FitNoise(double* out){        //[0] LG mean, [2] LG sigma, [4]
   return true;
 }
 
+bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, bool impE = false){
+  
+  // Once again, here are the Landau * Gaussian parameters:
+  //   par[0]=Width (scale) parameter of Landau density
+  //   par[1]=Most Probable (MP, location) parameter of Landau density
+  //   par[2]=Total area (integral -inf to inf, normalization constant)
+  //   par[3]=Width (sigma) of convoluted Gaussian function
+  //
+
+  TString funcName = Form("fmip%sHGCellID%d",TileName.Data(),cellID);
+  
+  
+  double fitrange[2]      = {100, 2000};
+  double intArea    = hspectraHG.Integral(hspectraHG.FindBin(fitrange[0]),hspectraHG.FindBin(fitrange[1]));
+  double intNoise   = hspectraHG.Integral(hspectraHG.FindBin(-2*calib->PedestalSigH),hspectraHG.FindBin(+2*calib->PedestalSigH));
+  
+  if (intArea/intNoise < 1e-5){
+    if (verbosity > 0) std::cout << "Skipped HG cell " << cellID << " S/B too small!" << std::endl;
+    return false;
+  }
+  double startvalues[4]   = {50, 300, intArea, calib->PedestalSigH};
+  double parlimitslo[4]   = {0.5, 100, 1.0, calib->PedestalSigH*0.1};
+  double parlimitshi[4]   = {500, 1000, intArea*5, calib->PedestalSigH*10};
+  
+  SignalHG = TF1(funcName.Data(),langaufun,fitrange[0],fitrange[1],4);
+  SignalHG.SetParameters(startvalues);
+  SignalHG.SetParNames("Width","MP","Area","GSigma");
+
+  for (int i=0; i<4; i++) {
+    SignalHG.SetParLimits(i, parlimitslo[i], parlimitshi[i]);
+  }
+
+  TString fitOption = "";
+  if (impE){ 
+    fitOption = "QRLMNE0";
+    if (verbosity > 1) 
+      fitOption = "RLMNE0";
+  } else {
+    fitOption = "QRLN0";
+    if (verbosity > 1) 
+      fitOption = "RLN0";
+  }
+  
+  int fitStatus = hspectraHG.Fit(&SignalHG,fitOption);   // fit within specified range, use ParLimits, do not plot
+  // if (fitStatus == 0)
+  bmipHG = true;
+  
+  if (bmipHG){
+    SignalHG.GetParameters(out);    // obtain fit parameters
+    for (int i=0; i<4; i++) {
+      outErr[i] = SignalHG.GetParError(i);     // obtain fit parameter errors
+    }
+    outErr[4] = SignalHG.GetChisquare();  // obtain chi^2
+    outErr[5] = SignalHG.GetNDF();           // obtain ndf
+    
+    double SNRPeak, SNRFWHM;
+    langaupro(out,SNRPeak,SNRFWHM);
+
+    calib->ScaleH       = SNRPeak;
+    calib->ScaleWidthH  = SNRFWHM;
+    out[4]    = SNRPeak;
+    out[5]    = SNRFWHM;
+  }
+  return bmipHG;
+}
+
+
+bool TileSpectra::FitMipLG(double* out, double* outErr, int verbosity, bool impE = false){
+  
+  // Once again, here are the Landau * Gaussian parameters:
+  //   par[0]=Width (scale) parameter of Landau density
+  //   par[1]=Most Probable (MP, location) parameter of Landau density
+  //   par[2]=Total area (integral -inf to inf, normalization constant)
+  //   par[3]=Width (sigma) of convoluted Gaussian function
+  //
+
+  TString funcName = Form("fmip%sLGCellID%d",TileName.Data(),cellID);
+  
+  
+  double fitrange[2]      = {10, 500};
+  double intArea    = hspectraLG.Integral(hspectraLG.FindBin(fitrange[0]),hspectraLG.FindBin(fitrange[1]));
+  double intNoise   = hspectraLG.Integral(hspectraLG.FindBin(-2*calib->PedestalSigL),hspectraLG.FindBin(+2*calib->PedestalSigL));
+  
+  if (intArea/intNoise < 1e-5){
+    if (verbosity > 0) std::cout << "Skipped LG cell " << cellID << " S/B too small!" << std::endl;
+    return false;
+  }
+  double startvalues[4]   = {calib->PedestalSigL, 100, intArea, calib->PedestalSigL};
+  double parlimitslo[4]   = {0.5, 10, 1.0, calib->PedestalSigL*0.1};
+  double parlimitshi[4]   = {calib->PedestalSigL*10, 600, intArea*5, calib->PedestalSigL*10};
+  
+  SignalLG = TF1(funcName.Data(),langaufun,fitrange[0],fitrange[1],4);
+  SignalLG.SetParameters(startvalues);
+  SignalLG.SetParNames("Width","MP","Area","GSigma");
+
+  for (int i=0; i<4; i++) {
+    SignalLG.SetParLimits(i, parlimitslo[i], parlimitshi[i]);
+  }
+
+  TString fitOption = "";
+  if (impE){ 
+    fitOption = "QRLMNE0";
+    if (verbosity > 1) 
+      fitOption = "RLMNE0";
+  } else {
+    fitOption = "QRLN0";
+    if (verbosity > 1) 
+      fitOption = "RLN0";
+  }
+  
+  int fitStatus = hspectraLG.Fit(&SignalLG,fitOption);   // fit within specified range, use ParLimits, do not plot
+  // if (fitStatus == 0)
+  bmipLG = true;
+  
+  if (bmipLG){
+    SignalLG.GetParameters(out);    // obtain fit parameters
+    for (int i=0; i<4; i++) {
+      outErr[i] = SignalLG.GetParError(i);     // obtain fit parameter errors
+    }
+    outErr[4] = SignalLG.GetChisquare();  // obtain chi^2
+    outErr[5] = SignalLG.GetNDF();           // obtain ndf
+    
+    double SNRPeak, SNRFWHM;
+    langaupro(out,SNRPeak,SNRFWHM);
+
+    calib->ScaleL       = SNRPeak;
+    calib->ScaleWidthL  = SNRFWHM;
+    out[4]    = SNRPeak;
+    out[5]    = SNRFWHM;
+  }
+  return bmipLG;
+}
+
+
+
+
 bool TileSpectra::FitNoiseWithBG(double* out){
   return true;
 }
@@ -115,6 +251,10 @@ TF1* TileSpectra::GetSignalModel(int lh){
     return &SignalHG;
   }
   else return nullptr;
+}
+
+TileCalib* TileSpectra::GetCalib(){
+  return calib;
 }
 
 TF1* TileSpectra::GetCorrModel(){
@@ -268,4 +408,3 @@ int TileSpectra::langaupro(double *params, double &maxx, double &FWHM) {
   FWHM = fxr - fxl;
   return (0);
 }
-  

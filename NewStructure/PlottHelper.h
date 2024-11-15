@@ -688,7 +688,9 @@
           } else if (currRunInfo.species.CompareTo("g") == 0){
               return  Form("LED, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  );
           } else {
-              return  Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop  );
+              TString beam = currRunInfo.species.Data();
+              if (beam.CompareTo("Muon +") == 0) beam = "#mu^{+}";
+              return  Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V", beam.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop  );
           }
       } else if (option == 2){
           if (currRunInfo.species.CompareTo("cosmics") == 0){
@@ -696,7 +698,9 @@
           } else if (currRunInfo.species.CompareTo("g") == 0){
               return  "LED";
           } else {
-              return  Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV", currRunInfo.species.Data(), currRunInfo.energy);
+              TString beam = currRunInfo.species.Data();
+              if (beam.CompareTo("Muon +") == 0) beam = "#mu^{+}";              
+              return  Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV", beam.Data(), currRunInfo.energy);
           }
       } else if (option == 3){
           return Form("Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  )   ;
@@ -706,7 +710,10 @@
           } else if (currRunInfo.species.CompareTo("g") == 0){
               return Form("LED, Run %d, #it{V}_{#it{op}} = %1.1f V, HG = %1d, LG = %1d", currRunInfo.runNr, currRunInfo.vop, currRunInfo.hgSet, currRunInfo.lgSet);
           } else{
-              return Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V, HG = %1d, LG = %1d", currRunInfo.species.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop, currRunInfo.hgSet, currRunInfo.lgSet);
+              TString beam = currRunInfo.species.Data();
+              if (beam.CompareTo("Muon +") == 0) beam = "#mu^{+}";
+              
+              return Form("%s-beam, #it{E}_{#it{b}}= %.0f GeV, Run %d, #it{V}_{#it{op}} = %1.1f V, HG = %1d, LG = %1d", beam.Data(), currRunInfo.energy, currRunInfo.runNr, currRunInfo.vop, currRunInfo.hgSet, currRunInfo.lgSet);
           }
       } else if (option == 5){
           return Form("pedestal, Run %d, #it{V}_{#it{op}} = %1.1f V", currRunInfo.runNr, currRunInfo.vop  )   ;
@@ -887,14 +894,14 @@
     topRCornerY[2]  = 1-relativeMarginsIndMeasRatioY[1];
     topRCornerX[3]  = 1-relativeMarginsIndMeasRatioX[2];
     topRCornerY[3]  = 1-relativeMarginsIndMeasRatioY[1];
-    topRCornerX[4]  = 1-relativeMarginsIndMeasRatioX[2];
-    topRCornerY[4]  = 1-relativeMarginsIndMeasRatioY[0];
-    topRCornerX[5]  = 1-relativeMarginsIndMeasRatioX[1];
-    topRCornerY[5]  = 1-relativeMarginsIndMeasRatioY[0];
+    topRCornerX[7]  = 1-relativeMarginsIndMeasRatioX[2];
+    topRCornerY[7]  = 1-relativeMarginsIndMeasRatioY[0];
     topRCornerX[6]  = 1-relativeMarginsIndMeasRatioX[1];
     topRCornerY[6]  = 1-relativeMarginsIndMeasRatioY[0];
-    topRCornerX[7]  = 1-relativeMarginsIndMeasRatioX[1];
-    topRCornerY[7]  = 1-relativeMarginsIndMeasRatioY[0];
+    topRCornerX[5]  = 1-relativeMarginsIndMeasRatioX[1];
+    topRCornerY[5]  = 1-relativeMarginsIndMeasRatioY[0];
+    topRCornerX[4]  = 1-relativeMarginsIndMeasRatioX[1];
+    topRCornerY[4]  = 1-relativeMarginsIndMeasRatioY[0];
     
     for (Int_t p = 0; p < 8; p++){
       if (pads[p]->XtoPixel(pads[p]->GetX2()) < pads[p]->YtoPixel(pads[p]->GetY1())){
@@ -1005,11 +1012,12 @@
   // Plot Mip with Fits for Full layer
   //__________________________________________________________________________________________________________
   void PlotMipWithFitsFullLayer (TCanvas* canvas8Panel, TPad* pads[8], Double_t* topRCornerX,  Double_t* topRCornerY, Double_t* relSize8P, Int_t textSizePixel, 
-                                  std::map<int,TileSpectra> spectra, Setup* setupT, bool isHG, 
+                                  std::map<int,TileSpectra> spectra, std::map<int,TileSpectra> spectraTrigg, Setup* setupT, bool isHG, 
                                   Double_t xPMin, Double_t xPMax, Double_t scaleYMax, int layer, int mod,  TString nameOutput, RunInfo currRunInfo){
                                   
     Double_t maxY = 0;
     std::map<int, TileSpectra>::iterator ithSpectra;
+    std::map<int, TileSpectra>::iterator ithSpectraTrigg;
     
     int nRow = setupT->GetNMaxRow()+1;
     int nCol = setupT->GetNMaxColumn()+1;
@@ -1045,6 +1053,7 @@
           std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
           continue;
         } 
+        ithSpectraTrigg=spectraTrigg.find(tempCellID);
         TH1D* tempHist = nullptr;
         if (isHG){
             tempHist = ithSpectra->second.GetHG();
@@ -1058,36 +1067,72 @@
         
         tempHist->Draw("pe");
         
+        TH1D* tempHistT = nullptr;
+        if (isHG){
+            tempHistT = ithSpectraTrigg->second.GetHG();
+        } else {
+            tempHistT = ithSpectraTrigg->second.GetLG();
+        }
+        SetMarkerDefaults(tempHistT, 24, 1, kRed+1, kRed+1, kFALSE);   
+        tempHistT->Draw("same,pe");
+        
         TString label           = Form("row %d col %d", r, c);
         if (p == 7){
           label = Form("row %d col %d layer %d", r, c, layer);
         }
-        TLatex *labelChannel    = new TLatex(topRCornerX[p]-0.04,topRCornerY[p]-1.2*relSize8P[p],label);
+        TLatex *labelChannel    = new TLatex(topRCornerX[p]-0.045,topRCornerY[p]-1.2*relSize8P[p],label);
         SetStyleTLatex( labelChannel, 0.85*textSizePixel,4,1,43,kTRUE,31);
 
         
-//         TF1* fit = nullptr;
-//         if (isHG){
-//           fit = ithSpectra->second.GetBackModel(1);
-//         } else {
-//           fit = ithSpectra->second.GetBackModel(0);  
-//         }
-//         if (fit){
-//           SetStyleFit(fit , 0, 400, 7, 7, kBlack);
-//           fit->Draw("same");
-//           TLegend* legend = GetAndSetLegend2( topRCornerX[p]-8*relSize8P[p], topRCornerY[p]-4*0.85*relSize8P[p]-0.4*relSize8P[p], topRCornerX[p]-0.04, topRCornerY[p]-0.6*relSize8P[p],0.85*textSizePixel, 1, label, 43,0.2);
-//           legend->AddEntry(fit, "Gauss noise fit", "l");
-//           legend->AddEntry((TObject*)0, Form("#mu = %2.2f #pm %2.2f",fit->GetParameter(1), fit->GetParError(1) ) , " ");
-//           legend->AddEntry((TObject*)0, Form("#sigma = %2.2f #pm %2.2f",fit->GetParameter(2), fit->GetParError(2) ) , " ");
-//           legend->Draw();
-//             
-//         } else {
+        TF1* fit            = nullptr;
+        bool isTrigFit      = false;
+        double maxFit       = 0;
+        if (isHG){
+          fit = ithSpectraTrigg->second.GetSignalModel(1);
+          if (!fit){
+              fit = ithSpectra->second.GetSignalModel(1);
+              if (fit){
+                maxFit = ithSpectra->second.GetCalib()->ScaleH;
+              }
+          } else {
+              isTrigFit = true;
+              maxFit = ithSpectraTrigg->second.GetCalib()->ScaleH;
+          }
+        } else {
+          fit = ithSpectraTrigg->second.GetSignalModel(0);
+          if (!fit){
+              fit = ithSpectra->second.GetSignalModel(0);
+              if (fit){
+                maxFit = ithSpectra->second.GetCalib()->ScaleL;
+              }
+          } else {
+              isTrigFit = true;
+              maxFit = ithSpectraTrigg->second.GetCalib()->ScaleL;
+          }  
+            
+          fit = ithSpectra->second.GetSignalModel(0);  
+        }
+        if (fit){
+          if (isTrigFit)
+            SetStyleFit(fit , 0, 2000, 7, 3, kRed+3);
+          else 
+            SetStyleFit(fit , 0, 2000, 7, 7, kBlue+3);  
+          fit->Draw("same");
+          TLegend* legend = GetAndSetLegend2( topRCornerX[p]-10*relSize8P[p], topRCornerY[p]-4*0.85*relSize8P[p]-0.4*relSize8P[p], topRCornerX[p]-0.04, topRCornerY[p]-0.6*relSize8P[p],0.85*textSizePixel, 1, label, 43,0.1);
+          if (isTrigFit)
+            legend->AddEntry(fit, "Landau-Gauss fit, trigg.", "l");
+          else 
+            legend->AddEntry(fit, "Landau-Gauss fit", "l");  
+          legend->AddEntry((TObject*)0, Form("#scale[0.8]{L MPV = %2.2f #pm %2.2f}",fit->GetParameter(1), fit->GetParError(1) ) , " ");
+          legend->AddEntry((TObject*)0, Form("#scale[0.8]{Max = %2.2f}", maxFit ) , " ");
+          legend->Draw();
+        } else {
           labelChannel->Draw();  
-        // }
+        }
       
         if (p ==7 ){
-          DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-4*0.85*relSize8P[p]-1.4*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
-          DrawLatex(topRCornerX[p]-0.04, topRCornerY[p]-4*0.85*relSize8P[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42);
+          DrawLatex(topRCornerX[p]-0.045, topRCornerY[p]-4*0.85*relSize8P[p]-1.4*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+          DrawLatex(topRCornerX[p]-0.045, topRCornerY[p]-4*0.85*relSize8P[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42);
         }
       }
     }
