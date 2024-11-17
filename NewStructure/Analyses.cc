@@ -1381,6 +1381,14 @@ bool Analyses::GetScaling(void){
   Double_t relSize8P[8];
   CreateCanvasAndPadsFor8PannelTBPlot(canvas8Panel, pad8Panel,  topRCornerX, topRCornerY, relSize8P, textSizePixel);
 
+  TCanvas* canvas8PanelProf;
+  TPad* pad8PanelProf[8];
+  Double_t topRCornerXProf[8];
+  Double_t topRCornerYProf[8];
+  Double_t relSize8PProf[8];
+  CreateCanvasAndPadsFor8PannelTBPlot(canvas8PanelProf, pad8PanelProf,  topRCornerXProf, topRCornerYProf, relSize8PProf, textSizePixel, 0.045, "Prof", false);
+
+ 
   for (Int_t l = 0; l < setup->GetNMaxLayer()+1; l++){    
     PlotMipWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
                               hSpectra, hSpectraTrigg, setup, true, -100, 1500, 1.2, l, 0,
@@ -1388,10 +1396,10 @@ bool Analyses::GetScaling(void){
     PlotMipWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
                               hSpectra, hSpectraTrigg, setup, false, -100, 500, 1.2, l, 0,
                               Form("%s/MIP_LG_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
-    PlotCorrWithFitsFullLayer(canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+    PlotCorrWithFitsFullLayer(canvas8PanelProf,pad8PanelProf, topRCornerXProf, topRCornerYProf, relSize8PProf, textSizePixel, 
                               hSpectraTrigg, setup, false, -100, 800, 1.2, l, 0,
                               Form("%s/LGHG_Corr_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
-    PlotCorrWithFitsFullLayer(canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+    PlotCorrWithFitsFullLayer(canvas8PanelProf,pad8PanelProf, topRCornerXProf, topRCornerYProf, relSize8PProf, textSizePixel, 
                               hSpectraTrigg, setup, true, -100, 4000, 1.2, l, 0,
                               Form("%s/HGLG_Corr_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
   }

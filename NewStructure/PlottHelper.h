@@ -884,14 +884,14 @@
   //********************************************************************************************************************************
   //******** CreateCanvasAndPadsFor8PannelTBPlot ***********************************************************************************
   //********************************************************************************************************************************
-  void CreateCanvasAndPadsFor8PannelTBPlot(TCanvas* &canvas, TPad* pads[8],  Double_t* topRCornerX, Double_t* topRCornerY,  Double_t* relSize8P, Int_t textSizePixel = 30){
+  void CreateCanvasAndPadsFor8PannelTBPlot(TCanvas* &canvas, TPad* pads[8],  Double_t* topRCornerX, Double_t* topRCornerY,  Double_t* relSize8P, Int_t textSizePixel = 30, Double_t marginLeft = 0.03, TString add = "", bool rightCorner = true){
     Double_t arrayBoundsXIndMeasRatio[5];
     Double_t arrayBoundsYIndMeasRatio[3];
     Double_t relativeMarginsIndMeasRatioX[3];
     Double_t relativeMarginsIndMeasRatioY[3];
-    ReturnCorrectValuesForCanvasScaling(2200,1200, 4, 2,0.03, 0.005, 0.005,0.05,arrayBoundsXIndMeasRatio,arrayBoundsYIndMeasRatio,relativeMarginsIndMeasRatioX,relativeMarginsIndMeasRatioY);
+    ReturnCorrectValuesForCanvasScaling(2200,1200, 4, 2,marginLeft, 0.005, 0.005,0.05,arrayBoundsXIndMeasRatio,arrayBoundsYIndMeasRatio,relativeMarginsIndMeasRatioX,relativeMarginsIndMeasRatioY);
 
-    canvas = new TCanvas("canvas8Panel","",0,0,2200,1200);  // gives the page size
+    canvas = new TCanvas(Form("canvas8Panel%s", add.Data()),"",0,0,2200,1200);  // gives the page size
     canvas->cd();
 
     //*****************************************************************
@@ -905,14 +905,14 @@
     // rebuild pad geom in similar way (numbering -1)
     //*****************************************************************
     
-    pads[0] = new TPad("pad8Panel_0", "", arrayBoundsXIndMeasRatio[0], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
-    pads[1] = new TPad("pad8Panel_1", "", arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
-    pads[2] = new TPad("pad8Panel_2", "", arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
-    pads[3] = new TPad("pad8Panel_3", "", arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[4], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
-    pads[4] = new TPad("pad8Panel_4", "", arrayBoundsXIndMeasRatio[0], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
-    pads[5] = new TPad("pad8Panel_5", "", arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
-    pads[6] = new TPad("pad8Panel_6", "", arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
-    pads[7] = new TPad("pad8Panel_7", "", arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[4], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
+    pads[0] = new TPad(Form("pad8Pane%sl_0", add.Data()), "", arrayBoundsXIndMeasRatio[0], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
+    pads[1] = new TPad(Form("pad8Pane%sl_1", add.Data()), "", arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
+    pads[2] = new TPad(Form("pad8Pane%sl_2", add.Data()), "", arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
+    pads[3] = new TPad(Form("pad8Pane%sl_3", add.Data()), "", arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[2], arrayBoundsXIndMeasRatio[4], arrayBoundsYIndMeasRatio[1],-1, -1, -2);
+    pads[4] = new TPad(Form("pad8Pane%sl_4", add.Data()), "", arrayBoundsXIndMeasRatio[0], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
+    pads[5] = new TPad(Form("pad8Pane%sl_4", add.Data()), "", arrayBoundsXIndMeasRatio[1], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
+    pads[6] = new TPad(Form("pad8Pane%sl_4", add.Data()), "", arrayBoundsXIndMeasRatio[2], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
+    pads[7] = new TPad(Form("pad8Pane%sl_4", add.Data()), "", arrayBoundsXIndMeasRatio[3], arrayBoundsYIndMeasRatio[1],arrayBoundsXIndMeasRatio[4], arrayBoundsYIndMeasRatio[0],-1, -1, -2);
     
     DefaultPadSettings( pads[4], relativeMarginsIndMeasRatioX[0], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioY[0], relativeMarginsIndMeasRatioY[1]);
     DefaultPadSettings( pads[5], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioY[0], relativeMarginsIndMeasRatioY[1]);
@@ -922,23 +922,34 @@
     DefaultPadSettings( pads[1], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioY[1], relativeMarginsIndMeasRatioY[2]);
     DefaultPadSettings( pads[2], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioY[1], relativeMarginsIndMeasRatioY[2]);
     DefaultPadSettings( pads[3], relativeMarginsIndMeasRatioX[1], relativeMarginsIndMeasRatioX[2], relativeMarginsIndMeasRatioY[1], relativeMarginsIndMeasRatioY[2]);
-    
-    topRCornerX[0]  = 1-relativeMarginsIndMeasRatioX[1];
+
     topRCornerY[0]  = 1-relativeMarginsIndMeasRatioY[1];
-    topRCornerX[1]  = 1-relativeMarginsIndMeasRatioX[1];
     topRCornerY[1]  = 1-relativeMarginsIndMeasRatioY[1];
-    topRCornerX[2]  = 1-relativeMarginsIndMeasRatioX[1];
     topRCornerY[2]  = 1-relativeMarginsIndMeasRatioY[1];
-    topRCornerX[3]  = 1-relativeMarginsIndMeasRatioX[2];
     topRCornerY[3]  = 1-relativeMarginsIndMeasRatioY[1];
-    topRCornerX[7]  = 1-relativeMarginsIndMeasRatioX[2];
-    topRCornerY[7]  = 1-relativeMarginsIndMeasRatioY[0];
-    topRCornerX[6]  = 1-relativeMarginsIndMeasRatioX[1];
-    topRCornerY[6]  = 1-relativeMarginsIndMeasRatioY[0];
-    topRCornerX[5]  = 1-relativeMarginsIndMeasRatioX[1];
-    topRCornerY[5]  = 1-relativeMarginsIndMeasRatioY[0];
-    topRCornerX[4]  = 1-relativeMarginsIndMeasRatioX[1];
     topRCornerY[4]  = 1-relativeMarginsIndMeasRatioY[0];
+    topRCornerY[5]  = 1-relativeMarginsIndMeasRatioY[0];
+    topRCornerY[6]  = 1-relativeMarginsIndMeasRatioY[0];
+    topRCornerY[7]  = 1-relativeMarginsIndMeasRatioY[0];      
+    if (rightCorner){
+      topRCornerX[0]  = 1-relativeMarginsIndMeasRatioX[1];
+      topRCornerX[1]  = 1-relativeMarginsIndMeasRatioX[1];
+      topRCornerX[2]  = 1-relativeMarginsIndMeasRatioX[1];
+      topRCornerX[3]  = 1-relativeMarginsIndMeasRatioX[2];
+      topRCornerX[4]  = 1-relativeMarginsIndMeasRatioX[1];
+      topRCornerX[5]  = 1-relativeMarginsIndMeasRatioX[1];
+      topRCornerX[6]  = 1-relativeMarginsIndMeasRatioX[1];
+      topRCornerX[7]  = 1-relativeMarginsIndMeasRatioX[2];
+    } else {
+      topRCornerX[0]  = relativeMarginsIndMeasRatioX[0];
+      topRCornerX[1]  = relativeMarginsIndMeasRatioX[1];
+      topRCornerX[2]  = relativeMarginsIndMeasRatioX[1];
+      topRCornerX[3]  = relativeMarginsIndMeasRatioX[1];
+      topRCornerX[4]  = relativeMarginsIndMeasRatioX[0];
+      topRCornerX[5]  = relativeMarginsIndMeasRatioX[1];
+      topRCornerX[6]  = relativeMarginsIndMeasRatioX[1];
+      topRCornerX[7]  = relativeMarginsIndMeasRatioX[0];
+    }
     
     for (Int_t p = 0; p < 8; p++){
       if (pads[p]->XtoPixel(pads[p]->GetX2()) < pads[p]->YtoPixel(pads[p]->GetY1())){
@@ -1181,7 +1192,8 @@
                                   std::map<int,TileSpectra> spectra, Setup* setupT, bool isHG, 
                                   Double_t xPMin, Double_t xPMax, Double_t scaleYMax, int layer, int mod,  TString nameOutput, RunInfo currRunInfo){
                                   
-    Double_t maxY = 0;
+    Double_t maxY = 3900;
+    if (isHG) maxY = 340;
     std::map<int, TileSpectra>::iterator ithSpectra;    
     int nRow = setupT->GetNMaxRow()+1;
     int nCol = setupT->GetNMaxColumn()+1;
@@ -1192,7 +1204,9 @@
         int tempCellID = setupT->GetCellID(r,c, layer, mod);
         int p = setupT->GetChannelInLayer(tempCellID);
         pads[p]->Draw();
+        pads[p]->SetLogy(0);
         pads[p]->cd();
+        
         ithSpectra=spectra.find(tempCellID);
         if(ithSpectra==spectra.end()){
           std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
@@ -1204,19 +1218,27 @@
         } else {
             tempProfile = ithSpectra->second.GetLGHGcorr();
         }
-        SetStyleTProfile( tempProfile, tempProfile->GetXaxis()->GetTitle(), tempProfile->GetYaxis()->GetTitle(), 0.85*textSizePixel, textSizePixel, 0.85*textSizePixel, textSizePixel,0.9, 1.1, 510, 510, 43, 63);  
+        if (!tempProfile) continue;
+        TH1D* dummyhist = new TH1D("dummyhist", "", tempProfile->GetNbinsX(), tempProfile->GetXaxis()->GetXmin(), tempProfile->GetXaxis()->GetXmax());
+        SetStyleHistoTH1ForGraphs( dummyhist, tempProfile->GetXaxis()->GetTitle(), tempProfile->GetYaxis()->GetTitle(), 0.85*textSizePixel, textSizePixel, 0.85*textSizePixel, textSizePixel,0.9, 1.5, 510, 510, 43, 63);  
+
+
+        // SetStyleTProfile( tempProfile, tempProfile->GetXaxis()->GetTitle(), tempProfile->GetYaxis()->GetTitle(), 0.85*textSizePixel, textSizePixel, 0.85*textSizePixel, textSizePixel,0.9, 1.1, 510, 510, 43, 63);  
         SetMarkerDefaultsProfile(tempProfile, 20, 1, kBlue+1, kBlue+1);   
-        // tempHist->GeXaxis()->SetRangeUser(xPMin,xPMax);
-        // tempHist->GetYaxis()->SetRangeUser(0.7,scaleYMax*maxY);
-        
-        tempProfile->Draw("pe");
+        if (isHG)
+          dummyhist->GetXaxis()->SetRangeUser(0,3900);
+        else 
+          dummyhist->GetXaxis()->SetRangeUser(0,340);
+        dummyhist->GetYaxis()->SetRangeUser(0,maxY);
+        dummyhist->Draw("axis");
+        tempProfile->Draw("pe, same");
                 
         TString label           = Form("row %d col %d", r, c);
         if (p == 7){
           label = Form("row %d col %d layer %d", r, c, layer);
         }
-        TLatex *labelChannel    = new TLatex(topRCornerX[p]-0.045,topRCornerY[p]-1.2*relSize8P[p],label);
-        SetStyleTLatex( labelChannel, 0.85*textSizePixel,4,1,43,kTRUE,31);
+        TLatex *labelChannel    = new TLatex(topRCornerX[p]+0.045,topRCornerY[p]-1.2*relSize8P[p],label);
+        SetStyleTLatex( labelChannel, 0.85*textSizePixel,4,1,43,kTRUE,11);
 
         
         TF1* fit            = nullptr;
@@ -1230,18 +1252,18 @@
           fit->GetRange(rangeFit[0], rangeFit[1]);
           SetStyleFit(fit , rangeFit[0], rangeFit[1], 7, 3, kRed+3);
           fit->Draw("same");
-          TLegend* legend = GetAndSetLegend2( topRCornerX[p]-10*relSize8P[p], topRCornerY[p]-4*0.85*relSize8P[p]-0.4*relSize8P[p], topRCornerX[p]-0.04, topRCornerY[p]-0.6*relSize8P[p],0.85*textSizePixel, 1, label, 43,0.1);
+          TLegend* legend = GetAndSetLegend2( topRCornerX[p]+0.045, topRCornerY[p]-4*0.85*relSize8P[p]-0.4*relSize8P[p], topRCornerX[p]+6*relSize8P[p], topRCornerY[p]-0.6*relSize8P[p],0.85*textSizePixel, 1, label, 43,0.1);
           legend->AddEntry(fit, "linear fit, trigg.", "l");
-          legend->AddEntry((TObject*)0, Form("#scale[0.8]{a = %2.2f #pm %2.2f}",fit->GetParameter(0), fit->GetParError(0) ) , " ");
-          legend->AddEntry((TObject*)0, Form("#scale[0.8]{b = %2.2f #pm %2.2f}",fit->GetParameter(1), fit->GetParError(1) ) , " ");
+          legend->AddEntry((TObject*)0, Form("#scale[0.8]{b = %2.2f #pm %2.2f}",fit->GetParameter(0), fit->GetParError(0) ) , " ");
+          legend->AddEntry((TObject*)0, Form("#scale[0.8]{a = %2.2f #pm %2.2f}",fit->GetParameter(1), fit->GetParError(1) ) , " ");
           legend->Draw();
         } else {
           labelChannel->Draw();  
         }
       
         if (p ==7 ){
-          DrawLatex(topRCornerX[p]-0.045, topRCornerY[p]-4*0.85*relSize8P[p]-1.4*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
-          DrawLatex(topRCornerX[p]-0.045, topRCornerY[p]-4*0.85*relSize8P[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42);
+          DrawLatex(topRCornerX[p]+0.045, topRCornerY[p]-4*0.85*relSize8P[p]-1.4*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), false, 0.85*relSize8P[p], 42);
+          DrawLatex(topRCornerX[p]+0.045, topRCornerY[p]-4*0.85*relSize8P[p]-2.2*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), false, 0.85*relSize8P[p], 42);
         }
       }
     }

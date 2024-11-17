@@ -227,7 +227,7 @@ bool TileSpectra::FitCorr(int verbosity){
   HGLGcorr =  TF1(funcName.Data(),"pol1",40,4000);
   HGLGcorr.SetParameter(0,0.);
   HGLGcorr.SetParameter(1,10.);
-  hspectraLGHG.Fit(&HGLGcorr,"QRMNE0"); 
+  hspectraHGLG.Fit(&HGLGcorr,"QRMNE0"); 
   bcorrHGLG=true;
   calib->HGLGCorr = HGLGcorr.GetParameter(1);
   return true;
