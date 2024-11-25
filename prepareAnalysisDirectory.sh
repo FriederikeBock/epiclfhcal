@@ -21,13 +21,8 @@ fi
 
 if [ $2 = "new" ]; then
     mkdir -p NewStructure
-
-    # ln -sf $LFHCALTBDIR/NewStructure/*.C NewStructure/
     ln -sf $LFHCALTBDIR/NewStructure/*.h NewStructure/
     ln -sf $LFHCALTBDIR/NewStructure/*.cc NewStructure/
-    # ln -sf $LFHCALTBDIR/NewStructure/*.cxx NewStructure/
-    # ln -sf $LFHCALTBDIR/NewStructure/*.csv NewStructure/
     ln -sf $LFHCALTBDIR/NewStructure/*.sh NewStructure/
-    ln -sf $LFHCALTBDIR/NewStructure/README NewStructure/
     ln -sf $LFHCALTBDIR/NewStructure/Makefile NewStructure/
 fi
