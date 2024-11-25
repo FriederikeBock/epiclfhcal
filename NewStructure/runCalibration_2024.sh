@@ -17,14 +17,6 @@ if [ $2 = "pedestal" ]; then
 		./Analyse -d 1 -p -i $dataDirRaw/raw_$runNr.root -f -o $dataDirOut/PedestalCalib_$runNr.root -O ../PlotsCalib_2024/Run$runNr -r ../configs/DataTakingDB_202409_CAEN.csv
 	done;
 fi
-	
-# ./Analyse -d 1 -p -i $dataDirRaw/raw_271.root -f -o $dataDirOut/PedestalCalib_271.root -O ../PlotsCalib_2024/Run271 -r ../configs/DataTakingDB_202409_CAEN.csv
-# ./Analyse -c $dataDirRaw/Run$pedScanD1_45V\_list.txt -o $dataDirRaw/raw_$pedScanD1_45V.root -d 1 -f
-# ./Analyse -d 1 -p -i $dataDirRaw/raw_$pedScanD1_45V.root -f -o $dataDirOut/PedestalCalib_$pedScanD1_45V.root
-# ./Analyse -c $dataDirRaw/Run$pedScanG_46V\_list.txt -o $dataDirRaw/raw_$pedScanG_46V.root -d 1 -f
-# ./Analyse -d 1 -p -i $dataDirRaw/raw_$pedScanG_46V.root -f -o $dataDirOut/PedestalCalib_$pedScanG_46V.root
-# ./Analyse -c $dataDirRaw/Run$pedHVScan_40V\_list.txt -o $dataDirRaw/raw_$pedHVScan_40V.root -d 1 -f
-# ./Analyse -d 1 -p -i $dataDirRaw/raw_$pedHVScan_40V.root -f -o $dataDirOut/PedestalCalib_$pedHVScan_40V.root
 
 if [ $2 == "mergemuons" ]; then
 	hadd -f $dataDirRaw/raw_muonScanA1_45V.root $dataDirRaw/raw_244.root $dataDirRaw/raw_250.root

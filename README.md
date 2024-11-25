@@ -65,7 +65,7 @@ This data was taken with a previous version of the Janus software, as such the r
 ```console
 bash convertData_Oct2023.sh $USERNAME [singe/all]
 ```
-As for the ```prepareAnalysisDirectory.sh``, please add your username and the path to the data. The script is under construction and even under all might only have few runs commented in, feel free to uncomment the rest.<br>
+As for the ```prepareAnalysisDirectory.sh```, please add your username and the path to the data. The script is under construction and even under all might only have few runs commented in, feel free to uncomment the rest.<br>
 Attention for a few runs (201,202,203,204,205), the converter will fail as a few channels were accidentally masked breaking the conversion. This data will have to be discarded. As we further develop the code more functionality will become available.
 
 #### 2024 data
@@ -98,70 +98,70 @@ The muon calibration can be started for all muon runs ```muoncalib``` or for spe
 ### Individual calls of the analysis steps
 Here an example of running the code from ASCII input to calibrated ROOT output format is provided:
 
-0. Compile the code with 
-```console
-make Analyse
-```
-if you changed something in the base classes majorly first 
-```console
-  make clean
+1. Compile the code with 
+  ```console
   make Analyse
-```
+  ```
+  if you changed something in the base classes majorly first 
+  ```console
+    make clean
+    make Analyse
+  ```
 
-0. As always please run the helper function first to make yourself familar with the options
-```console
- ./Analyse -h
-```
+2. As always please run the helper function first to make yourself familar with the options
+  ```console
+  ./Analyse -h
+  ```
 
-1. Convert ASCII to root (step to be done for every single ASCII file):
-```console
-./Analyse -c PATH_INPUT_FILE/RunXXX_list.txt -o PATH_OUTPUT_FILE/WhateverName.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
-```
+3. Convert ASCII to root (step to be done for every single ASCII file):
+  ```console
+  ./Analyse -c PATH_INPUT_FILE/RunXXX_list.txt -o PATH_OUTPUT_FILE/WhateverName.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
+  ```
 
-```console
-./Analyse -c Run375_list.txt -o RawMuonBeamPlus5.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
-./Analyse -c Run376_list.txt -o RawMuonBeamMinus5.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
-./Analyse -c Run377_list.txt -o RawPedestal.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
-./Analyse -c Run379_list.txt -o RawElectron1GeV.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
-```
+  ```console
+  ./Analyse -c Run375_list.txt -o RawMuonBeamPlus5.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
+  ./Analyse -c Run376_list.txt -o RawMuonBeamMinus5.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
+  ./Analyse -c Run377_list.txt -o RawPedestal.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
+  ./Analyse -c Run379_list.txt -o RawElectron1GeV.root -m ../configs/mappingFile_202409_CAEN.txt -r ../configs/DataTakingDB_202409_CAEN.csv
+  ```
 
-2. Extract pedestal value (currently simple gaussian fit):
+4. Extract pedestal value (currently simple gaussian fit):
 
-```console
-./Analyse (-f) -p -i RawPedestal.root -o PedestalCalib.root
-```
-
-
-
-3. Extract MIP calibration:
-  1. Conveniently hadd the input file to make sure we should see MIP signal on all tiles (included furthest Jura or Saleve)
-```console
-hadd  RawMuonBeamFullAcceptance.root   RawMuonBeamPlus5.root  RawMuonBeamMinus5.root
-```
-
-
-  2. Transfer Calibration object from Pedestal file to MIP file
-```console
-./Analyse (-f) -P PedestalCalib.root -i RawMuonBeamFullAcceptance.root -o RawMuonBeamFullAcceptancePedCalib.root
-```
-
-
-  3. Extract MIP signal based on Landau fit (request the Pedestal file to shift the ADC distribution to get rid of most of the noise, the tail is still taken into account from the values stored in the calibration object and due to potential deviation in the tail, a decreasing exponential is also added)
-
-```console
-./Analyse (-f) -s -i RawMuonBeamFullAcceptancePedCalib.root -o RawMuonBeamFullAcceptancePedAndScaleCalib.root
-```
-
-=> Plenty of room for improvement in this step. Could also be more interesting to save only the histograms and deal with the fit outside
-=> Potentially interesting to add a method to load or overwite calib objets from information read in txt file with cellID and values (like in case of fit failure, which we would may want/need to address on a case by case basis) 
+  ```console
+  ./Analyse (-f) -p -i RawPedestal.root -o PedestalCalib.root
+  ```
 
 
 
+5. Extract MIP calibration:
+  5.1. Conveniently hadd the input file to make sure we should see MIP signal on all tiles (included furthest Jura or Saleve)
+    ```console
+    hadd  RawMuonBeamFullAcceptance.root   RawMuonBeamPlus5.root  RawMuonBeamMinus5.root
+    ```
 
-4. Apply Calibration to physics data
-```console
-./Analyse (-f) -C RawMuonBeamFullAcceptancePedAndScaleCalib.root -i RawElectron1GeV.root -o CalibratedElectron1GeV.root
-```
+
+  5.2. Transfer Calibration object from Pedestal file to MIP file
+    ```console
+    ./Analyse (-f) -P PedestalCalib.root -i RawMuonBeamFullAcceptance.root -o RawMuonBeamFullAcceptancePedCalib.root
+    ```
+
+
+  5.3. Extract MIP signal based on Landau fit (request the Pedestal file to shift the ADC distribution to get rid of most of the noise, the tail is still taken into account from the values stored in the calibration object and due to potential deviation in the tail, a decreasing exponential is also added)
+
+    ```console
+    ./Analyse (-f) -s -i RawMuonBeamFullAcceptancePedCalib.root -o RawMuonBeamFullAcceptancePedAndScaleCalib.root
+    ```
+
+  => Plenty of room for improvement in this step. Could also be more interesting to save only the histograms and deal with the fit outside
+  => Potentially interesting to add a method to load or overwite calib objets from information read in txt file with cellID and values (like in case of fit failure, which we would may want/need to address on a case by case basis) 
+
+
+
+
+6. Apply Calibration to physics data
+  ```console
+  ./Analyse (-f) -C RawMuonBeamFullAcceptancePedAndScaleCalib.root -i RawElectron1GeV.root -o CalibratedElectron1GeV.root
+  ```
 
 
 Status:
