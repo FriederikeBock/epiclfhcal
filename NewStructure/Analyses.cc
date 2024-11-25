@@ -10,6 +10,7 @@
 #include "TProfile.h"
 #include "TChain.h"
 #include "TileSpectra.h"
+#include "CommonHelperFunctions.h"
 #include "PlottHelper.h"
 
 bool Analyses::CheckAndOpenIO(void){
@@ -615,6 +616,13 @@ bool Analyses::ConvertOldRootFile2Root(void){
   event.SetBeamName(it->second.species);
   event.SetBeamID(it->second.pdg);
   event.SetBeamEnergy(it->second.energy);
+  event.SetVop(it->second.vop);
+  event.SetVov(it->second.vop-it->second.vbr);
+  event.SetBeamPosX(it->second.posX);
+  event.SetBeamPosY(it->second.posY);
+  calib.SetRunNumber(RunString.Atoi());
+  calib.SetVop(it->second.vop);
+  calib.SetVov(it->second.vop-it->second.vbr);  
   
     // load tree
   TChain *const tt_event = new TChain("tree");
@@ -801,7 +809,8 @@ bool Analyses::GetPedestal(void){
   double* parameters=new double[8];
   bool isGood;
   for(ithSpectra=hSpectra.begin(); ithSpectra!=hSpectra.end(); ++ithSpectra){
-    isGood=ithSpectra->second.FitNoise(parameters);
+    if ( debug > 2) std::cout << ((TString)setup->DecodeCellID(ithSpectra->second.GetCellID())).Data() << std::endl;
+    isGood=ithSpectra->second.FitNoise(parameters, yearData);
     hMeanPedHGvsCellID->SetBinContent(hMeanPedHGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[4]);
     hMeanPedHGvsCellID->SetBinError  (hMeanPedHGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[6]);
     hMeanPedLGvsCellID->SetBinContent(hMeanPedLGvsCellID->FindBin(ithSpectra->second.GetCellID()), parameters[0]);
@@ -1098,6 +1107,7 @@ bool Analyses::GetScaling(void){
   //************************* first pass over tree to extract spectra *****************************
   //***********************************************************************************************  
   double averageScale = calib.GetAverageScaleHigh();
+  std::cout << "average HG mip: " << averageScale << std::endl;
   for(int i=0; i<evts; i++){
     TdataIn->GetEntry(i);
     if (i%5000 == 0 && i > 0 && debug > 0) std::cout << "Reading " <<  i << " / " << evts << " events" << std::endl;
@@ -1110,52 +1120,14 @@ bool Analyses::GetScaling(void){
       ithSpectra=hSpectraTrigg.find(aTile->GetCellID());
       double hgCorr = aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID());
       double lgCorr = aTile->GetADCLow()-calib.GetPedestalMeanL(aTile->GetCellID());
-      
-      // figure out surrounding tiles for local mip selection
-      long ids[4]  = {-1, -1, -1, -1};
-      int layer     = setup->GetLayer(currCellID);
-      int row       = setup->GetRow(currCellID);
-      int col       = setup->GetColumn(currCellID);
-      int mod       = setup->GetModule(currCellID);
-      if (layer == 0){
-        ids[0] = setup->GetCellID(row, col, layer+1,mod);
-        ids[1] = setup->GetCellID(row, col, layer+2,mod);
-        ids[2] = setup->GetCellID(row, col, layer+3,mod);
-        ids[3] = setup->GetCellID(row, col, layer+4,mod);
-      }else if (layer == 1){
-        ids[0] = setup->GetCellID(row, col, layer-1,mod);
-        ids[1] = setup->GetCellID(row, col, layer+1,mod);
-        ids[2] = setup->GetCellID(row, col, layer+2,mod);
-        ids[3] = setup->GetCellID(row, col, layer+3,mod);
-      } else if (layer == setup->GetNMaxLayer()-1){
-        ids[0] = setup->GetCellID(row, col, layer-3,mod);
-        ids[1] = setup->GetCellID(row, col, layer-2,mod);
-        ids[2] = setup->GetCellID(row, col, layer-1,mod);
-        ids[3] = setup->GetCellID(row, col, layer+1,mod);      
-      } else if (layer == setup->GetNMaxLayer()){
-        ids[0] = setup->GetCellID(row, col, layer-4,mod);
-        ids[1] = setup->GetCellID(row, col, layer-3,mod);
-        ids[2] = setup->GetCellID(row, col, layer-2,mod);
-        ids[3] = setup->GetCellID(row, col, layer-1,mod);      
-      } else {
-        ids[0] = setup->GetCellID(row, col, layer-2,mod);
-        ids[1] = setup->GetCellID(row, col, layer-1,mod);
-        ids[2] = setup->GetCellID(row, col, layer+1,mod);
-        ids[3] = setup->GetCellID(row, col, layer+2,mod);
-      }
-      
-      // calculate average sum of surrounding tiles (nominally 2 in the front + 2 in the back)
+
+      // estimate local muon trigger
       double avsurr = 0;
-      for (Int_t t = 0; t < 4; t++){
-        double tmpHG = ((Caen*)event.GetTileFromID(ids[t]))->GetADCHigh()-calib.GetPedestalMeanH(ids[t]); //needs protection
-        if (tmpHG > 3*calib.GetPedestalSigH(ids[t]))
-          avsurr +=tmpHG;
-      }
-      avsurr        = avsurr/4.;
+      bool localMuonTrigg = event.InspectIfLocalMuonTrigg(setup,calib,avsurr,currCellID,averageScale,0.9,3.,4);
       int chInLayer = setup->GetChannelInLayer(currCellID);    
       hHGTileSum[chInLayer]->Fill(avsurr);
       // only fill tile spectra if 4 surrounding tiles on average are compatible with muon response
-      if (avsurr >  averageScale*0.9 && avsurr < 3*averageScale){
+      if (localMuonTrigg){
         if(ithSpectra!=hSpectraTrigg.end()){
           ithSpectra->second.FillSpectra(lgCorr,hgCorr);
           if (hgCorr > 3*calib.GetPedestalSigH(currCellID) && lgCorr > 3*calib.GetPedestalSigL(currCellID) && hgCorr < 3900 )

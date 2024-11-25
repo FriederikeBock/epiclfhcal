@@ -17,6 +17,7 @@
 #include "TSystem.h"
 #include "TStyle.h"
 #include "TileSpectra.h"  
+#include "CommonHelperFunctions.h"
   //__________________________________________________________________________________________________________
   //__________________________________________________________________________________________________________
   //__________________________________________________________________________________________________________
@@ -975,13 +976,14 @@
     
     int nRow = setupT->GetNMaxRow()+1;
     int nCol = setupT->GetNMaxColumn()+1;
-    
+    int skipped = 0;
     for (int r = 0; r < nRow; r++){
       for (int c = 0; c < nCol; c++){
         int tempCellID = setupT->GetCellID(r,c, layer, mod);
         ithSpectra=spectra.find(tempCellID);
         if(ithSpectra==spectra.end()){
           std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
+          skipped++;
           continue;
         } 
         TH1D* tempHist = nullptr;
@@ -1053,7 +1055,8 @@
         }
       }
     }
-    canvas8Panel->SaveAs(nameOutput.Data());
+    if (skipped < 6)
+      canvas8Panel->SaveAs(nameOutput.Data());
   }
 
   //__________________________________________________________________________________________________________
@@ -1069,7 +1072,7 @@
     
     int nRow = setupT->GetNMaxRow()+1;
     int nCol = setupT->GetNMaxColumn()+1;
-    
+    int skipped = 0;
     for (int r = 0; r < nRow; r++){
       for (int c = 0; c < nCol; c++){
         int tempCellID = setupT->GetCellID(r,c, layer, mod);
@@ -1182,7 +1185,8 @@
         }
       }
     }
-    canvas8Panel->SaveAs(nameOutput.Data());
+    if (skipped < 6)
+      canvas8Panel->SaveAs(nameOutput.Data());
   }
 
   //__________________________________________________________________________________________________________
@@ -1197,7 +1201,8 @@
     std::map<int, TileSpectra>::iterator ithSpectra;    
     int nRow = setupT->GetNMaxRow()+1;
     int nCol = setupT->GetNMaxColumn()+1;
-        
+    int skipped = 0;
+    
     for (int r = 0; r < nRow; r++){
       for (int c = 0; c < nCol; c++){
         canvas8Panel->cd();
@@ -1267,7 +1272,8 @@
         }
       }
     }
-    canvas8Panel->SaveAs(nameOutput.Data());
+    if (skipped < 6)
+      canvas8Panel->SaveAs(nameOutput.Data());
   }
 
   

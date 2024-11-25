@@ -31,6 +31,7 @@ void PrintHelp(char* exe){
   std::cout<<"-c xxx   Convert ASCII input file xxx into root format output"<<std::endl;
   std::cout<<"-C yyy   Apply calibrations stored in yyy root file to the input uncalibrated file"<<std::endl;
   std::cout<<"-p       Extract pedestal from input file and store it in output file"<<std::endl;
+  std::cout<<"-y yyyy  setting year externally to narrow parameters"<<std::endl;
   std::cout<<"-P zzz   Correct pedestals stored in zzz root file and applied to input file"<<std::endl;
   std::cout<<"-i uuu   Input file in root format"<<std::endl;
   std::cout<<"-o vvv   Output file name (mandatory)"<<std::endl;
@@ -56,7 +57,7 @@ int main(int argc, char* argv[]){
   }
   Analyses AnAnalysis;
   int c;
-  while((c=getopt(argc,argv,"c:psP:C:fo:O:m:d:i:r:h"))!=-1){
+  while((c=getopt(argc,argv,"c:psP:C:fo:O:m:d:i:y:r:h"))!=-1){
     switch(c){
     case 'c':
       std::cout<<"Convert ASCII input '"<<optarg<<"' to root format"<<std::endl;
@@ -104,6 +105,10 @@ int main(int argc, char* argv[]){
     case 'i':
       std::cout<<"Root input file is: "<<optarg<<std::endl;
       AnAnalysis.SetRootInput(Form("%s",optarg));
+      break;
+    case 'y':
+      std::cout<<"Setting year externally: "<<optarg<<std::endl;
+      AnAnalysis.SetYear(atoi(optarg));
       break;
     case 'd':
       std::cout<<"enable debug " << optarg <<std::endl;

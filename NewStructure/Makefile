@@ -49,7 +49,7 @@ Event.o: Event.cc Event.h
 Analyse.o: Analyse.cc
 	$(CXX) $(FLAGS) -I. -c Analyse.cc -o Analyse.o
 
-Analyses.o: Analyses.cc Analyses.h PlottHelper.h
+Analyses.o: Analyses.cc Analyses.h PlottHelper.h CommonHelperFunctions.h
 	$(CXX) $(FLAGS) -I. -c Analyses.cc -o Analyses.o
 
 #Analyse: Event.o Setup.o RootSetupWrapper.o Calib.o RootCalibWrapper.o Tile.o HGCROC.o Caen.o libLFHCAL.so Analyse.o Analyses.o

@@ -7,6 +7,8 @@
 #include <iostream>
 #include "Caen.h"
 #include "HGCROC.h"
+#include "Setup.h"
+#include "Calib.h"
 
 class Event{
 
@@ -44,6 +46,8 @@ class Event{
   void    SetBeamPosY(double);
   void    SetTimeStamp (int);
 
+  bool    InspectIfLocalMuonTrigg(Setup*, Calib, double& , int, double, double, double, int );
+  
  private:
 
   double                BeamEnergy;
