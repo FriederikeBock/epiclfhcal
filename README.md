@@ -1,4 +1,4 @@
-# epiclfhcal
+# epic-lfhcal-tbana software repo
 
 This software repo is meant to serve as basis for the test beam root based analysis of the LFHCal test beams and test beam setups.
 The repo contains the initial code used in 2023 under OldStructure & the newer version of the code under NewStructure <br>
