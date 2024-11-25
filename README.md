@@ -77,7 +77,7 @@ bash convertData_2024.sh $USERNAME [single/all]
 ```
 As for the ```prepareAnalysisDirectory.sh```, please add your username and the path to the data.  This script so far contains all pedestal and muon runs under the flag ```all```. Further runs will be added in the future. <br>
 The analysis of the 2024 muon runs is furthest developed. The pedestal extraction can be starting with the following command for all pedestal runs
-```
+```console
 bash runCalibration_2024.sh $USERNAME pedestal
 ```
 As for the ```prepareAnalysisDirectory.sh```, please add your username and the path to the data, as well as the calibration output directory. The further steps in the analysis , like merging of the raw data for different muon runs can be started with the argument ```mergemuons``` instead of ```pedestal```. In the script all combinations of muon runs and pedestal runs are defined with corresponding variables, i.e. 
@@ -86,11 +86,11 @@ muonHVScan_44V='305'
 pedHVScan_44V='303'
 ```
 The corresponding analysis of the muon calib extraction can be started with 
-```
+```console
 bash runCalibration_2024.sh $USERNAME muoncalibHV44 transfer
 ```
 the last argument only needs to be used in case a new pedestal calibration has been created and needs to be transferred to the corresponding muon run file. Otherwise the following command is sufficient.
-```
+```console
 bash runCalibration_2024.sh $USERNAME muoncalibHV44
 ```
 The muon calibration can be started for all muon runs ```muoncalib``` or for specific parts of the campaign ```muoncalib[HV44|HV43|HV42|HV41|HV40|A|B|C|D|E|F|G|H]```. Please be careful if you start all runs, this will take a while and will produce quite some control plots.
@@ -152,7 +152,7 @@ Here an example of running the code from ASCII input to calibrated ROOT output f
       ./Analyse (-f) -s -i RawMuonBeamFullAcceptancePedCalib.root -o RawMuonBeamFullAcceptancePedAndScaleCalib.root
       ```
 
-  => Plenty of room for improvement in this step. Could also be more interesting to save only the histograms and deal with the fit outside
+  => Plenty of room for improvement in this step. Could also be more interesting to save only the histograms and deal with the fit outside<br>
   => Potentially interesting to add a method to load or overwite calib objets from information read in txt file with cellID and values (like in case of fit failure, which we would may want/need to address on a case by case basis) 
 
 
