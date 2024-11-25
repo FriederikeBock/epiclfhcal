@@ -134,23 +134,23 @@ Here an example of running the code from ASCII input to calibrated ROOT output f
 
 
 5. Extract MIP calibration:
-  1. Conveniently hadd the input file to make sure we should see MIP signal on all tiles (included furthest Jura or Saleve)
-    ```console
-    hadd  RawMuonBeamFullAcceptance.root   RawMuonBeamPlus5.root  RawMuonBeamMinus5.root
-    ```
+    1. Conveniently hadd the input file to make sure we should see MIP signal on all tiles (included furthest Jura or Saleve)
+      ```console
+      hadd  RawMuonBeamFullAcceptance.root   RawMuonBeamPlus5.root  RawMuonBeamMinus5.root
+      ```
 
 
-  2. Transfer Calibration object from Pedestal file to MIP file
-    ```console
-    ./Analyse (-f) -P PedestalCalib.root -i RawMuonBeamFullAcceptance.root -o RawMuonBeamFullAcceptancePedCalib.root
-    ```
+    2. Transfer Calibration object from Pedestal file to MIP file
+      ```console
+      ./Analyse (-f) -P PedestalCalib.root -i RawMuonBeamFullAcceptance.root -o RawMuonBeamFullAcceptancePedCalib.root
+      ```
 
 
-  3. Extract MIP signal based on Landau fit (request the Pedestal file to shift the ADC distribution to get rid of most of the noise, the tail is still taken into account from the values stored in the calibration object and due to potential deviation in the tail, a decreasing exponential is also added)
+    3. Extract MIP signal based on Landau fit (request the Pedestal file to shift the ADC distribution to get rid of most of the noise, the tail is still taken into account from the values stored in the calibration object and due to potential deviation in the tail, a decreasing exponential is also added)
 
-    ```console
-    ./Analyse (-f) -s -i RawMuonBeamFullAcceptancePedCalib.root -o RawMuonBeamFullAcceptancePedAndScaleCalib.root
-    ```
+      ```console
+      ./Analyse (-f) -s -i RawMuonBeamFullAcceptancePedCalib.root -o RawMuonBeamFullAcceptancePedAndScaleCalib.root
+      ```
 
   => Plenty of room for improvement in this step. Could also be more interesting to save only the histograms and deal with the fit outside
   => Potentially interesting to add a method to load or overwite calib objets from information read in txt file with cellID and values (like in case of fit failure, which we would may want/need to address on a case by case basis) 
