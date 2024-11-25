@@ -8,20 +8,26 @@ fi
 echo $LFHCALTBDIR
 
 mkdir -p configs
-mkdir -p NewStructure
 
 ln -sf $LFHCALTBDIR/configs/*.txt configs/
 ln -sf $LFHCALTBDIR/configs/*.csv configs/
 
-ln -sf $LFHCALTBDIR/*.C .
-ln -sf $LFHCALTBDIR/*.h .
-ln -sf $LFHCALTBDIR/*.sh .
+if [ $2 = "old" ]; then
+    mkdir -p OldStructure
+    ln -sf $LFHCALTBDIR/OldStructure/*.C OldStructure/
+    ln -sf $LFHCALTBDIR/OldStructure/*.h OldStructure/
+    ln -sf $LFHCALTBDIR/OldStructure/*.sh OldStructure/
+fi 
 
-# ln -sf $LFHCALTBDIR/NewStructure/*.C NewStructure/
-ln -sf $LFHCALTBDIR/NewStructure/*.h NewStructure/
-ln -sf $LFHCALTBDIR/NewStructure/*.cc NewStructure/
-# ln -sf $LFHCALTBDIR/NewStructure/*.cxx NewStructure/
-# ln -sf $LFHCALTBDIR/NewStructure/*.csv NewStructure/
-ln -sf $LFHCALTBDIR/NewStructure/*.sh NewStructure/
-ln -sf $LFHCALTBDIR/NewStructure/README NewStructure/
-ln -sf $LFHCALTBDIR/NewStructure/Makefile NewStructure/
+if [ $2 = "new" ]; then
+    mkdir -p NewStructure
+
+    # ln -sf $LFHCALTBDIR/NewStructure/*.C NewStructure/
+    ln -sf $LFHCALTBDIR/NewStructure/*.h NewStructure/
+    ln -sf $LFHCALTBDIR/NewStructure/*.cc NewStructure/
+    # ln -sf $LFHCALTBDIR/NewStructure/*.cxx NewStructure/
+    # ln -sf $LFHCALTBDIR/NewStructure/*.csv NewStructure/
+    ln -sf $LFHCALTBDIR/NewStructure/*.sh NewStructure/
+    ln -sf $LFHCALTBDIR/NewStructure/README NewStructure/
+    ln -sf $LFHCALTBDIR/NewStructure/Makefile NewStructure/
+fi
