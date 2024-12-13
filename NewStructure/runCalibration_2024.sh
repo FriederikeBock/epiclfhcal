@@ -224,7 +224,7 @@ muonScanG_46V='508 510 511 525'
 pedScanG_46V='521'
 if [ $2 == "muoncalibAll" ] || [ $2 == "muoncalibG" ]; then
 	echo "running muon calib for 46V runs, campaing G"
-	if 
+	if [ $3 == "transfer" ]; then 
 		./Analyse -d 1 -f -P $dataDirOut/PedestalCalib_$pedScanG_46V.root -i $dataDirRaw/raw_muonScanG_46V.root -o $dataDirRaw/rawPed_muonScanG_46V.root -r ../configs/DataTakingDB_202409_CAEN.csv
 	fi
 	./Analyse -f -d 1 -s -i $dataDirRaw/rawPed_muonScanG_46V.root -o $dataDirOut/rawPedAndMuon_muonScanG_46V.root -O ../PlotsCalibMuon_2024/muonScanG_46V -r ../configs/DataTakingDB_202409_CAEN.csv

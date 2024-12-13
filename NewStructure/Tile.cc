@@ -78,6 +78,14 @@ double Tile::GetTOA()const{
   return TOA;
 }
 
+double Tile::GetLocalTriggerPrimitive() const{
+  return lTPr;
+}
+
+unsigned char Tile::GetLocalTriggerBit() const{
+  return lTrBit;
+}
+
 void Tile::SetE(double e){
   E=e;
 }
@@ -93,4 +101,12 @@ void Tile::SetROtype(ReadOut::Type i){
 
 void Tile::SetTOA(double t){
   TOA=t;
+}
+
+void Tile::SetLocalTriggerPrimitive(double tr){
+  lTPr=tr;
+}
+
+void Tile::SetLocalTriggerBit(unsigned char tr){
+  lTrBit=tr;
 }

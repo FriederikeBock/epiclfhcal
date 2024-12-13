@@ -52,14 +52,23 @@ Analyse.o: Analyse.cc
 Analyses.o: Analyses.cc Analyses.h PlottHelper.h CommonHelperFunctions.h
 	$(CXX) $(FLAGS) -I. -c Analyses.cc -o Analyses.o
 
+Compare.o: Compare.cc
+	$(CXX) $(FLAGS) -I. -c Compare.cc -o Compare.o
+
+ComparisonCalib.o: ComparisonCalib.cc ComparisonCalib.h PlottHelper.h CommonHelperFunctions.h
+	$(CXX) $(FLAGS) -I. -c ComparisonCalib.cc -o ComparisonCalib.o
+	
 #Analyse: Event.o Setup.o RootSetupWrapper.o Calib.o RootCalibWrapper.o Tile.o HGCROC.o Caen.o libLFHCAL.so Analyse.o Analyses.o
 #	$(CXX) Event.o Calib.o Setup.o RootSetupWrapper.o RootCalibWrapper.o Tile.o HGCROC.o Caen.o Analyses.o Analyse.o $(FLAGS) -I. libLFHCAL.so -o Analyse
 
 Analyse: Event.o Setup.o RootSetupWrapper.o Calib.o Tile.o HGCROC.o Caen.o  TileSpectra.o libLFHCAL.so Analyse.o Analyses.o
 	$(CXX) Event.o Calib.o Setup.o RootSetupWrapper.o Tile.o HGCROC.o Caen.o TileSpectra.o Analyses.o Analyse.o $(FLAGS) -I. libLFHCAL.so -o Analyse
 
+Compare: Event.o Setup.o RootSetupWrapper.o Calib.o Tile.o HGCROC.o Caen.o  TileSpectra.o libLFHCAL.so Compare.o ComparisonCalib.o
+	$(CXX) Event.o Calib.o Setup.o RootSetupWrapper.o Tile.o HGCROC.o Caen.o TileSpectra.o ComparisonCalib.o Compare.o $(FLAGS) -I. libLFHCAL.so -o Compare
+	
 clean:
-	rm *.o Cint* *.so ./Analyse
+	rm *.o Cint* *.so ./Analyse ./Compare
 
 cleanLib:
 	rm *.so Cint*

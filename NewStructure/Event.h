@@ -9,6 +9,7 @@
 #include "HGCROC.h"
 #include "Setup.h"
 #include "Calib.h"
+#include "TRandom3.h"
 
 class Event{
 
@@ -46,8 +47,9 @@ class Event{
   void    SetBeamPosY(double);
   void    SetTimeStamp (int);
 
-  bool    InspectIfLocalMuonTrigg(Setup*, Calib, double& , int, double, double, double, int );
-  
+  bool    InspectIfLocalMuonTrigg(int, double, double, double);
+  double  CalculateLocalMuonTrigg(Setup*, Calib, TRandom3*, int, int);
+
  private:
 
   double                BeamEnergy;

@@ -22,6 +22,13 @@ bool TileSpectra::FillSpectra(double l, double h){
   return true;
 }
 
+bool TileSpectra::FillTrigger(double t){
+  if (!bTriggPrim) bTriggPrim =true;
+  hTriggPrim.Fill(t);
+  return true;
+}
+
+
 bool TileSpectra::FillCorr(double l, double h){
   hspectraLGHG.Fill(l,h);
   hspectraHGLG.Fill(h,l);
@@ -95,7 +102,7 @@ bool TileSpectra::FitNoise(double* out, int year = -1){        //[0] LG mean, [2
   return true;
 }
 
-bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, bool impE = false){
+bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, int year, bool impE = false){
   
   // Once again, here are the Landau * Gaussian parameters:
   //   par[0]=Width (scale) parameter of Landau density
@@ -108,6 +115,8 @@ bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, bool impE
   
   
   double fitrange[2]      = {50, 2000};
+  if (year == 2023)
+    fitrange[0] = 200;
   double intArea    = hspectraHG.Integral(hspectraHG.FindBin(fitrange[0]),hspectraHG.FindBin(fitrange[1]));
   double intNoise   = hspectraHG.Integral(hspectraHG.FindBin(-2*calib->PedestalSigH),hspectraHG.FindBin(+2*calib->PedestalSigH));
   
@@ -118,6 +127,13 @@ bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, bool impE
   double startvalues[4]   = {50, 300, intArea, calib->PedestalSigH};
   double parlimitslo[4]   = {0.5, 50, 1.0, calib->PedestalSigH*0.1};
   double parlimitshi[4]   = {500, 1000, intArea*5, calib->PedestalSigH*10};
+  if (year == 2023){
+    startvalues[0]  = 200;
+    startvalues[1]  = 500;
+    parlimitslo[1]  = 200;
+    parlimitshi[0]  = 1000;
+    parlimitshi[1]  = 1500;
+  }
   
   SignalHG = TF1(funcName.Data(),langaufun,fitrange[0],fitrange[1],4);
   SignalHG.SetParameters(startvalues);
@@ -162,7 +178,7 @@ bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, bool impE
 }
 
 
-bool TileSpectra::FitMipLG(double* out, double* outErr, int verbosity, bool impE = false){
+bool TileSpectra::FitMipLG(double* out, double* outErr, int verbosity, int year, bool impE = false){
   
   // Once again, here are the Landau * Gaussian parameters:
   //   par[0]=Width (scale) parameter of Landau density
@@ -240,9 +256,10 @@ bool TileSpectra::FitCorr(int verbosity){
   calib->LGHGCorr = LGHGcorr.GetParameter(1);
   
   funcName = Form("fcorr%sHGLGCellID%d",TileName.Data(),cellID);
-  HGLGcorr =  TF1(funcName.Data(),"pol1",40,4000);
+  HGLGcorr =  TF1(funcName.Data(),"pol1",150,3500);
   HGLGcorr.SetParameter(0,0.);
-  HGLGcorr.SetParameter(1,10.);
+  HGLGcorr.SetParameter(1,0.1);
+  HGLGcorr.SetParLimits(1,0.,1.);
   hspectraHGLG.Fit(&HGLGcorr,"QRMNE0"); 
   bcorrHGLG=true;
   calib->HGLGCorr = HGLGcorr.GetParameter(1);
@@ -259,6 +276,10 @@ TH1D* TileSpectra::GetHG(){
 
 TH1D* TileSpectra::GetLG(){
   return &hspectraLG;
+}
+
+TH1D* TileSpectra::GetTriggPrim(){
+  return &hTriggPrim;
 }
 
 TH1D* TileSpectra::GetHGLGcomb(){
@@ -311,6 +332,7 @@ void TileSpectra::Write( bool wFits = true){
   hspectraLG.Write(hspectraLG.GetName(), kOverwrite);
   hspectraLGHG.Write(hspectraLGHG.GetName(), kOverwrite);
   hspectraHGLG.Write(hspectraHGLG.GetName(), kOverwrite);
+  if (bTriggPrim) hTriggPrim.Write(hTriggPrim.GetName(), kOverwrite);
   if ( wFits ){
     if(bpedHG)BackgroundHG.Write(BackgroundHG.GetName(), kOverwrite);
     if(bmipHG)SignalHG.Write(SignalHG.GetName(), kOverwrite);

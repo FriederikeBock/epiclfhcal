@@ -1101,6 +1101,7 @@
         pads[p]->SetLogy();
         ithSpectra=spectra.find(tempCellID);
         if(ithSpectra==spectra.end()){
+          skipped++;
           std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
           continue;
         } 
@@ -1214,6 +1215,7 @@
         
         ithSpectra=spectra.find(tempCellID);
         if(ithSpectra==spectra.end()){
+          skipped++;
           std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
           continue;
         } 
@@ -1276,5 +1278,79 @@
       canvas8Panel->SaveAs(nameOutput.Data());
   }
 
+  
+  //__________________________________________________________________________________________________________
+  // Plot Trigger Primitive with Fits for Full layer
+  //__________________________________________________________________________________________________________
+  void PlotTriggerPrimWithFitsFullLayer (TCanvas* canvas8Panel, TPad* pads[8], Double_t* topRCornerX,  Double_t* topRCornerY, 
+                                         Double_t* relSize8P, Int_t textSizePixel, 
+                                         std::map<int,TileSpectra> spectra, Setup* setupT, 
+                                         double avMip, double facLow, double facHigh,
+                                         Double_t xPMin, Double_t xPMax, Double_t scaleYMax, 
+                                         int layer, int mod,  TString nameOutput, RunInfo currRunInfo){
+                                  
+    Double_t maxY = 0;
+    std::map<int, TileSpectra>::iterator ithSpectra;
+    std::map<int, TileSpectra>::iterator ithSpectraTrigg;
+    
+    int nRow = setupT->GetNMaxRow()+1;
+    int nCol = setupT->GetNMaxColumn()+1;
+    int skipped = 0;
+    for (int r = 0; r < nRow; r++){
+      for (int c = 0; c < nCol; c++){
+        int tempCellID = setupT->GetCellID(r,c, layer, mod);
+        ithSpectra=spectra.find(tempCellID);
+        if(ithSpectra==spectra.end()){
+          std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
+          continue;
+        } 
+        TH1D* tempHist = ithSpectra->second.GetTriggPrim();
+        if (maxY < FindLargestBin1DHist(tempHist, xPMin , xPMax)) maxY = FindLargestBin1DHist(tempHist, xPMin , xPMax);
+      }  
+    }
+    
+    for (int r = 0; r < nRow; r++){
+      for (int c = 0; c < nCol; c++){
+        canvas8Panel->cd();
+        int tempCellID = setupT->GetCellID(r,c, layer, mod);
+        int p = setupT->GetChannelInLayer(tempCellID);
+        pads[p]->Draw();
+        pads[p]->cd();
+        pads[p]->SetLogy();
+        ithSpectra=spectra.find(tempCellID);
+        if(ithSpectra==spectra.end()){
+          skipped++;
+          std::cout << "WARNING: skipping cell ID: " << tempCellID << "\t row " << r << "\t column " << c << "\t layer " << layer << "\t module " << mod << std::endl;
+          continue;
+        } 
+        TH1D* tempHist = ithSpectra->second.GetTriggPrim();
+        SetStyleHistoTH1ForGraphs( tempHist, tempHist->GetXaxis()->GetTitle(), tempHist->GetYaxis()->GetTitle(), 0.85*textSizePixel, textSizePixel, 0.85*textSizePixel, textSizePixel,0.9, 1.1, 510, 510, 43, 63);  
+        SetMarkerDefaults(tempHist, 20, 1, kBlue+1, kBlue+1, kFALSE);   
+        tempHist->GetXaxis()->SetRangeUser(xPMin,xPMax);
+        tempHist->GetYaxis()->SetRangeUser(0.7,scaleYMax*maxY);
+        
+        tempHist->Draw("pe");
+        TString label           = Form("row %d col %d", r, c);
+        if (p == 7){
+          label = Form("row %d col %d layer %d", r, c, layer);
+        }
+        TLatex *labelChannel    = new TLatex(topRCornerX[p]-0.045,topRCornerY[p]-1.2*relSize8P[p],label);
+        SetStyleTLatex( labelChannel, 0.85*textSizePixel,4,1,43,kTRUE,31);
+        labelChannel->Draw();  
+      
+        DrawLines(avMip*facLow, avMip*facLow,0.7, scaleYMax*maxY*0.1, 1, 1, 7);
+        DrawLines(avMip*facHigh, avMip*facHigh,0.7, scaleYMax*maxY*0.1, 1, 1, 7);
+        
+        if (p ==7 ){
+          DrawLatex(topRCornerX[p]-0.045, topRCornerY[p]-2.*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);
+          DrawLatex(topRCornerX[p]-0.045, topRCornerY[p]-3.*relSize8P[p], GetStringFromRunInfo(currRunInfo, 3), true, 0.85*relSize8P[p], 42);
+          DrawLatex(topRCornerX[p]-0.045, topRCornerY[p]-4.*relSize8P[p], "Trigger primitives", true, 0.85*relSize8P[p], 42);
+        }
+      }
+    }
+    if (skipped < 6)
+      canvas8Panel->SaveAs(nameOutput.Data());
+  }
+  
   
 #endif

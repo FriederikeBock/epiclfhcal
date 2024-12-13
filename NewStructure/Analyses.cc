@@ -12,6 +12,7 @@
 #include "TileSpectra.h"
 #include "CommonHelperFunctions.h"
 #include "PlottHelper.h"
+#include "TRandom3.h"
 
 bool Analyses::CheckAndOpenIO(void){
   int matchingbranch;
@@ -961,7 +962,8 @@ bool Analyses::GetScaling(void){
   std::map<int,TileSpectra> hSpectra;
   std::map<int,TileSpectra> hSpectraTrigg;
   std::map<int, TileSpectra>::iterator ithSpectra;
-
+  std::map<int, TileSpectra>::iterator ithSpectraTrigg;
+  
   std::cout << "Additional Output with histos being created: " << RootOutputNameHist.Data() << std::endl;
   if(Overwrite){
     std::cout << "recreating file with hists" << std::endl;
@@ -993,7 +995,7 @@ bool Analyses::GetScaling(void){
       ithSpectra=hSpectra.find(aTile->GetCellID());
       double hgCorr = aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID());
       double lgCorr = aTile->GetADCLow()-calib.GetPedestalMeanL(aTile->GetCellID());
-      
+            
       if(ithSpectra!=hSpectra.end()){
         ithSpectra->second.FillSpectra(lgCorr,hgCorr);
         if (hgCorr > 3*calib.GetPedestalSigH(aTile->GetCellID()) && lgCorr > 3*calib.GetPedestalSigL(aTile->GetCellID()) && hgCorr < 3900 )
@@ -1009,7 +1011,7 @@ bool Analyses::GetScaling(void){
     }
     RootOutput->cd();
   }
-  TdataOut->Write();
+  // TdataOut->Write();
   TsetupIn->CloneTree()->Write();
   
   RootOutputHist->cd();
@@ -1022,6 +1024,9 @@ bool Analyses::GetScaling(void){
   TH1D* hMeanPedHGvsCellID      = new TH1D( "hMeanPedHG_vsCellID","mean Ped High Gain vs CellID ; cell ID; #mu_{noise, HG} (arb. units) ",
                                             setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
   hMeanPedHGvsCellID->SetDirectory(0);
+  TH1D* hMeanPedHG              = new TH1D( "hMeanPedHG","mean Ped High Gain ; #mu_{noise, HG} (arb. units); counts ",
+                                            500, -0.5, 500-0.5);
+  hMeanPedHG->SetDirectory(0);
   TH2D* hspectraHGMeanVsLayer   = new TH2D( "hspectraHGMeanVsLayer","Mean Ped High Gain; layer; brd channel; #mu_{Ped HG} (arb. units) ",
                                             setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hspectraHGMeanVsLayer->SetDirectory(0);
@@ -1031,6 +1036,9 @@ bool Analyses::GetScaling(void){
   TH1D* hMeanPedLGvsCellID      = new TH1D( "hMeanPedLG_vsCellID","mean Ped Low Gain vs CellID ; cell ID; #mu_{noise, LG} (arb. units) ",
                                             setup->GetMaxCellID()+1, -0.5, setup->GetMaxCellID()+1-0.5);
   hMeanPedLGvsCellID->SetDirectory(0);
+  TH1D* hMeanPedLG             = new TH1D( "hMeanPedLG","mean Ped Low Gain ; #mu_{noise, LG} (arb. units); counts ",
+                                            500, -0.5, 500-0.5);
+  hMeanPedLG->SetDirectory(0);
   TH2D* hspectraLGMeanVsLayer   = new TH2D( "hspectraLGMeanVsLayer","Mean Ped Low Gain; layer; brd channel; #mu_{PED LG} (arb. units) ",
                                             setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hspectraLGMeanVsLayer->SetDirectory(0);
@@ -1053,6 +1061,23 @@ bool Analyses::GetScaling(void){
   TH2D* hspectraHGGSigmaVsLayer1st = new TH2D( "hspectraHGGSigmaVsLayer_1st","Sigma Gauss High Gain; layer; brd channel; #sigma_{G,HG, 1^{st}} (arb. units) ",
                                             setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hspectraHGGSigmaVsLayer1st->SetDirectory(0);
+  TH2D* hLGHGCorrVsLayer = new TH2D( "hLGHGCorrVsLayer","LG-HG corr; layer; brd channel; a_{LG-HG} (arb. units) ",
+                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  hLGHGCorrVsLayer->SetDirectory(0);
+  TH2D* hHGLGCorrVsLayer = new TH2D( "hHGLGCorrVsLayer","HG-LG corr; layer; brd channel; a_{HG-LG} (arb. units) ",
+                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  hHGLGCorrVsLayer->SetDirectory(0);
+  
+  TH1D* hMaxHG1st             = new TH1D( "hMaxHG1st","Max High Gain ;Max_{HG, 1^{st}} (arb. units) ; counts ",
+                                            4000, -0.5, 4000-0.5);
+  hMaxHG1st->SetDirectory(0);
+  TH1D* hLGHGCorr             = new TH1D( "hLGHGCorr","LG-HG corr ; a_{LG-HG} (arb. units) ; counts ",
+                                            400, -20, 20);
+  hLGHGCorr->SetDirectory(0);
+  TH1D* hHGLGCorr             = new TH1D( "hHGLGCorr","LG-HG corr ; a_{HG-LG} (arb. units) ; counts ",
+                                            400, -1., 1.);
+  hHGLGCorr->SetDirectory(0);
+
   
   // fit pedestal
   double* parameters    = new double[6];
@@ -1067,16 +1092,18 @@ bool Analyses::GetScaling(void){
       parameters[p]   = 0;
       parErrAndRes[p] = 0;
     }
-    isGood=ithSpectra->second.FitMipHG(parameters, parErrAndRes, debug, false);
-    
-    long cellID = ithSpectra->second.GetCellID();
+    isGood        = ithSpectra->second.FitMipHG(parameters, parErrAndRes, debug, yearData, false);
+    long cellID   = ithSpectra->second.GetCellID();
     int layer     = setup->GetLayer(cellID);
     int chInLayer = setup->GetChannelInLayer(cellID);
     
     // fill cross-check histos
     hMeanPedHGvsCellID->SetBinContent(hMeanPedHGvsCellID->FindBin(cellID), calib.GetPedestalMeanH(cellID));
     hMeanPedLGvsCellID->SetBinContent(hMeanPedLGvsCellID->FindBin(cellID), calib.GetPedestalMeanL(cellID));
-    int bin2D = hspectraHGMeanVsLayer->FindBin(layer,chInLayer);
+    hMeanPedHG->Fill(calib.GetPedestalMeanH(cellID));
+    hMeanPedLG->Fill(calib.GetPedestalMeanL(cellID));
+    
+    int bin2D     = hspectraHGMeanVsLayer->FindBin(layer,chInLayer);
     hspectraHGMeanVsLayer->SetBinContent(bin2D, calib.GetPedestalMeanH(cellID));
     hspectraHGSigmaVsLayer->SetBinContent(bin2D, calib.GetPedestalSigH(cellID));
     hspectraLGMeanVsLayer->SetBinContent(bin2D, calib.GetPedestalMeanL(cellID));
@@ -1091,7 +1118,17 @@ bool Analyses::GetScaling(void){
       hspectraHGLSigmaVsLayer1st->SetBinError(bin2D, parErrAndRes[0]);
       hspectraHGGSigmaVsLayer1st->SetBinContent(bin2D, parameters[3]);
       hspectraHGGSigmaVsLayer1st->SetBinError(bin2D, parErrAndRes[3]);
+      
+      hMaxHG1st->Fill(parameters[4]);
     }
+    
+    isGood=ithSpectra->second.FitCorr(debug);
+    hLGHGCorrVsLayer->SetBinContent(bin2D,ithSpectra->second.GetCorrModel(0)->GetParameter(1));
+    hLGHGCorrVsLayer->SetBinError(bin2D,ithSpectra->second.GetCorrModel(0)->GetParError(1));
+    hHGLGCorrVsLayer->SetBinContent(bin2D,ithSpectra->second.GetCorrModel(1)->GetParameter(1));
+    hHGLGCorrVsLayer->SetBinError(bin2D,ithSpectra->second.GetCorrModel(1)->GetParError(1));    
+    hLGHGCorr->Fill(ithSpectra->second.GetCorrModel(0)->GetParameter(1));
+    hHGLGCorr->Fill(ithSpectra->second.GetCorrModel(1)->GetParameter(1));
   }
 
   TH1D* hHGTileSum[20];
@@ -1100,7 +1137,16 @@ bool Analyses::GetScaling(void){
                               4000, -0.5, 4000-0.5);
     hHGTileSum[c]->SetDirectory(0);
   }
-
+  
+  // setup trigger sel
+  TRandom3* rand    = new TRandom3();
+  Int_t localTriggerTiles = 4;
+  double factorMinTrigg   = 0.9;
+  double factorMaxTrigg   = 3.;
+  if (yearData == 2023){
+    localTriggerTiles = 6;
+    factorMaxTrigg    = 2.;
+  }
   RootOutputHist->mkdir("IndividualCellsTrigg");
   RootOutputHist->cd("IndividualCellsTrigg");  
   //***********************************************************************************************
@@ -1117,29 +1163,31 @@ bool Analyses::GetScaling(void){
       long currCellID = aTile->GetCellID();
       
       // read current tile
-      ithSpectra=hSpectraTrigg.find(aTile->GetCellID());
+      ithSpectraTrigg=hSpectraTrigg.find(aTile->GetCellID());
       double hgCorr = aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID());
       double lgCorr = aTile->GetADCLow()-calib.GetPedestalMeanL(aTile->GetCellID());
 
+      aTile->SetLocalTriggerPrimitive(event.CalculateLocalMuonTrigg(setup, calib, rand, currCellID, localTriggerTiles));
       // estimate local muon trigger
-      double avsurr = 0;
-      bool localMuonTrigg = event.InspectIfLocalMuonTrigg(setup,calib,avsurr,currCellID,averageScale,0.9,3.,4);
+      bool localMuonTrigg = event.InspectIfLocalMuonTrigg(currCellID, averageScale, factorMinTrigg, factorMaxTrigg);
       int chInLayer = setup->GetChannelInLayer(currCellID);    
-      hHGTileSum[chInLayer]->Fill(avsurr);
+      hHGTileSum[chInLayer]->Fill(aTile->GetLocalTriggerPrimitive());
+      
+      if(ithSpectraTrigg!=hSpectraTrigg.end()){
+        ithSpectraTrigg->second.FillTrigger(aTile->GetLocalTriggerPrimitive());
+      } else {
+        RootOutputHist->cd("IndividualCellsTrigg");
+        hSpectraTrigg[currCellID]=TileSpectra("mipTrigg",currCellID,calib.GetTileCalib(currCellID),debug);
+        hSpectraTrigg[currCellID].FillTrigger(aTile->GetLocalTriggerPrimitive());;
+        RootOutput->cd();
+      }
+     
       // only fill tile spectra if 4 surrounding tiles on average are compatible with muon response
       if (localMuonTrigg){
-        if(ithSpectra!=hSpectraTrigg.end()){
-          ithSpectra->second.FillSpectra(lgCorr,hgCorr);
-          if (hgCorr > 3*calib.GetPedestalSigH(currCellID) && lgCorr > 3*calib.GetPedestalSigL(currCellID) && hgCorr < 3900 )
-            ithSpectra->second.FillCorr(lgCorr,hgCorr);
-        } else {
-          RootOutputHist->cd("IndividualCellsTrigg");
-          hSpectraTrigg[currCellID]=TileSpectra("mipTrigg",currCellID,calib.GetTileCalib(currCellID),debug);
-          hSpectraTrigg[currCellID].FillSpectra(lgCorr,hgCorr);;
-          if (hgCorr > 3*calib.GetPedestalSigH(currCellID) && lgCorr > 3*calib.GetPedestalSigL(currCellID && hgCorr < 3900) )
-            hSpectraTrigg[currCellID].FillCorr(lgCorr,hgCorr);;
-          RootOutput->cd();
-        }
+        ithSpectraTrigg=hSpectraTrigg.find(aTile->GetCellID());
+        ithSpectraTrigg->second.FillSpectra(lgCorr,hgCorr);
+        if (hgCorr > 3*calib.GetPedestalSigH(currCellID) && lgCorr > 3*calib.GetPedestalSigL(currCellID) && hgCorr < 3900 )
+          ithSpectraTrigg->second.FillCorr(lgCorr,hgCorr);
       }
     }
     RootOutput->cd();
@@ -1151,10 +1199,19 @@ bool Analyses::GetScaling(void){
   //***** Monitoring histos for fits results of 2nd iteration ******************
   //***********************************************************************************************
   RootOutputHist->cd();
-  // monitoring 2nd iteration mip fits
+  
+  // monitoring trigger 
   TH2D* hmipTriggers              = new TH2D( "hmipTriggers","muon triggers; layer; brd channel; counts ",
                                             setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hmipTriggers->SetDirectory(0);
+  TH2D* hSuppresionNoise          = new TH2D( "hSuppresionNoise","S/B noise region; layer; brd channel; S/B noise region",
+                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  hSuppresionNoise->SetDirectory(0);
+  TH2D* hSuppresionSignal         = new TH2D( "hSuppresionSignal","S/B signal region; layer; brd channel; S/B signal region",
+                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
+  hSuppresionSignal->SetDirectory(0);
+
+  // monitoring 2nd iteration mip fits
   TH2D* hspectraHGMaxVsLayer2nd   = new TH2D( "hspectraHGMaxVsLayer_2nd","Max High Gain; layer; brd channel; Max_{HG, 2^{nd}} (arb. units) ",
                                             setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hspectraHGMaxVsLayer2nd->SetDirectory(0);
@@ -1185,15 +1242,8 @@ bool Analyses::GetScaling(void){
   TH2D* hspectraLGGSigmaVsLayer2nd = new TH2D( "hspectraLGGSigmaVsLayer_2nd","Sigma Gauss High Gain; layer; brd channel; #sigma_{G,LG, 2^{nd}} (arb. units) ",
                                             setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
   hspectraLGGSigmaVsLayer2nd->SetDirectory(0);
-  TH2D* hLGHGCorrVsLayer2nd = new TH2D( "hLGHGCorrVsLayer2nd","LG-HG corr; layer; brd channel; a_{LG-HG} (arb. units) ",
-                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
-  hLGHGCorrVsLayer2nd->SetDirectory(0);
-  TH2D* hHGLGCorrVsLayer2nd = new TH2D( "hHGLGCorrVsLayer2nd","HG-LG corr; layer; brd channel; a_{HG-LG} (arb. units) ",
-                                            setup->GetNMaxLayer()+1, -0.5, setup->GetNMaxLayer()+1-0.5, maxChannelPerLayer, -0.5, maxChannelPerLayer-0.5);
-  hHGLGCorrVsLayer2nd->SetDirectory(0);
-
   currCells = 0;
-  for(ithSpectra=hSpectraTrigg.begin(); ithSpectra!=hSpectraTrigg.end(); ++ithSpectra){
+  for(ithSpectraTrigg=hSpectraTrigg.begin(); ithSpectraTrigg!=hSpectraTrigg.end(); ++ithSpectraTrigg){
     if (currCells%20 == 0 && currCells > 0 && debug > 0)
       std::cout << "============================== cell " <<  currCells << " / " << hSpectraTrigg.size() << " cells" << std::endl;
     currCells++;
@@ -1201,14 +1251,30 @@ bool Analyses::GetScaling(void){
       parameters[p]   = 0;
       parErrAndRes[p] = 0;
     }
-    isGood=ithSpectra->second.FitMipHG(parameters, parErrAndRes, debug, false);
+    isGood=ithSpectraTrigg->second.FitMipHG(parameters, parErrAndRes, debug, yearData, false);
     
-    long cellID = ithSpectra->second.GetCellID();
-    int layer     = setup->GetLayer(cellID);
-    int chInLayer = setup->GetChannelInLayer(cellID);    
-    int bin2D = hspectraHGMeanVsLayer->FindBin(layer,chInLayer);
+    long cellID     = ithSpectraTrigg->second.GetCellID();
+    int layer       = setup->GetLayer(cellID);
+    int chInLayer   = setup->GetChannelInLayer(cellID);    
+    int bin2D       = hspectraHGMeanVsLayer->FindBin(layer,chInLayer);
 
-    hmipTriggers->SetBinContent(bin2D, ithSpectra->second.GetHG()->GetEntries());
+    Int_t binNLow   = ithSpectraTrigg->second.GetHG()->FindBin(calib.GetPedestalMeanH(cellID) - calib.GetPedestalSigH(cellID));
+    Int_t binNHigh  = ithSpectraTrigg->second.GetHG()->FindBin(calib.GetPedestalMeanH(cellID) + 3* calib.GetPedestalSigH(cellID));
+    Int_t binSHigh  = ithSpectraTrigg->second.GetHG()->FindBin(3800);
+    
+    double S_NoiseR = ithSpectraTrigg->second.GetHG()->Integral(binNLow, binNHigh);
+    double S_SigR   = ithSpectraTrigg->second.GetHG()->Integral(binNHigh, binSHigh);
+    
+    ithSpectra      = hSpectra.find(cellID);
+    double B_NoiseR = ithSpectra->second.GetHG()->Integral(binNLow , binNHigh);
+    double B_SigR   = ithSpectra->second.GetHG()->Integral(binNHigh, binSHigh);
+    
+    double SB_NoiseR  = (B_NoiseR != 0.) ? S_NoiseR/B_NoiseR : 0;
+    double SB_SigR    = (B_SigR != 0.) ? S_SigR/B_SigR : 0;
+    
+    hmipTriggers->SetBinContent(bin2D, ithSpectraTrigg->second.GetHG()->GetEntries());
+    hSuppresionNoise->SetBinContent(bin2D, SB_NoiseR);
+    hSuppresionSignal->SetBinContent(bin2D, SB_SigR);
     if (isGood){
       hspectraHGMaxVsLayer2nd->SetBinContent(bin2D, parameters[4]);
       hspectraHGFWHMVsLayer2nd->SetBinContent(bin2D, parameters[5]);
@@ -1223,7 +1289,7 @@ bool Analyses::GetScaling(void){
       parameters[p]   = 0;
       parErrAndRes[p] = 0;
     }
-    isGood=ithSpectra->second.FitMipLG(parameters, parErrAndRes, debug, false);
+    isGood=ithSpectraTrigg->second.FitMipLG(parameters, parErrAndRes, debug, yearData, false);
     if (isGood){
       hspectraLGMaxVsLayer2nd->SetBinContent(bin2D, parameters[4]);
       hspectraLGFWHMVsLayer2nd->SetBinContent(bin2D, parameters[5]);
@@ -1234,11 +1300,6 @@ bool Analyses::GetScaling(void){
       hspectraLGGSigmaVsLayer2nd->SetBinContent(bin2D, parameters[3]);
       hspectraLGGSigmaVsLayer2nd->SetBinError(bin2D, parErrAndRes[3]);
     }
-    isGood=ithSpectra->second.FitCorr(debug);
-    hLGHGCorrVsLayer2nd->SetBinContent(bin2D,ithSpectra->second.GetCorrModel(0)->GetParameter(1));
-    hLGHGCorrVsLayer2nd->SetBinError(bin2D,ithSpectra->second.GetCorrModel(0)->GetParError(1));
-    hHGLGCorrVsLayer2nd->SetBinContent(bin2D,ithSpectra->second.GetCorrModel(1)->GetParameter(1));
-    hHGLGCorrVsLayer2nd->SetBinError(bin2D,ithSpectra->second.GetCorrModel(1)->GetParError(1));
   }
   
   RootOutput->cd();
@@ -1279,8 +1340,11 @@ bool Analyses::GetScaling(void){
     hspectraLGLMPVVsLayer2nd->Write();
     hspectraLGLSigmaVsLayer2nd->Write();
     hspectraLGGSigmaVsLayer2nd->Write();
-    hLGHGCorrVsLayer2nd->Write();
-    hHGLGCorrVsLayer2nd->Write();
+    hLGHGCorrVsLayer->Write();
+    hHGLGCorrVsLayer->Write();
+    hmipTriggers->Write();
+    hSuppresionNoise->Write();
+    hSuppresionSignal->Write();
   // fill calib tree & write it
   // close open root files
   RootOutputHist->Write();
@@ -1319,7 +1383,9 @@ bool Analyses::GetScaling(void){
   PlotSimple2D( canvas2DCorr, hspectraHGLSigmaVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/HG_LandSigMip_2nd.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
   PlotSimple2D( canvas2DCorr, hspectraHGGSigmaVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/HG_GaussSigMip_2nd.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
   canvas2DCorr->SetLogz(1);
-  PlotSimple2D( canvas2DCorr, hmipTriggers, -10000, -10000, textSizeRel, Form("%s/MuonTriggers.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
+  PlotSimple2D( canvas2DCorr, hmipTriggers, -10000, -10000, textSizeRel, Form("%s/MuonTriggers.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz,text");
+  PlotSimple2D( canvas2DCorr, hSuppresionNoise, -10000, -10000, textSizeRel, Form("%s/SuppressionNoise.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz,text");
+  PlotSimple2D( canvas2DCorr, hSuppresionSignal, -10000, -10000, textSizeRel, Form("%s/SuppressionSignal.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz,text");
   
   canvas2DCorr->SetLogz(0);
   PlotSimple2D( canvas2DCorr, hspectraLGMeanVsLayer, -10000, -10000, textSizeRel, Form("%s/LG_NoiseMean.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
@@ -1330,8 +1396,8 @@ bool Analyses::GetScaling(void){
   PlotSimple2D( canvas2DCorr, hspectraLGLSigmaVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/LG_LandSigMip_2nd.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
   PlotSimple2D( canvas2DCorr, hspectraLGGSigmaVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/LG_GaussSigMip_2nd.pdf", outputDirPlots.Data()), it->second, 1, kFALSE, "colz");
 
-  PlotSimple2D( canvas2DCorr, hLGHGCorrVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/LG_HG_Corr_2nd.pdf", outputDirPlots.Data()), it->second, 1, kTRUE, "colz");
-  PlotSimple2D( canvas2DCorr, hHGLGCorrVsLayer2nd, -10000, -10000, textSizeRel, Form("%s/HG_LG_Corr_2nd.pdf", outputDirPlots.Data()), it->second, 1, kTRUE, "colz");
+  PlotSimple2D( canvas2DCorr, hLGHGCorrVsLayer, -10000, -10000, textSizeRel, Form("%s/LG_HG_Corr.pdf", outputDirPlots.Data()), it->second, 1, kTRUE, "colz");
+  PlotSimple2D( canvas2DCorr, hHGLGCorrVsLayer, -10000, -10000, textSizeRel, Form("%s/HG_LG_Corr.pdf", outputDirPlots.Data()), it->second, 1, kTRUE, "colz");
   //***********************************************************************************************************
   //********************************* 8 Panel overview plot  **************************************************
   //***********************************************************************************************************
@@ -1368,11 +1434,14 @@ bool Analyses::GetScaling(void){
     PlotMipWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
                               hSpectra, hSpectraTrigg, setup, false, -100, 500, 1.2, l, 0,
                               Form("%s/MIP_LG_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
+    PlotTriggerPrimWithFitsFullLayer (canvas8Panel,pad8Panel, topRCornerX, topRCornerY, relSize8P, textSizePixel, 
+                                      hSpectraTrigg, setup, averageScale, factorMinTrigg, factorMaxTrigg,
+                                      0, 4000, 1.2, l, 0, Form("%s/TriggPrimitive_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
     PlotCorrWithFitsFullLayer(canvas8PanelProf,pad8PanelProf, topRCornerXProf, topRCornerYProf, relSize8PProf, textSizePixel, 
-                              hSpectraTrigg, setup, false, -100, 800, 1.2, l, 0,
+                              hSpectra, setup, false, -100, 800, 1.2, l, 0,
                               Form("%s/LGHG_Corr_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
     PlotCorrWithFitsFullLayer(canvas8PanelProf,pad8PanelProf, topRCornerXProf, topRCornerYProf, relSize8PProf, textSizePixel, 
-                              hSpectraTrigg, setup, true, -100, 4000, 1.2, l, 0,
+                              hSpectra, setup, true, -100, 4000, 1.2, l, 0,
                               Form("%s/HGLG_Corr_Layer%02d.pdf" ,outputDirPlots.Data(), l), it->second);
   }
 

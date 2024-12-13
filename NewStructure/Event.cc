@@ -131,15 +131,27 @@ void Event::SetBeginRunTime(TTimeStamp t){
   BeginRun=t;
 }
 
-bool Event::InspectIfLocalMuonTrigg( Setup* setup, 
-                                     Calib calib, 
-                                     double &avsurr, 
-                                     int currTileID, 
+bool Event::InspectIfLocalMuonTrigg( int currTileID, 
                                      double averageScale,
                                      double minThrSc = 0.9, 
-                                     double maxThrSc = 3,  
-                                     int nTiles = 4 
+                                     double maxThrSc = 3
                                     ){
+  
+  double trPrim = ((Caen*)GetTileFromID(currTileID))->GetLocalTriggerPrimitive();
+  // evaluate stored trigger primitive
+  if (trPrim >  averageScale*minThrSc && trPrim < maxThrSc*averageScale)
+    return true;
+  else 
+    return false;
+    
+}
+
+double Event::CalculateLocalMuonTrigg(  Setup* setup, 
+                                        Calib calib, 
+                                        TRandom3* rand,
+                                        int currTileID, 
+                                        int nTiles = 4 
+                                      ){
   
   // figure out surrounding tiles for local mip selection
   long ids[6]  = {-1, -1, -1, -1, -1, -1};
@@ -239,17 +251,26 @@ bool Event::InspectIfLocalMuonTrigg( Setup* setup,
     }
   }
   // calculate average sum of surrounding tiles (nominally 2 in the front + 2 in the back)
-  avsurr = 0;
+  double avsurr = 0;
+  Int_t activeTiles = nTiles;
   for (Int_t t = 0; t < nTiles; t++){
-    double tmpHG = ((Caen*)GetTileFromID(ids[t]))->GetADCHigh()-calib.GetPedestalMeanH(ids[t]); //needs protection
-    if (tmpHG > 3*calib.GetPedestalSigH(ids[t]))
-      avsurr +=tmpHG;
+    if ((Caen*)GetTileFromID(ids[t]) == nullptr){
+      activeTiles--;
+      continue;
+    }
+    double tmpGain  = 0;
+    double scale    = calib.GetScaleLGHGCorr(ids[t]);
+    // calculating combined gain
+    if (((Caen*)GetTileFromID(ids[t]))->GetADCHigh() < 3800)
+      tmpGain = ((Caen*)GetTileFromID(ids[t]))->GetADCHigh()-calib.GetPedestalMeanH(ids[t]); 
+    else 
+      tmpGain = (((Caen*)GetTileFromID(ids[t]))->GetADCLow()-calib.GetPedestalMeanL(ids[t]))*scale + rand->Rndm()*scale;
+      
+    if (tmpGain > 3*calib.GetPedestalSigH(ids[t]))
+      avsurr +=tmpGain;
   }
-  avsurr        = avsurr/nTiles;
-
-  if (avsurr >  averageScale*minThrSc && avsurr < maxThrSc*averageScale)
-    return true;
-  else 
-    return false;
-    
+  if (activeTiles > 1)
+    avsurr        = avsurr/activeTiles;
+  return avsurr;
 }
+

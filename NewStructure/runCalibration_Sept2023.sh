@@ -57,6 +57,19 @@ if [ $2 = "pedestal" ]; then
     ./Analyse -d 1 -y 2023 -p -i $dataDirRaw/raw_$runNr.root -f -o $dataDirOut/PedestalCalib_$runNr.root -O ../PlotsCalib_Sept2023/Run$runNr -r ../configs/DataTakingDB_TBSept2023_SPSH4.csv
   done;
 
+elif [ $2 = "muoncalib" ]; then
+
+  dataDirOut=$baseDir/Calibrations
+  dataDirRaw=$baseDir/pionsEnergyScan
+#     pedestalRuns='47 48 50 51 52 53 54 74 75 76 77 78 79 80 81 82 142 143 144 145 146 147 148 149' 
+  runs='47' 
+  for runNr in $runs; do
+    if [ $3 == "transfer" ]; then 
+      ./Analyse -d 1 -y 2023 -f -P $dataDirOut/PedestalCalib_$runNr.root -i $dataDirRaw/raw_$runNr.root -o $dataDirRaw/rawPed_$runNr.root -r ../configs/DataTakingDB_TBSept2023_SPSH4.csv
+    fi
+    ./Analyse -f -d 1 -y 2023 -s -i $dataDirRaw/rawPed_$runNr.root -o $dataDirOut/rawPedAndMuon_$runNr.root -O ../PlotsCalibMuon_2023/$runNr -r ../configs/DataTakingDB_TBSept2023_SPSH4.csv
+  done
+  
 fi
 
 
