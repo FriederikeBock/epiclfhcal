@@ -1338,8 +1338,13 @@
         SetStyleTLatex( labelChannel, 0.85*textSizePixel,4,1,43,kTRUE,31);
         labelChannel->Draw();  
       
-        DrawLines(avMip*facLow, avMip*facLow,0.7, scaleYMax*maxY*0.1, 1, 1, 7);
-        DrawLines(avMip*facHigh, avMip*facHigh,0.7, scaleYMax*maxY*0.1, 1, 1, 7);
+        TBox* triggArea =  CreateBox(kBlue-8, avMip*facLow, 0.7, avMip*facHigh,scaleYMax*maxY, 1001 );
+        triggArea->Draw();
+        
+        DrawLines(avMip*facLow, avMip*facLow,0.7, scaleYMax*maxY, 1, 1, 7);
+        DrawLines(avMip*facHigh, avMip*facHigh,0.7, scaleYMax*maxY, 1, 1, 7);
+        tempHist->Draw("same,axis");
+        tempHist->Draw("same,pe");
         
         if (p ==7 ){
           DrawLatex(topRCornerX[p]-0.045, topRCornerY[p]-2.*relSize8P[p], GetStringFromRunInfo(currRunInfo, 2), true, 0.85*relSize8P[p], 42);

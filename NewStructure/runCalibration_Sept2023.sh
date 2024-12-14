@@ -67,7 +67,12 @@ elif [ $2 = "muoncalib" ]; then
     if [ $3 == "transfer" ]; then 
       ./Analyse -d 1 -y 2023 -f -P $dataDirOut/PedestalCalib_$runNr.root -i $dataDirRaw/raw_$runNr.root -o $dataDirRaw/rawPed_$runNr.root -r ../configs/DataTakingDB_TBSept2023_SPSH4.csv
     fi
-    ./Analyse -f -d 1 -y 2023 -s -i $dataDirRaw/rawPed_$runNr.root -o $dataDirOut/rawPedAndMuon_$runNr.root -O ../PlotsCalibMuon_2023/$runNr -r ../configs/DataTakingDB_TBSept2023_SPSH4.csv
+    if [ $3 == "default" ]; then 
+      ./Analyse -f -d 1 -y 2023 -s -i $dataDirRaw/rawPed_$runNr.root -o $dataDirOut/rawPedAndMuon_$runNr.root -O ../PlotsCalibMuon_2023/$runNr -r ../configs/DataTakingDB_TBSept2023_SPSH4.csv
+    else 
+#       ./Analyse -f -d 1 -y 2023 -S -i $dataDirOut/rawPedAndMuon_$runNr.root -o $dataDirOut/rawPedAndMuonImp_$runNr.root -O ../PlotsCalibMuonImproved_2023/$runNr -r ../configs/DataTakingDB_TBSept2023_SPSH4.csv
+      ./Analyse -f -d 1 -y 2023 -S -i $dataDirOut/rawPedAndMuonImp_$runNr.root -o $dataDirOut/rawPedAndMuonImp2_$runNr.root -O ../PlotsCalibMuonImproved2_2023/$runNr -r ../configs/DataTakingDB_TBSept2023_SPSH4.csv
+    fi
   done
   
 fi

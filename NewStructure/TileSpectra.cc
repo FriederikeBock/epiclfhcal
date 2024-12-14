@@ -102,7 +102,7 @@ bool TileSpectra::FitNoise(double* out, int year = -1){        //[0] LG mean, [2
   return true;
 }
 
-bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, int year, bool impE = false){
+bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, int year, bool impE = false, double avmip = 1){
   
   // Once again, here are the Landau * Gaussian parameters:
   //   par[0]=Width (scale) parameter of Landau density
@@ -115,8 +115,14 @@ bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, int year,
   
   
   double fitrange[2]      = {50, 2000};
-  if (year == 2023)
+  if (impE){
+    fitrange[0] = 0.5*avmip;
+    fitrange[1] = 4*avmip;
+  }
+  if (year == 2023 && fitrange[0] < 200)
     fitrange[0] = 200;
+  
+  
   double intArea    = hspectraHG.Integral(hspectraHG.FindBin(fitrange[0]),hspectraHG.FindBin(fitrange[1]));
   double intNoise   = hspectraHG.Integral(hspectraHG.FindBin(-2*calib->PedestalSigH),hspectraHG.FindBin(+2*calib->PedestalSigH));
   
@@ -134,6 +140,7 @@ bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, int year,
     parlimitshi[0]  = 1000;
     parlimitshi[1]  = 1500;
   }
+  
   
   SignalHG = TF1(funcName.Data(),langaufun,fitrange[0],fitrange[1],4);
   SignalHG.SetParameters(startvalues);
@@ -178,7 +185,7 @@ bool TileSpectra::FitMipHG(double* out, double* outErr, int verbosity, int year,
 }
 
 
-bool TileSpectra::FitMipLG(double* out, double* outErr, int verbosity, int year, bool impE = false){
+bool TileSpectra::FitMipLG(double* out, double* outErr, int verbosity, int year, bool impE = false, double avmip = 1){
   
   // Once again, here are the Landau * Gaussian parameters:
   //   par[0]=Width (scale) parameter of Landau density
@@ -189,8 +196,12 @@ bool TileSpectra::FitMipLG(double* out, double* outErr, int verbosity, int year,
 
   TString funcName = Form("fmip%sLGCellID%d",TileName.Data(),cellID);
   
-  
   double fitrange[2]      = {0, 500};
+  if (impE){
+    fitrange[0] = 0.5*avmip;
+    fitrange[1] = 4*avmip;
+  }
+
   double intArea    = hspectraLG.Integral(hspectraLG.FindBin(fitrange[0]),hspectraLG.FindBin(fitrange[1]));
   double intNoise   = hspectraLG.Integral(hspectraLG.FindBin(-2*calib->PedestalSigL),hspectraLG.FindBin(+2*calib->PedestalSigL));
   
@@ -256,7 +267,7 @@ bool TileSpectra::FitCorr(int verbosity){
   calib->LGHGCorr = LGHGcorr.GetParameter(1);
   
   funcName = Form("fcorr%sHGLGCellID%d",TileName.Data(),cellID);
-  HGLGcorr =  TF1(funcName.Data(),"pol1",150,3500);
+  HGLGcorr =  TF1(funcName.Data(),"pol1",350,3500);
   HGLGcorr.SetParameter(0,0.);
   HGLGcorr.SetParameter(1,0.1);
   HGLGcorr.SetParLimits(1,0.,1.);

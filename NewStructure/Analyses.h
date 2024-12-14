@@ -49,7 +49,7 @@ class Analyses{
   inline bool IsToConvert(void)                 const {return Convert;};
   inline bool IsToExtractPedestal(void)         const {return ExtractPedestal;};
   inline bool IsToExtractScaling(void)          const {return ExtractScaling;};
-
+  inline bool IsToExtractScalingImproved(void)  const {return ExtractScalingImproved;};
   
   //setter methods
   //Overload method for boolean...or is it too dangerous?
@@ -59,8 +59,8 @@ class Analyses{
   inline void IsToConvert(bool b)                {Convert=b;};
   inline void IsToExtractPedestal(bool b)        {ExtractPedestal=b;};
   inline void IsToExtractScaling(bool b)         {ExtractScaling=b;};
+  inline void IsToExtractScalingImproved(bool b) {ExtractScalingImproved=b;};
   inline void EnableDebug(int i)                 {debug=i;};
-  
   
   inline void SetYear(int year)                  {yearData=year;};
   inline void SetASCIIinput(TString name)        {ASCIIinputName=name;};
@@ -100,6 +100,7 @@ class Analyses{
   bool Convert                =false;     // Flag for data conversion 
   bool ExtractPedestal        =false;     // Flag for pedestal extraction
   bool ExtractScaling         =false;     // Flag for mip scaling extraction
+  bool ExtractScalingImproved =false;     // Flag for mip scaling extraction 2nd pass
   bool ApplyPedestalCorrection=false;     // Flag for application of pedestals
   bool ApplyCalibration       =false;     // Flag for aplication of calibration
   bool Overwrite              =false;     // Flag to overwrite outputs
@@ -129,6 +130,7 @@ class Analyses{
   bool GetPedestal(void);
   bool CorrectPedestal(void);
   bool GetScaling(void);
+  bool GetImprovedScaling(void);
   bool Calibrate(void);
 };
 

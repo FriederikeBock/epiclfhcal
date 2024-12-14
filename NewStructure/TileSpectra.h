@@ -46,8 +46,8 @@ class TileSpectra: public TObject{
   bool FillTrigger(double);
   
   bool FitNoise(double*, int);
-  bool FitMipHG(double*, double*, int, int, bool );
-  bool FitMipLG(double*, double*, int, int, bool );
+  bool FitMipHG(double*, double*, int, int, bool, double );
+  bool FitMipLG(double*, double*, int, int, bool, double );
   bool FitCorr(int);
   bool FitNoiseWithBG(double*);
 

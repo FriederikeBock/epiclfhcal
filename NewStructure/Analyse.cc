@@ -45,6 +45,7 @@ void PrintHelp(char* exe){
   std::cout<<exe<<" -c input.txt -o output.root (Convert ASCII to root)"<<std::endl;
   std::cout<<exe<<" -p (-f) -o OutputWithExtractedPedestal.root -i input.root (-f to overwrite existing output)"<<std::endl;
   std::cout<<exe<<" -s (-f) -o OutputWithMIPscaling.root -i input.root (-f to overwrite existing output)"<<std::endl;
+  std::cout<<exe<<" -S (-f) -o OutputWithMIPscaling.root -i input.root (-f to overwrite existing output)"<<std::endl;
   std::cout<<exe<<" -s (-f) -o OutputWithMIPscaling.root -P PedestalInput.root -i RawInput.root (-f to overwrite existing output)"<<std::endl;
   std::cout<<exe<<" -C Calibration.root (-f) -o CalibratedOutput.root -i Input.root (-f to overwrite existing output)"<<std::endl;
 }
@@ -57,7 +58,7 @@ int main(int argc, char* argv[]){
   }
   Analyses AnAnalysis;
   int c;
-  while((c=getopt(argc,argv,"c:psP:C:fo:O:m:d:i:y:r:h"))!=-1){
+  while((c=getopt(argc,argv,"c:psP:SC:fo:O:m:d:i:y:r:h"))!=-1){
     switch(c){
     case 'c':
       std::cout<<"Convert ASCII input '"<<optarg<<"' to root format"<<std::endl;
@@ -76,6 +77,10 @@ int main(int argc, char* argv[]){
       std::cout<<"Apply pedestal correction from: "<<optarg<<std::endl;
       AnAnalysis.SetRootPedestalInput(Form("%s",optarg));
       AnAnalysis.IsToApplyPedestalCorrection(true);
+      break;
+    case 'S':
+      std::cout<<"Extract scaling improved from 2nd iteration"<<std::endl;
+      AnAnalysis.IsToExtractScalingImproved(true);
       break;
     case 'C':
       std::cout<<"Apply calibration (pedestal correction and scaling factor) from: "<<optarg<<std::endl;
