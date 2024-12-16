@@ -62,10 +62,24 @@ void Event::AddTile(Tile* t){
   if(it!=Tiles.end()){
     delete it->second;
     it->second=t;
+    std::cerr<<"What the hell am I doing here?, Or did I ClearTiles before ?"<<std::endl;
   }
   else{
     Tiles[id]=t;
     TileIDs.push_back(id);
+  }
+}
+
+void Event::RemoveTile(Tile* t){
+  int id=t->GetCellID();
+  std::map<int, Tile*>::iterator it=Tiles.find(id);
+  if(it!=Tiles.end()){
+    delete it->second;
+    Tiles.erase(it);
+    TileIDs.erase(std::find(TileIDs.begin(),TileIDs.end(),id));
+  }
+  else{
+    std::cerr<<"Tile does not belong to the stack in this event, dunno what went wrong"<<std::endl;
   }
 }
 

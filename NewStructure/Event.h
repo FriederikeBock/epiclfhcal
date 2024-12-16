@@ -16,6 +16,7 @@ class Event{
  public:
 
   void    AddTile      (Tile*);
+  void    RemoveTile   (Tile*);
   void    ClearTiles   (void);
   
   double  GetBeamEnergy(void) const;

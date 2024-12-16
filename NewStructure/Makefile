@@ -57,7 +57,7 @@ Compare.o: Compare.cc
 
 ComparisonCalib.o: ComparisonCalib.cc ComparisonCalib.h PlottHelper.h CommonHelperFunctions.h
 	$(CXX) $(FLAGS) -I. -c ComparisonCalib.cc -o ComparisonCalib.o
-	
+
 #Analyse: Event.o Setup.o RootSetupWrapper.o Calib.o RootCalibWrapper.o Tile.o HGCROC.o Caen.o libLFHCAL.so Analyse.o Analyses.o
 #	$(CXX) Event.o Calib.o Setup.o RootSetupWrapper.o RootCalibWrapper.o Tile.o HGCROC.o Caen.o Analyses.o Analyse.o $(FLAGS) -I. libLFHCAL.so -o Analyse
 
@@ -66,11 +66,11 @@ Analyse: Event.o Setup.o RootSetupWrapper.o Calib.o Tile.o HGCROC.o Caen.o  Tile
 
 Compare: Event.o Setup.o RootSetupWrapper.o Calib.o Tile.o HGCROC.o Caen.o  TileSpectra.o libLFHCAL.so Compare.o ComparisonCalib.o
 	$(CXX) Event.o Calib.o Setup.o RootSetupWrapper.o Tile.o HGCROC.o Caen.o TileSpectra.o ComparisonCalib.o Compare.o $(FLAGS) -I. libLFHCAL.so -o Compare
-	
+
 clean:
-	rm *.o Cint* *.so ./Analyse ./Compare
+	rm -f *.o Cint.cxx Cint_* *.so ./Analyse ./Compare
 
 cleanLib:
-	rm *.so Cint*
+	rm -f *.so Cint*
 
 default: Analyse

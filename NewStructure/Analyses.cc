@@ -1836,12 +1836,18 @@ bool Analyses::Calibrate(void){
       Caen* aTile=(Caen*)event.GetTile(j);
       double energy=0;
       if(aTile->GetADCHigh()<3800){
-        energy=(aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID()))/calib.GetScaleHigh(aTile->GetCellID());
+	if(aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID())>calib.GetPedestalMeanH(aTile->GetCellID())){
+	  energy=(aTile->GetADCHigh()-calib.GetPedestalMeanH(aTile->GetCellID()))/calib.GetScaleHigh(aTile->GetCellID());
+	}
       }
       else{
         energy=(aTile->GetADCLow()-calib.GetPedestalMeanL(aTile->GetCellID()))/calib.GetScaleLow(aTile->GetCellID());
       }
-      aTile->SetE(energy);
+      if(energy!=0) aTile->SetE(energy);
+      else {
+	event.RemoveTile(aTile);
+	j--;
+      }
     }
     RootOutput->cd();
     TdataOut->Fill();
